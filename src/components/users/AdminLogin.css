@@ -1,0 +1,100 @@
+/* General container styling */
+.admin-login-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Page title */
+  .admin-login-container h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #333;
+  }
+  
+  /* Input fields */
+  .admin-login-container input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  /* Buttons */
+  .admin-login-container button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .admin-login-container button:hover {
+    background-color: #45a049;
+  }
+  
+  /* Cancel button */
+  .admin-login-container button:last-of-type {
+    background-color: #f44336;
+  }
+  
+  .admin-login-container button:last-of-type:hover {
+    background-color: #d32f2f;
+  }
+  
+  /* Logout button styling */
+  .admin-login-container button[style] {
+    background-color: #008CBA;
+  }
+  
+  .admin-login-container button[style]:hover {
+    background-color: #007bb5;
+  }
+  
+  /* Error and message alerts */
+  .admin-login-container .error-message {
+    color: red;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  
+  .admin-login-container .success-message {
+    color: green;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  
+  /* Responsive Design */
+  @media screen and (max-width: 480px) {
+    .admin-login-container {
+      max-width: 100%;
+      margin: 20px;
+      padding: 15px;
+    }
+  
+    .admin-login-container h1 {
+      font-size: 20px;
+    }
+  
+    .admin-login-container input,
+    .admin-login-container button {
+      font-size: 14px;
+      padding: 8px;
+    }
+  }
+  

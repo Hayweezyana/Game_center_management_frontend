@@ -1,0 +1,79 @@
+/* General container styling */
+.pc-status-container {
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  
+  /* Title styling */
+  .pc-status-title {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 15px;
+  }
+  
+  /* List styling */
+  .pc-status-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  /* List item styling */
+  .pc-status-item {
+    font-size: 18px;
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+    color: #444;
+  }
+  
+  /* Dynamic status styling */
+  .pc-status-item span {
+    font-weight: bold;
+    text-transform: capitalize;
+  }
+  
+  .pc-status-item.busy span {
+    color: red;
+  }
+  
+  .pc-status-item.free span {
+    color: green;
+  }
+  
+  .pc-status-item.offline span {
+    color: gray;
+  }
+  
+  /* No status available */
+  .pc-status-item.no-status {
+    font-size: 16px;
+    color: #999;
+  }
+  
+  /* Last item without border */
+  .pc-status-item:last-child {
+    border-bottom: none;
+  }
+  
+  /* Responsive styling */
+  @media (max-width: 480px) {
+    .pc-status-container {
+      padding: 15px;
+    }
+  
+    .pc-status-title {
+      font-size: 20px;
+    }
+  
+    .pc-status-item {
+      font-size: 16px;
+    }
+  }
+  

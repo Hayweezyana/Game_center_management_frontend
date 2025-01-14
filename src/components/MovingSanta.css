@@ -1,0 +1,8 @@
+.santa-image {
+    position: absolute; /* Allows free movement across the page */
+    width: 500px; /* Adjust the size of the Santa Claus image */
+    height: auto;
+    transition: all 1s ease-in-out; /* Smooth transition for movement */
+    z-index: 1; /* Make sure Santa appears above other content */
+    pointer-events: none; /* Prevent interactions with Santa */
+}

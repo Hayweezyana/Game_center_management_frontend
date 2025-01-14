@@ -1,0 +1,142 @@
+/* Admin.css */
+.admin-container {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background-color: #f9f9f9;
+}
+
+h1, h2, h3 {
+    color: #333;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.create-user-form,
+.reports-section {
+    margin-bottom: 30px;
+    padding: 15px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.create-user-form h2,
+.reports-section h2 {
+    margin-bottom: 15px;
+    font-size: 1.5em;
+}
+
+input[type="text"],
+input[type="tel"],
+input[type="number"],
+input[type="date"],
+select {
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+button {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+table th,
+table td {
+    padding: 20px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+table th {
+    background-color: #007bff;
+    color: #fff;
+}
+
+table tbody tr:nth-child(odd) {
+    background-color: #f2f2f2;
+}
+
+table tbody tr:hover {
+    background-color: #e9ecef;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.reports-section label {
+    margin-right: 15px;
+    font-weight: normal;
+}
+
+.reports-section table {
+    margin-top: 10px;
+}
+
+.reports-section button {
+    margin-top: 10px;
+    margin-right: 10px;
+}
+
+input[type="number"] {
+    max-width: 80px;
+}
+
+input[type="date"] {
+    max-width: 200px;
+}
+
+button {
+    transition: background-color 0.3s ease;
+}
+
+.create-user-form input,
+.create-user-form select {
+    max-width: 400px;
+}
+
+.create-user-form button {
+    margin-top: 10px;
+    width: 200px;
+}
+
+@media (max-width: 768px) {
+    .admin-container {
+        padding: 10px;
+    }
+
+    table th, 
+    table td {
+        font-size: 0.9em;
+    }
+
+    .create-user-form input,
+    .create-user-form select,
+    .reports-section input[type="date"] {
+        max-width: 100%;
+    }
+}
