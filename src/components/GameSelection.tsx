@@ -31,7 +31,7 @@ const GameSelection: React.FC = () => {
   const [error, setError] = useState<string | null>(null); // Track errors
   const navigate = useNavigate();
   const { addToCart, cartItems, cartTotal } = useCartContext();
-  const socket: Socket = useMemo(() => io("ws://127.0.0.1:2024", {
+  const socket: Socket = useMemo(() => io("ws:https://game-center-management.onrender.com", {
     transports: ["websocket"],
   }), []);
 
