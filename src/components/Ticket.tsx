@@ -1,103 +1,307 @@
-import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import logo from './logo/immersia.png';
 import axios from 'axios';
-import {
-  Container,
-  Typography,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Button,
-} from '@mui/material';
-import { useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const Ticket = ({ transactionId }: { transactionId: number }) => {
-  const [ticket, setTicket] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+interface CartItem {
+  id: string;
+  pc_id: string;
+  gameDuration: number;
+  quantity: number;
+  gameTitle: string;
+  pc_title: string;
+  price: number;
+}
 
-  // Fetch ticket details from the backend
-  const fetchTicket = useCallback(async () => {
-    try {
-      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/transaction/${transactionId}`);
-      setTicket(response.data);
-    } catch (error) {
-      console.error('Error fetching ticket data:', error);
-    } finally {
-      setLoading(false);
+interface ResponseData {
+  status: boolean;
+  data: {
+    transaction_id: string;
+    [key: string]: any;
+  };
+}
+
+
+
+const handleProceedToQueue = async (cartItems: CartItem[], username: string, 
+  setValidationErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>
+) => {
+  const errors: Record<string, string> = {};
+
+  for (const item of cartItems) {
+    if (!item.gameTitle || !item.quantity || !item.gameDuration) {
+      errors[item.id] = 'Missing required fields (title, quantity, or duration)';
     }
-  }, [transactionId]);
+  }
 
-  useEffect(() => {
-    fetchTicket();
-  }, [fetchTicket]);
+  if (Object.keys(errors).length > 0) {
+    setValidationErrors(errors);
+    return false;
+  }
 
-  // Print ticket
-  const handlePrint = () => {
-    window.print();
+
+  try {
+    const queueData = cartItems.map((item) => ({
+      game_id: item.id,
+      username,
+      game_duration: item.gameDuration,
+      quantity: item.quantity,
+      game_title: item.gameTitle,
+    }));
+    console.log('Sending queueData:', queueData);
+    
+    await Promise.all(
+      cartItems.map((item) =>
+        axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/queue/add`, {
+          game_id: item.id,
+          username,
+          game_duration: item.gameDuration,
+          quantity: item.quantity,
+          game_title: item.gameTitle,
+        })
+      )
+    );
+    alert('Successfully added to queue!');
+    setValidationErrors({});
+    return true;
+  } catch (error) {
+    console.error('Error posting to queue:', error);
+    alert('Failed to add to queue.');
+    return false;
+  }
+};
+
+const Ticket: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  
+
+  const { transactionId, games, totalAmount, dateTime, userDetails, cartItems, adminName, discount } = location.state as {
+    transactionId: string;
+    games: { name: string; quantity: number; price: number }[];
+    totalAmount: number;
+    dateTime: string;
+    adminName?: string;
+    discount?: number;
+    userDetails: { username: string };
+    cartItems: CartItem[];
   };
 
-  if (loading) {
-    return (
-      <Container>
-        <Typography variant="h6" align="center">
-          Loading ticket details...
-        </Typography>
-      </Container>
-    );
-  }
+  //to get transactionId from the backend
+  const [fetchedTransactionId, setFetchedTransactionId] = useState<string | null>(transactionId);
 
-  if (!ticket) {
-    return (
-      <Container>
-        <Typography variant="h6" align="center">
-          Ticket not found.
-        </Typography>
-      </Container>
-    );
-  }
+  // Fetch transaction ID only if not available in state
+  useEffect(() => {
+    if (!transactionId) {
+      console.warn("No transaction ID provided in location state.");
+      return; // Don’t make the API call with undefined
+    }
+  
+    axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions/${transactionId}`)
+      .then((response) => {
+        console.log("API Response:", response.data);
+  
+        const responseData: ResponseData = response.data;
+        if (responseData.status && responseData.data.length > 0) {
+          const fetchedId = responseData.data[0].transaction_id;
+          setFetchedTransactionId(fetchedId);
+        } else {
+          console.error("Unexpected response format or no data:", responseData);
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching transaction ID:', error);
+      });
+  }, [transactionId]);
+  
+
+
+
+  const printTicket = () => {
+    const content = document.getElementById('printable-area')?.innerHTML;
+    const printWindow = window.open('', '', 'height=600,width=800');
+    if (printWindow && content) {
+      printWindow.document.write('<html><head><title>Ticket</title></head><body>');
+      printWindow.document.write(content);
+      printWindow.document.write('</body></html>');
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
 
   return (
-    <Container>
-      <Typography variant="h4" align="center" gutterBottom>
-        Immersia Game Center
-      </Typography>
-      <Typography variant="h6" align="center" gutterBottom>
-        Ticket Number: {transactionId}
-      </Typography>
-      <Typography variant="subtitle1" align="center" gutterBottom>
-        Date: {new Date(ticket.createdAt).toLocaleDateString()} | Time: {new Date(ticket.createdAt).toLocaleTimeString()}
-      </Typography>
+    <div style={styles.ticketContainer}>
+      <div style={styles.header}>
+        <img src={logo} alt="Immersia Logo" style={styles.logo} />
+        <p style={styles.subtitle}>IG: @immersiang | www.immersiavr.com</p>
+      </div>
 
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Game</TableCell>
-            <TableCell>Quantity</TableCell>
-            <TableCell>Start Time</TableCell>
-            <TableCell>End Time</TableCell>
-            <TableCell>Amount Paid</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {ticket.games.map((game: any, index: number) => (
-            <TableRow key={index}>
-              <TableCell>{game.title}</TableCell>
-              <TableCell>{game.quantity}</TableCell>
-              <TableCell>{new Date(game.startTime).toLocaleTimeString()}</TableCell>
-              <TableCell>{new Date(game.endTime).toLocaleTimeString()}</TableCell>
-              <TableCell>${game.amountPaid.toFixed(2)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div style={styles.details}>
+        <h2 style={styles.sectionTitle}>Transaction Details</h2>
+        <p><strong>Transaction ID:</strong> {fetchedTransactionId || 'Loading...'}</p>
+        <p><strong>Username:</strong> {userDetails.username}</p>
 
-      <Button variant="contained" color="primary" onClick={handlePrint} style={{ marginTop: '20px' }}>
-        Print Ticket
-      </Button>
-    </Container>
+        <p><strong>Date & Time:</strong> {dateTime}</p>
+      </div>
+
+      <div style={styles.games}>
+        <h2 style={styles.sectionTitle}>Games</h2>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Game</th>
+              <th style={styles.th}>Quantity</th>
+              <th style={styles.th}>Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {games.map((game, index) => {
+              const error = validationErrors[cartItems[index]?.id];
+              return (
+                <React.Fragment key={index}>
+                  <tr
+                    style={
+                      error
+                        ? { backgroundColor: '#ffe6e6', border: '1px solid red' }
+                        : undefined
+                    }
+                  >
+                <td style={styles.td}>{game.name}</td>
+                <td style={styles.td}>{game.quantity}</td>
+                <td style={styles.td}>₦{game.price.toFixed(2)}</td>
+              </tr>
+              {error && (
+          <tr>
+            <td colSpan={3} style={{ color: 'red', padding: '6px', fontSize: '14px' }}>
+              ⚠️ {error}
+            </td>
+          </tr>
+        )}
+      </React.Fragment>
+    );
+  })}
+          </tbody>
+        </table>
+      </div>
+      {discount && (
+        <p><strong>discount:</strong> {discount}</p>
+        )}
+
+      <div style={styles.total}>
+        <p><strong>Total Amount Paid:</strong> ₦{totalAmount.toFixed(2)}</p>
+      </div>
+      {adminName && (
+        <p><strong>Processed by:</strong> {adminName}</p>
+        )}
+
+      <div style={styles.footer}>
+        <p style={styles.thankYou}>Thank you for choosing Immersia VR!</p>
+      </div>
+
+      <button style={styles.printButton} onClick={printTicket}>Print Ticket</button>
+      <button
+        style={styles.queueButton}
+        onClick={async () => {
+          const success = await handleProceedToQueue(cartItems, userDetails.username, setValidationErrors);
+          if (success) {
+            navigate('/Queue');
+          }
+        }}
+      >
+        To Queue
+      </button>
+    </div>
   );
 };
 
 export default Ticket;
+
+// Add this to the existing React import at the top of the file
+
+const styles = {
+  sectionTitle: {
+    fontSize: '1.5em',
+    marginBottom: '15px',
+    color: '#333',
+  },
+  ticketContainer: {
+    maxWidth: '600px',
+    margin: '20px auto',
+    padding: '20px',
+    border: '1px solid #ccc',
+    borderRadius: '8px',
+  },
+  header: {
+    textAlign: 'center' as const,
+    marginBottom: '20px'
+  },
+  logo: {
+    width: '200px',
+    height: 'auto',
+    marginBottom: '10px'
+  },
+  subtitle: {
+    fontSize: '14px',
+    color: '#666',
+    marginBottom: '20px'
+  },
+  details: {
+    marginBottom: '20px',
+    padding: '10px'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse' as const,
+    marginBottom: '20px'
+  },
+  th: {
+    border: '1px solid #ddd',
+    padding: '8px',
+    backgroundColor: '#333'
+  },
+  td: {
+    border: '1px solid #ddd',
+    padding: '8px'
+  },
+  total: {
+    marginTop: '20px',
+    padding: '10px',
+    fontWeight: 'bold'
+  },
+  footer: {
+    textAlign: 'center' as const,
+    marginTop: '20px',
+    padding: '10px'
+  },
+  games: {
+    marginBottom: '20px',
+    padding: '10px'
+  },
+  thankYou: {
+    fontSize: '16px',
+    color: '#333',
+    fontWeight: 'bold'
+  },
+  printButton: {
+    padding: '10px 20px',
+    margin: '10px',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  },
+  queueButton: {
+    padding: '10px 20px',
+    margin: '10px',
+    backgroundColor: '#2196F3',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  }
+};
+
 

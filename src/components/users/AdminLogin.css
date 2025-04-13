@@ -1,100 +1,267 @@
-/* General container styling */
+/* Modern Admin Login Styles */
 .admin-login-container {
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background-color: #f9f9f9;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 40px;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.card-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.card-header h1 {
+  color: #2d3748;
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.logo-placeholder {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 15px;
+  background: #f0f4ff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-placeholder svg {
+  width: 32px;
+  height: 32px;
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.floating-input {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background-color: #f8fafc;
+}
+
+.floating-input:focus {
+  outline: none;
+  border-color: #4A6CF7;
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.2);
+}
+
+.floating-label {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  color: #94a3b8;
+  font-size: 16px;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.floating-input:focus + .floating-label,
+.floating-input:not(:placeholder-shown) + .floating-label {
+  top: -8px;
+  left: 12px;
+  font-size: 12px;
+  background: white;
+  padding: 0 4px;
+  color: #4A6CF7;
+}
+
+.password-input-container {
+  position: relative;
+}
+
+.password-toggle-icon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.password-toggle-icon:hover {
+  color: #4A6CF7;
+}
+
+.button-group {
+  margin-top: 32px;
+}
+
+.primary-btn {
+  width: 100%;
+  padding: 16px;
+  background: #4A6CF7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(74, 108, 247, 0.1);
+}
+
+.primary-btn:hover {
+  background: #3a5bd9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(74, 108, 247, 0.15);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+}
+
+.action-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 16px;
+}
+
+.text-btn {
+  background: none;
+  border: none;
+  color: #4A6CF7;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.text-btn:hover {
+  color: #3a5bd9;
+  text-decoration: underline;
+}
+
+.link-separator {
+  color: #cbd5e0;
+  font-size: 14px;
+  user-select: none;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 30px 20px;
   }
   
-  /* Page title */
-  .admin-login-container h1 {
-    text-align: center;
-    margin-bottom: 20px;
+  .card-header h1 {
     font-size: 24px;
-    color: #333;
   }
   
-  /* Input fields */
-  .admin-login-container input {
-    width: 100%;
-    padding: 10px;
+  .floating-input {
+    padding: 14px;
+  }
+  
+  .primary-btn {
+    padding: 14px;
+  }
+
+  .action-links {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .link-separator {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .text-btn {
+    font-size: 13px;
+  }
+}
+
+/* Password Reset and Create Admin Forms */
+.password-reset-form,
+.create-admin-form {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.password-reset-form h2,
+.create-admin-form h2 {
+  text-align: center;
+  color: #2d3748;
+  margin-bottom: 24px;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #4A6CF7;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+  padding: 8px 0;
+  transition: color 0.2s;
+}
+
+.back-button:hover {
+  color: #3a5bd9;
+  text-decoration: underline;
+}
+
+/* Password match indicator */
+.password-match {
+  font-size: 14px;
+  margin-top: 4px;
+  color: #38a169;
+}
+
+.password-mismatch {
+  color: #e53e3e;
+}
+
+/* Responsive adjustments for forms */
+@media (max-width: 480px) {
+  .password-reset-form,
+  .create-admin-form {
+    padding-top: 10px;
+  }
+  
+  .back-button {
     margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
   }
-  
-  /* Buttons */
-  .admin-login-container button {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .admin-login-container button:hover {
-    background-color: #45a049;
-  }
-  
-  /* Cancel button */
-  .admin-login-container button:last-of-type {
-    background-color: #f44336;
-  }
-  
-  .admin-login-container button:last-of-type:hover {
-    background-color: #d32f2f;
-  }
-  
-  /* Logout button styling */
-  .admin-login-container button[style] {
-    background-color: #008CBA;
-  }
-  
-  .admin-login-container button[style]:hover {
-    background-color: #007bb5;
-  }
-  
-  /* Error and message alerts */
-  .admin-login-container .error-message {
-    color: red;
-    font-size: 14px;
-    text-align: center;
-    margin-bottom: 10px;
-  }
-  
-  .admin-login-container .success-message {
-    color: green;
-    font-size: 14px;
-    text-align: center;
-    margin-bottom: 10px;
-  }
-  
-  /* Responsive Design */
-  @media screen and (max-width: 480px) {
-    .admin-login-container {
-      max-width: 100%;
-      margin: 20px;
-      padding: 15px;
-    }
-  
-    .admin-login-container h1 {
-      font-size: 20px;
-    }
-  
-    .admin-login-container input,
-    .admin-login-container button {
-      font-size: 14px;
-      padding: 8px;
-    }
-  }
-  
+}

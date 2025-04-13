@@ -1,0 +1,186 @@
+/* CreateAdminForm.css */
+
+/* Base Styles */
+.admin-form-container {
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    padding: 2rem;
+  }
+  
+  .admin-form-card {
+    width: 100%;
+    max-width: 420px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    padding: 2.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .admin-form-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, #4361ee, #3a0ca3);
+  }
+  
+  .admin-form-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 2rem;
+    text-align: center;
+    letter-spacing: -0.5px;
+  }
+  
+  /* Form Elements */
+.admin-form-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    gap: 1rem; /* Space between label and input */
+  }
+  
+  .admin-form-label {
+    flex: 0 0 100px; /* Fixed width for labels */
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: #4a5568;
+    text-align: right; /* Align label text to the right */
+  }
+  
+  .admin-form-input {
+    flex: 1; /* Take remaining space */
+    padding: 0.875rem 1rem;
+    /* ... (keep other input styles) ... */
+  }
+  
+  /* Special handling for password container */
+  .password-input-wrapper {
+    flex: 1; /* Take same space as other inputs */
+    position: relative;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 480px) {
+    .admin-form-group {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    
+    .admin-form-label {
+      flex: none;
+      width: 100%;
+      text-align: left;
+    }
+    
+    .admin-form-input,
+    .password-input-wrapper {
+      width: 100%;
+    }
+  
+  .admin-form-input::placeholder {
+    color: #a0aec0;
+    opacity: 1;
+  }
+  
+  .admin-form-input:focus {
+    outline: none;
+    border-color: #4361ee;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+    background-color: white;
+  }
+  
+  /* Password Input */
+  .password-input-wrapper {
+    position: absolute;
+  }
+  
+  .password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #718096;
+    cursor: pointer;
+    padding: 0.25rem;
+    font-size: 1rem;
+    transition: color 0.2s ease;
+  }
+  
+  .password-toggle-btn:hover {
+    color: #2d3748;
+  }
+  
+  /* Submit Button */
+  .submit-admin-btn {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(to right, #4361ee, #3a0ca3);
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    font-size: 1rem;
+  }
+  
+  .submit-admin-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+  }
+  
+  .submit-admin-btn:disabled {
+    background: #cbd5e0;
+    transform: none;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  
+  /* Loading State */
+  .loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 480px) {
+    .admin-form-card {
+      padding: 1.75rem;
+    }
+    
+    .admin-form-title {
+      font-size: 1.5rem;
+      color: #000;
+    }
+  }
+    }

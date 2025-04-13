@@ -1,0 +1,19 @@
+@media print {
+    body * {
+      visibility: hidden;
+    }
+    .ticketContainer, .ticketContainer * {
+      visibility: visible;
+    }
+    .ticketContainer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      box-shadow: none;
+      border: none;
+    }
+    .printButton {
+      display: none;
+    }
+  }

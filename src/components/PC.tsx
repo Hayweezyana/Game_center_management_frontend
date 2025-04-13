@@ -1,68 +1,145 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
+import { useCartContext } from './hooks/useCart';
 import './PC.css';
+import { UUID } from 'crypto';
 
-interface PCStatusType {
-  [pc_id: string]: string;
+interface PC {
+  id: UUID;
+  title: string;
+  game_id: string;
+  inUse: boolean;
 }
 
-// Connect to the Socket.IO server
-const socket = io('http://localhost:2024', {
+interface CartItem {
+  id: UUID; // Unique identifier for the item
+  title: string;
+  price: number;
+  quantity: number;
+  gameDuration: number; // Game duration in minutes
+}
+
+interface PCProps {
+  cart: any[];
+}
+
+const socket = io(`${process.env.REACT_APP_BACKEND_URL}`, {
   transports: ['websocket', 'polling'],
 });
 
 socket.on('connect', () => {
-  console.log('Connected to /pcs');
+  console.log('[Socket.IO] Connected to /pcs');
 });
 
-const PC: React.FC = () => {
-  const [pcStatus, setPCStatus] = useState<PCStatusType>({});
-  const [pcData, setPCData] = useState<any[]>([]); // To store the PC data from the API
+const PC: React.FC<PCProps> = ({ cart }) => {
+  const { cartItems, setCart }: { cartItems: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>> } = useCartContext();
+  
+  // Debug logs for initial rendering
+  console.log('[PC Component] Rendered with cartItems:', cartItems);
+
+  const [pcData, setPCData] = useState<PC[]>([]);
+  const [waitingTimes, setWaitingTimes] = useState<{ [game_id: string]: number }>({});
 
   useEffect(() => {
-    // Fetch PC data from the API
-    const fetchPCData = async () => {
+    console.log('[Effect] Current cartItems:', cartItems);
+  }, [cartItems]);
+
+  useEffect(() => {
+    console.log('[Effect] Current pcData:', pcData);
+  }, [pcData]);
+
+  useEffect(() => {
+    const fetchPCs = async () => {
       try {
-        const response = await axios.get<any[]>('http://localhost:2024/v1/admin/pc');
-        setPCData(response.data);
+        console.log('[API Call] Fetching PC data...');
+        const response = await axios.get<{ status: boolean; data: PC[] }>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/pcs`);
+        if (response.data && Array.isArray(response.data.data)) {
+          console.log('[API Response] PC Data:', response.data.data);
+          setPCData(response.data.data);
+        } else {
+          console.error('[Error] Unexpected response format:', response.data);
+        }
       } catch (error) {
-        console.error('Error fetching PC data:', error);
+        console.error('[Error] Fetching PCs failed:', error);
       }
     };
 
-    fetchPCData();
+    fetchPCs();
 
-    // Listen for PC status updates from Socket.IO
-    socket.on('pcStatusUpdate', (data: { pc_id: string; status: string }) => {
-      setPCStatus((prevState) => ({
-        ...prevState,
-        [data.pc_id]: data.status,
-      }));
+    // Listening for Socket.IO events
+    socket.on('pcStatusUpdate', (data: { pc_id: string; status: boolean }) => {
+      console.log('[Socket.IO Event] PC Status Update:', data);
+      setPCData((prevData) =>
+        prevData.map((pc) => (pc.id === data.pc_id ? { ...pc, inUse: data.status } : pc))
+      );
     });
 
     return () => {
+      console.log('[Cleanup] Removing pcStatusUpdate listener');
       socket.off('pcStatusUpdate');
     };
   }, []);
 
+  const assignedPCData = useMemo(() => {
+    console.log('[Memo] Calculating assignedPCData...');
+    const updatedPCs = [...pcData];
+    const newWaitingTimes: { [game_id: string]: number } = {};
+
+    cartItems.forEach((item) => {
+      console.log(`[Memo] Processing cart item:`, item);
+      const availablePCs = updatedPCs.filter((pc) => pc.game_id === item.id && !pc.inUse);
+      console.log(`[Memo] Available PCs for game ${item.id}:`, availablePCs);
+
+      const neededQuantity = item.quantity;
+      if (availablePCs.length >= neededQuantity) {
+        availablePCs.slice(0, neededQuantity).forEach((pc) => (pc.inUse = true));
+      } else {
+        newWaitingTimes[item.id] = Math.max(0, neededQuantity - availablePCs.length) * (item.gameDuration + 4); // Adding 4 minutes for setup
+      }
+    });
+
+    setWaitingTimes(newWaitingTimes);
+    console.log('[Memo] Updated Waiting Times:', newWaitingTimes);
+    console.log('[Memo] Updated PC Data:', updatedPCs);
+
+    return updatedPCs;
+  }, [cartItems, pcData]);
+
   return (
     <div className="pc-status-container">
       <h2 className="pc-status-title">PC Status</h2>
-      <ul className="pc-status-list">
-        {pcData.length > 0 ? (
-          pcData.map((pc) => (
-            <li
-              key={pc.id}
-              className={`pc-status-item ${pcStatus[pc.id]}`}
-            >
-              PC {pc.id} is <span>{pcStatus[pc.id] || 'loading...'}</span>
-            </li>
-          ))
-        ) : (
-          <li className="pc-status-item no-status">No PC available</li>
-        )}
-      </ul>
+      {cartItems && cartItems.length === 0 ? (
+        <p className="no-cart-message">No games in the cart. Please add games to check PC availability.</p>
+      ) : (
+        <ul className="pc-status-list">
+          {cartItems.map((item) => {
+            const gamePCs = assignedPCData.filter((pc) => pc.game_id === item.id);
+            const busyPCs = gamePCs.filter((pc) => pc.inUse);
+
+            console.log(`[Rendering] Cart Item: ${item.title}`);
+            console.log(`[Rendering] Game PCs for ${item.id}:`, gamePCs);
+            console.log(`[Rendering] Busy PCs for ${item.id}:`, busyPCs);
+
+            return (
+              <li key={item.id} className="pc-status-item">
+                <strong>Game ID:</strong> {item.title} <br />
+                <strong>Quantity:</strong> {item.quantity} <br />
+                {gamePCs.length === 0 ? (
+                  <span>No PCs available for this game.</span>
+                ) : busyPCs.length === gamePCs.length ? (
+                  <span>
+                    Status: Waiting for PC <br />
+                    Estimated Wait Time: {waitingTimes[item.id]} minutes
+                  </span>
+                ) : (
+                  <span>Status: PCs available</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 };

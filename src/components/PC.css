@@ -1,79 +1,89 @@
+/* PC.css */
+
 /* General container styling */
 .pc-status-container {
-    max-width: 600px;
-    margin: 30px auto;
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background-color: #f9f9f9;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    font-family: Arial, sans-serif;
-    text-align: center;
-  }
-  
-  /* Title styling */
-  .pc-status-title {
-    font-size: 24px;
-    color: #333;
-    margin-bottom: 15px;
-  }
-  
-  /* List styling */
-  .pc-status-list {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-  }
-  
-  /* List item styling */
+  font-family: 'Arial', sans-serif;
+  margin: 20px auto;
+  padding: 20px;
+  max-width: 600px;
+  background: linear-gradient(135deg, #2a9d8f, #928dab);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+/* Title styling */
+.pc-status-title {
+  font-size: 36px;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* List styling */
+.pc-status-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pc-status-item {
+  padding: 15px 20px;
+  margin: 10px 0;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s ease, background 0.3s ease;
+  cursor: default;
+}
+
+/* PC status background colors */
+.pc-status-item.free {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.pc-status-item.busy {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.pc-status-item.loading {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+}
+
+/* Default styling for no PC available */
+.pc-status-item.no-status {
+  background: #e2e3e5;
+  color: #6c757d;
+  border: 1px solid #d6d8db;
+}
+
+/* Hover effects */
+.pc-status-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
   .pc-status-item {
-    font-size: 18px;
-    padding: 10px 15px;
-    border-bottom: 1px solid #eee;
-    color: #444;
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 14px;
   }
-  
-  /* Dynamic status styling */
+
   .pc-status-item span {
-    font-weight: bold;
-    text-transform: capitalize;
+    margin-top: 5px;
+    font-weight: 600;
   }
-  
-  .pc-status-item.busy span {
-    color: red;
-  }
-  
-  .pc-status-item.free span {
-    color: green;
-  }
-  
-  .pc-status-item.offline span {
-    color: gray;
-  }
-  
-  /* No status available */
-  .pc-status-item.no-status {
-    font-size: 16px;
-    color: #999;
-  }
-  
-  /* Last item without border */
-  .pc-status-item:last-child {
-    border-bottom: none;
-  }
-  
-  /* Responsive styling */
-  @media (max-width: 480px) {
-    .pc-status-container {
-      padding: 15px;
-    }
-  
-    .pc-status-title {
-      font-size: 20px;
-    }
-  
-    .pc-status-item {
-      font-size: 16px;
-    }
-  }
-  
+}

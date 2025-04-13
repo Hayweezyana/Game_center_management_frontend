@@ -1,39 +1,25 @@
-/* GameSelectionPage.css */
-
-body {
-  margin: 0;
-  font-family: 'Arial', sans-serif;
-  background-color: linear-gradient(135deg, #0434b9, #928dab);
-}
-
-.game-selection-page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  min-height: 100vh;
-  padding: 20px;
-  text-align: center;
-  background: linear-gradient(135deg, #0434b9, #928dab);
-  color: linear-gradient(135deg, #0434b9, #928dab);
-}
-
-.page-header {
-  margin-top: 20px;
-  font-size: 2.5rem;
-  color: #ffffff;
-  text-shadow: 2px 2px 5px rgba(11, 26, 163, 0.5);
-}
-
-.video-container {
-  margin: 20px 0;
+.game-selection-container {
+    padding: 20px;
+    background-color: #f4f4f4;
+    text-align: center;
+  }
+  
+  .title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2a9d8f;
+    margin-bottom: 20px;
+  }
+  
+  /* Video Grid */
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Two videos per row */
+  gap: 20px; /* Space between grid items */
   width: 90%;
   max-width: 1200px;
-  aspect-ratio: 16 / 9; /* Maintain a 16:9 aspect ratio */
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
-  background-color: #000; /* Black background as a fallback */
+  margin: 20px auto; /* Center the grid on the page */
+  padding: 10px;
 }
 
 .video-container iframe {
@@ -42,79 +28,66 @@ body {
   border: none;
 }
 
-.game-list {
-  margin-top: 20px;
-  width: 90%;
-  max-width: 800px;
-  list-style: none;
-  padding: 0;
-  text-align: left;
-}
-
-.game-list li {
-  background-color: rgba(255, 255, 255, 0.1);
-  margin-bottom: 10px;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
-  color: linear-gradient(135deg, #0434b9, #928dab);
-}
-
-.game-list li h3 {
-  font-size: 1.2rem;
-  margin: 0;
-}
-
-.game-list li p {
-  margin: 5px 0 0;
+.video-container p {
+  margin-top: 10px;
   font-size: 1rem;
-  color: #dcdcdc;
+  color: #d0c6c6;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.action-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  margin-top: 30px;
+/* Responsive Design: Single-column layout on smaller screens */
+@media (max-width: 768px) {
+  .video-grid {
+    grid-template-columns: 1fr; /* One video per row */
+  }
 }
 
-.action-button {
-  padding: 15px 30px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.2s, background-color 0.2s;
-}
-
-.action-button:hover {
-  transform: scale(1.05);
-}
-
-.confirm-button {
-  background-color: #66bb6a;
-  color: #fff;
-}
-
-.confirm-button:hover {
-  background-color: #4caf50;
-}
-
-.cancel-button {
-  background-color: #ff6a6a;
-  color: #fff;
-}
-
-.cancel-button:hover {
-  background-color: #e53935;
-}
-
-.page-footer {
-  margin-top: auto;
-  padding: 20px 0;
-  font-size: 1rem;
-  background-color: rgba(11, 26, 163, 0.5);
-  width: 100%;
-  color: #fff;
-}
+  
+  .game-item {
+    width: 200px;
+    background-color: #020202;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    text-align: center;
+  }
+  
+  .game-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .game-price {
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .game-time_slot {
+    font-size: 14px;
+    color: #333;
+  }
+  
+  .quantity-input {
+    width: 50px;
+    padding: 5px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: 1px solid #b9abab;
+    text-align: center;
+  }
+  
+  .checkout-button {
+    background-color: #2a9d8f;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .checkout-button:hover {
+    background-color: #218838;
+  }
+  
