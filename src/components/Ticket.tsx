@@ -133,6 +133,7 @@ const Ticket: React.FC = () => {
 
   return (
     <div style={styles.ticketContainer}>
+      <div id="printable-area"> {/* Add this wrapper */}
       <div style={styles.header}>
         <img src={logo} alt="Immersia Logo" style={styles.logo} />
         <p style={styles.subtitle}>IG: @immersiang | www.immersiavr.com</p>
@@ -199,6 +200,7 @@ const Ticket: React.FC = () => {
       <div style={styles.footer}>
         <p style={styles.thankYou}>Thank you for choosing Immersia VR!</p>
       </div>
+      </div> {/* End of printable-area */}
 
       <button style={styles.printButton} onClick={printTicket}>Print Ticket</button>
       <button
