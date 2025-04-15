@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface CartItem {
   id: string;
@@ -8,40 +8,48 @@ interface CartItem {
   gameDuration: number;
 }
 
-interface PaymentMethod {
-  method: string;
-  amount: number;
-}
-
 interface CartAndPaymentProps {
   cartItems: CartItem[];
   cartTotal: number;
-  paymentMethods: PaymentMethod[];
-  setPaymentMethods: (methods: PaymentMethod[]) => void;
+  paymentMethods: { method: string; amount: number; }[];
+  setPaymentMethods: React.Dispatch<React.SetStateAction<{ method: string; amount: number; }[]>>;
   onNext: () => void;
 }
 
 const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   cartItems,
   cartTotal,
-  paymentMethods,
-  setPaymentMethods,
   onNext,
 }) => {
-  const handleAddPaymentMethod = () => {
-    if (cartTotal > paymentMethods.reduce((sum, method) => sum + method.amount, 0)) {
-      setPaymentMethods([...paymentMethods, { method: '', amount: 0 }]);
-    }
-  };
+  const [isPaying, setIsPaying] = useState(false);
 
-  const handlePaymentChange = (index: number, field: keyof PaymentMethod, value: string | number) => {
-    const updatedMethods = [...paymentMethods];
-    if (field === 'amount') {
-      updatedMethods[index][field] = Number(value);
-    } else if (field === 'method') {
-      updatedMethods[index][field] = value as string;
-    }
-    setPaymentMethods(updatedMethods);
+  const handlePayWithPaystack = () => {
+    setIsPaying(true);
+
+    const paystack = (window as any).PaystackPop.setup({
+      key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY, // Replace with your public key
+      email: 'customer@example.com', // Replace with actual user's email
+      amount: cartTotal * 100,
+      currency: 'NGN',
+      metadata: {
+        cartItems: cartItems.map((item) => ({
+          title: item.title,
+          quantity: item.quantity,
+          duration: item.gameDuration,
+        })),
+      },
+      callback: function (response: any) {
+        console.log('Payment successful. Reference:', response.reference);
+        setIsPaying(false);
+        onNext(); // ✅ Proceed after successful payment
+      },
+      onClose: function () {
+        setIsPaying(false);
+        alert('Transaction was not completed.');
+      },
+    });
+
+    paystack.openIframe();
   };
 
   return (
@@ -53,19 +61,11 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
           </li>
         ))}
       </ul>
-      <h2>Payment Methods</h2>
-      {paymentMethods.map((method, index) => (
-        <div key={index}>
-          <input
-            type="number"
-            value={method.amount}
-            onChange={(e) => handlePaymentChange(index, 'amount', e.target.value)}
-            min="0"
-            max={cartTotal}
-          />
-        </div>
-      ))}
-      <button onClick={onNext}>Next</button>
+      <h2>Total: ₦{cartTotal}</h2>
+
+      <button onClick={handlePayWithPaystack} disabled={isPaying}>
+        {isPaying ? 'Processing payment...' : 'Pay with Paystack'}
+      </button>
     </div>
   );
 };
