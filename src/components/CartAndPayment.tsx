@@ -56,14 +56,6 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
       <h2>Payment Methods</h2>
       {paymentMethods.map((method, index) => (
         <div key={index}>
-          <select
-            value={method.method}
-            onChange={(e) => handlePaymentChange(index, 'method', e.target.value)}
-          >
-            <option value="cash">Cash</option>
-            <option value="pos">POS</option>
-            <option value="transfer">Bank Transfer</option>
-          </select>
           <input
             type="number"
             value={method.amount}
@@ -73,7 +65,6 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
           />
         </div>
       ))}
-      <button onClick={handleAddPaymentMethod}>Add Payment Method</button>
       <button onClick={onNext}>Next</button>
     </div>
   );
