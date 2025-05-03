@@ -28,7 +28,9 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
 
     const paystack = (window as any).PaystackPop.setup({
       key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY, // Replace with your public key
-      email: 'customer@example.com', // Replace with actual user's email
+      email: '', // Replace with actual user's email
+      //pass user's phone number here
+      phone: '', // Replace with actual user's phone number
       amount: cartTotal * 100,
       currency: 'NGN',
       metadata: {
