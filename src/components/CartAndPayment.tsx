@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import  UseCart  from './hooks/useCart'; // Adjust path if needed
 
 interface CartItem {
   id: string;
@@ -12,9 +13,7 @@ interface CartAndPaymentProps {
   cartItems: CartItem[];
   cartTotal: number;
   paymentMethods: { method: string; amount: number }[];
-  setPaymentMethods: React.Dispatch<
-    React.SetStateAction<{ method: string; amount: number }[]>
-  >;
+  setPaymentMethods: React.Dispatch<React.SetStateAction<{ method: string; amount: number }[]>>;
   onNext: () => void;
 }
 
@@ -27,6 +26,7 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   const [isPaying, setIsPaying] = useState(false);
   const [items, setItems] = useState<CartItem[]>(cartItems);
   const [total, setTotal] = useState<number>(cartTotal);
+  const { clearCart } = UseCart();
 
   useEffect(() => {
     const newTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -39,9 +39,7 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   const handleQuantityChange = (index: number, delta: number) => {
     setItems((prev) =>
       prev.map((item, i) =>
-        i === index
-          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-          : item
+        i === index ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
       )
     );
   };
@@ -75,6 +73,17 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
     paystack.openIframe();
   };
 
+  const handleCancelTransaction = () => {
+    if (window.confirm('Are you sure you want to cancel the transaction and clear the cart?')) {
+      const zeroedItems = items.map(item => ({ ...item, quantity: 0 }));
+    setItems(zeroedItems);
+      setTotal(0);
+      setPaymentMethods([]); // Clear payment methods
+      clearCart(); // Clear the cart in the context
+      alert('Transaction cancelled and cart cleared.');
+    }
+  };
+
   return (
     <div>
       <ul>
@@ -94,6 +103,10 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
 
       <button onClick={handlePayWithPaystack} disabled={isPaying}>
         {isPaying ? 'Processing payment...' : 'Pay with Paystack'}
+      </button>
+
+      <button onClick={handleCancelTransaction} style={{ marginLeft: '1rem', color: 'red' }}>
+        Cancel Transaction
       </button>
     </div>
   );
