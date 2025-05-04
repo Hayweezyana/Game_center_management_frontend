@@ -52,53 +52,63 @@ const Checkout: React.FC = () => {
     else if (currentStep === 'user') setCurrentStep('payment');
   };
 
-  // Helper: Map cart items to include gameTitle and ensure gameDuration is present
   const mapCartItems = (items: typeof cartItems) =>
     items.map((item) => ({
       ...item,
-      gameTitle: item.title, // map title to gameTitle
-      gameDuration: item.gameDuration ?? 0, // ensure gameDuration field exists
+      gameTitle: item.title,
+      gameDuration: item.gameDuration ?? 0,
     }));
+
+  const completeTransaction = (
+    transactionData: any,
+    finalAmount: number,
+    discount: number
+  ) => {
+    const transactionId = transactionData.transaction_id || transactionData.id;
+    const mappedCartItems = mapCartItems(cartItems);
+
+    navigate('/ticket', {
+      state: {
+        transactionId,
+        games: mappedCartItems.map(({ title, quantity, price }) => ({
+          name: title,
+          quantity,
+          price,
+        })),
+        totalAmount: finalAmount,
+        discount,
+        dateTime: new Date().toLocaleString(),
+        userDetails,
+        cartItems: mappedCartItems,
+        ...(isAdminMode && { adminName }),
+      },
+    });
+
+    setCart([]);
+  };
 
   const handleAdminPaymentSuccess = async (finalAmount: number, discount: number) => {
     try {
       const fullDiscountReason =
         discount_description === 'other' ? `Other: ${otherReason}` : discount_description;
 
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, {
-        ...userDetails,
-        paymentMethods,
-        cartItems, // note: backend transaction may use original cart items structure
-        discount,
-        isAdmin: true,
-        discount_description: discount > 0 ? fullDiscountReason : undefined,
-      });
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
+        {
+          ...userDetails,
+          paymentMethods,
+          cartItems,
+          discount,
+          isAdmin: true,
+          discount_description: discount > 0 ? fullDiscountReason : undefined,
+        }
+      );
 
       const createdTransaction = Array.isArray(response.data?.data)
         ? response.data.data[0]
         : response.data?.data;
 
-      // Map cart items so that they contain the required fields for Ticket.tsx validation
-      const mappedCartItems = mapCartItems(cartItems);
-
-      navigate('/ticket', {
-        state: {
-          transactionId: createdTransaction.id,
-          games: mappedCartItems.map((item) => ({
-            name: item.title,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-          totalAmount: finalAmount,
-          discount,
-          dateTime: new Date().toLocaleString(),
-          userDetails,
-          cartItems: mappedCartItems,
-          adminName,
-        },
-      });
-
-      setCart([]);
+      completeTransaction(createdTransaction, finalAmount, discount);
     } catch (error) {
       console.error('Error during admin payment:', error);
     }
@@ -106,38 +116,22 @@ const Checkout: React.FC = () => {
 
   const handlePaymentSuccess = async () => {
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, {
-        ...userDetails,
-        paymentMethods,
-        cartItems,
-        discount: 0,
-        discount_description,
-      });
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
+        {
+          ...userDetails,
+          paymentMethods,
+          cartItems,
+          discount: 0,
+          discount_description,
+        }
+      );
 
       const createdTransaction = Array.isArray(response.data?.data)
         ? response.data.data[0]
         : response.data?.data;
 
-      // Map cart items to include gameTitle and gameDuration as expected by Ticket.tsx
-      const mappedCartItems = mapCartItems(cartItems);
-
-      navigate('/ticket', {
-        state: {
-          transactionId: createdTransaction.id,
-          games: mappedCartItems.map((item) => ({
-            name: item.title,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-          totalAmount: cartTotal,
-          discount: 0,
-          dateTime: new Date().toLocaleString(),
-          userDetails,
-          cartItems: mappedCartItems,
-        },
-      });
-
-      setCart([]);
+      completeTransaction(createdTransaction, cartTotal, 0);
     } catch (error) {
       console.error('Error during payment:', error);
     }
@@ -195,7 +189,12 @@ const Checkout: React.FC = () => {
             setOtherReason={setOtherReason}
           />
         ) : (
-          <PaymentPage cartTotal={cartTotal} userDetails={userDetails} paymentMethods={paymentMethods} onPaymentSuccess={handlePaymentSuccess} />
+          <PaymentPage
+            cartTotal={cartTotal}
+            userDetails={userDetails}
+            paymentMethods={paymentMethods}
+            onPaymentSuccess={handlePaymentSuccess}
+          />
         )
       )}
     </div>

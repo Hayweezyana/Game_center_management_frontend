@@ -78,8 +78,8 @@ const Ticket: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
 
-  const { transactionId, games, totalAmount, dateTime, userDetails, cartItems, adminName, discount } = location.state as {
-    transactionId: string;
+  const { id, games, totalAmount, dateTime, userDetails, cartItems, adminName, discount } = location.state as {
+    id: string;
     games: { name: string; quantity: number; price: number }[];
     totalAmount: number;
     dateTime: string;
@@ -90,31 +90,35 @@ const Ticket: React.FC = () => {
   };
 
   //to get transactionId from the backend
-  const [fetchedTransactionId, setFetchedTransactionId] = useState<string | null>(transactionId);
+  const [fetchedTransactionId, setFetchedTransactionId] = useState<string | null>(id);
 
   // Fetch transaction ID only if not available in state
   useEffect(() => {
-    if (!transactionId) {
+    if (!id) {
       console.warn("No transaction ID provided in location state.");
-      return; // Don’t make the API call with undefined
+      setFetchedTransactionId("Missing");
+      return;
     }
   
-    axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions/${transactionId}`)
+    axios
+      .get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions/${id}`)
       .then((response) => {
-        console.log("API Response:", response.data);
+        console.log("Fetched Transaction:", response.data);
+        const data = response.data?.data;
   
-        const responseData: ResponseData = response.data;
-        if (responseData.status && responseData.data.length > 0) {
-          const fetchedId = responseData.data[0].transaction_id;
-          setFetchedTransactionId(fetchedId);
+        if (data) {
+          const txId = data.transaction_id || data.id || 'Unknown';
+          setFetchedTransactionId(txId);
         } else {
-          console.error("Unexpected response format or no data:", responseData);
+          setFetchedTransactionId('Not Found');
         }
       })
       .catch((error) => {
-        console.error('Error fetching transaction ID:', error);
+        console.error("Error fetching transaction:", error);
+        setFetchedTransactionId("Error");
       });
-  }, [transactionId]);
+  }, [id]);
+  
   
 
 
@@ -135,13 +139,17 @@ const Ticket: React.FC = () => {
     <div style={styles.ticketContainer}>
       <div id="printable-area"> {/* Add this wrapper */}
       <div style={styles.header}>
+      <pre style={{ background: '#eee', padding: '10px', fontSize: '12px' }}>
+        Raw transactionId: {id}
+        {"\n"}Fetched transactionId: {fetchedTransactionId}</pre>
+
         <img src={logo} alt="Immersia Logo" style={styles.logo} />
         <p style={styles.subtitle}>IG: @immersiang | www.immersiavr.com</p>
       </div>
 
       <div style={styles.details}>
         <h2 style={styles.sectionTitle}>Transaction Details</h2>
-        <p><strong>Transaction ID:</strong> {fetchedTransactionId || 'Loading...'}</p>
+        <p><strong>Transaction ID:</strong> {fetchedTransactionId || id || 'Loading...'}</p>
         <p><strong>Username:</strong> {userDetails.username}</p>
 
         <p><strong>Date & Time:</strong> {dateTime}</p>

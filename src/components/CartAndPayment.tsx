@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface CartItem {
   id: string;
@@ -11,28 +11,51 @@ interface CartItem {
 interface CartAndPaymentProps {
   cartItems: CartItem[];
   cartTotal: number;
-  paymentMethods: { method: string; amount: number; }[];
-  setPaymentMethods: React.Dispatch<React.SetStateAction<{ method: string; amount: number; }[]>>;
+  paymentMethods: { method: string; amount: number }[];
+  setPaymentMethods: React.Dispatch<
+    React.SetStateAction<{ method: string; amount: number }[]>
+  >;
   onNext: () => void;
 }
 
 const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   cartItems,
   cartTotal,
+  setPaymentMethods,
   onNext,
 }) => {
   const [isPaying, setIsPaying] = useState(false);
+  const [items, setItems] = useState<CartItem[]>(cartItems);
+  const [total, setTotal] = useState<number>(cartTotal);
+
+  useEffect(() => {
+    const newTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    setTotal(newTotal);
+
+    // Update payment method total as well
+    setPaymentMethods([{ method: 'cash', amount: newTotal }]);
+  }, [items, setPaymentMethods]);
+
+  const handleQuantityChange = (index: number, delta: number) => {
+    setItems((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
+          : item
+      )
+    );
+  };
 
   const handlePayWithPaystack = () => {
     setIsPaying(true);
 
     const paystack = (window as any).PaystackPop.setup({
-      key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY, // Replace with your public key
-      email: 'immersiavr@immersiavr.com', // Replace with actual user's email
-      amount: cartTotal * 100,
+      key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY,
+      email: 'immersiavr@immersiavr.com',
+      amount: total * 100,
       currency: 'NGN',
       metadata: {
-        cartItems: cartItems.map((item) => ({
+        cartItems: items.map((item) => ({
           title: item.title,
           quantity: item.quantity,
           duration: item.gameDuration,
@@ -41,7 +64,7 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
       callback: function (response: any) {
         console.log('Payment successful. Reference:', response.reference);
         setIsPaying(false);
-        onNext(); // ✅ Proceed after successful payment
+        onNext(); // proceed after payment
       },
       onClose: function () {
         setIsPaying(false);
@@ -55,13 +78,19 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   return (
     <div>
       <ul>
-        {cartItems.map((item, index) => (
-          <li key={index}>
-            {item.title} - ₦{item.price} x {item.quantity} = ₦{item.price * item.quantity}
+        {items.map((item, index) => (
+          <li key={item.id}>
+            <strong>{item.title}</strong> - ₦{item.price} x {item.quantity} = ₦
+            {item.price * item.quantity}{' '}
+            <button onClick={() => handleQuantityChange(index, -1)} disabled={item.quantity === 1}>
+              -
+            </button>
+            <button onClick={() => handleQuantityChange(index, 1)}>+</button>
           </li>
         ))}
       </ul>
-      <h2>Total: ₦{cartTotal}</h2>
+
+      <h2>Total: ₦{total}</h2>
 
       <button onClick={handlePayWithPaystack} disabled={isPaying}>
         {isPaying ? 'Processing payment...' : 'Pay with Paystack'}
