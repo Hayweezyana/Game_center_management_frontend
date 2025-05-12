@@ -166,13 +166,14 @@ const Checkout: React.FC = () => {
 
       <h1>Checkout</h1>
 
-      {currentStep === 'cart' && !isAdminMode && (
+      {currentStep === 'cart' && (
   <CartAndPayment
     cartItems={cartItems}
     cartTotal={cartTotal}
     paymentMethods={paymentMethods}
     setPaymentMethods={setPaymentMethods}
     onNext={handleNextStep}
+    userEmail={userDetails.email}
   />
 )}
 
