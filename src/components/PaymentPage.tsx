@@ -22,9 +22,9 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ cartTotal, userDetails, payme
   };
   const config = {
     reference: new Date().getTime().toString(),
-    email: userDetails.email || '',
+    email: userDetails.email || 'immersiavr@immersiavr.com',
     amount: cartTotal * 100, // Paystack expects amount in kobo
-    publicKey: `process.env.REACT_APP_PAYSTACK_PUBLIC_KEY`,
+    publicKey: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY!,
   };
 
   const initializePayment = usePaystackPayment(config);

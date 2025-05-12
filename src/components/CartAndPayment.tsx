@@ -15,6 +15,7 @@ interface CartAndPaymentProps {
   paymentMethods: { method: string; amount: number }[];
   setPaymentMethods: React.Dispatch<React.SetStateAction<{ method: string; amount: number }[]>>;
   onNext: () => void;
+  userEmail?: string;
 }
 
 const CartAndPayment: React.FC<CartAndPaymentProps> = ({
@@ -22,7 +23,9 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   cartTotal,
   setPaymentMethods,
   onNext,
+  userEmail,
 }) => {
+  const email = userEmail || 'immersiavr@immersiavr.com';
   const [isPaying, setIsPaying] = useState(false);
   const [items, setItems] = useState<CartItem[]>(cartItems);
   const [total, setTotal] = useState<number>(cartTotal);
@@ -49,7 +52,7 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
 
     const paystack = (window as any).PaystackPop.setup({
       key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY,
-      email: 'immersiavr@immersiavr.com',
+      email: email,
       amount: total * 100,
       currency: 'NGN',
       metadata: {

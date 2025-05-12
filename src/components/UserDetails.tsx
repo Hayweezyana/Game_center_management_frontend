@@ -49,9 +49,11 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
   );
 
   useEffect(() => {
-    fetchUserDetails(userDetails.phone);
+    if (userDetails.phone.length === 11) {
+      fetchUserDetails(userDetails.phone);
+    }
     return () => fetchUserDetails.cancel();
-  }, [userDetails.phone, fetchUserDetails]);
+  }, [userDetails.phone]);  
 
   // Handle input change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
