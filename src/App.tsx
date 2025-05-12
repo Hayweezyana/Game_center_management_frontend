@@ -32,8 +32,8 @@ const App: React.FC = () => {
           <Route path="/CreateAdmin" element={<CreateAdminForm />} />
           <Route path="/GameSelection" element={<GameSelection />} />
           <Route path="/checkout" element={<Checkout />} />
-          <Route path="/CartAndPayment" element={<CartAndPayment cartItems={[]} cartTotal={0} paymentMethods={[]} setPaymentMethods={() => {}} onNext={() => {}} />} />
           <Route path="/UserDetails" element={<UserDetails userDetails={{ username: '', phone: '' }} setUserDetails={() => {}} onNext={() => {}} />} />
+          <Route path="/CartAndPayment" element={<CartAndPayment cartItems={[]} cartTotal={0} paymentMethods={[]} setPaymentMethods={() => {}} onNext={() => {}} />} />
           <Route path="/Queue" element={<Queue />} />
           <Route path="/PC" element={<PC cart={[]} />} />
           <Route path="/Ticket/" element={<Ticket />} />

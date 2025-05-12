@@ -22,7 +22,6 @@ interface ResponseData {
 }
 
 
-
 const handleProceedToQueue = async (cartItems: CartItem[], username: string, 
   setValidationErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>
 ) => {
@@ -89,6 +88,7 @@ const Ticket: React.FC = () => {
     cartItems: CartItem[];
   };
 
+
   //to get transactionId from the backend
   const [fetchedTransactionId, setFetchedTransactionId] = useState<string | null>(id);
 
@@ -96,12 +96,12 @@ const Ticket: React.FC = () => {
   useEffect(() => {
     if (!id) {
       console.warn("No transaction ID provided in location state.");
-      setFetchedTransactionId("Missing");
+      setFetchedTransactionId("");
       return;
     }
   
     axios
-      .get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions/${id}`)
+      .get<ResponseData>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions/${id}`)
       .then((response) => {
         console.log("Fetched Transaction:", response.data);
         const data = response.data?.data;

@@ -26,7 +26,13 @@ interface Game {
 }
 
 const GameSelection: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
   const [games, setGames] = useState<Game[]>([]);
+  const filteredGames = useMemo(() => {
+    return games.filter(game =>
+      game.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm, games]);
   const [loading, setLoading] = useState(true); // Track loading state
   const [error, setError] = useState<string | null>(null); // Track errors
   const navigate = useNavigate();
@@ -119,13 +125,21 @@ const GameSelection: React.FC = () => {
   return (
     <div className={styles['game-selection-container']}>
       <h1 className={styles.title}>Immersia POS</h1>
+      <input
+      type="text"
+      placeholder="Search games..."
+      className={styles.searchBar}
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      />
+
       {loading ? (
         <p>Loading games...</p>
       ) : error ? (
         <p className={styles['error-message']}>{error}</p>
       ) : (
         <div className={styles['video-grid']}>
-          {games.map((game) => (
+          {filteredGames.map((game) => (
             <div key={game.id} className={styles['video-container']}>
               <h2 className={styles['game-title']}>{game.title}</h2>
               <p className={styles['game-price']}>Price: ₦{game.price}</p>

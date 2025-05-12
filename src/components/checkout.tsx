@@ -15,9 +15,10 @@ const Checkout: React.FC = () => {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const { cartItems, cartTotal, setCart } = useCartContext();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState<'cart' | 'user' | 'payment'>('cart');
+  const [currentStep, setCurrentStep] = useState<'cart' | 'adminPayment' | 'user' | 'payment'>('cart');
   const [paymentMethods, setPaymentMethods] = useState([{ method: 'cash', amount: cartTotal }]);
-  const [userDetails, setUserDetails] = useState<{ username: string; phone: string; email?: string }>({
+  const [userDetails, setUserDetails] = useState<{ user_id?: string; username: string; phone: string; email?: string }>({
+    user_id: '',
     username: '',
     phone: '',
     email: '',
@@ -31,6 +32,7 @@ const Checkout: React.FC = () => {
       const { name } = JSON.parse(adminData);
       setAdminName(name);
       setIsAdminMode(true);
+      setCurrentStep('adminPayment');
     }
   }, []);
 
@@ -49,6 +51,11 @@ const Checkout: React.FC = () => {
 
   const handleNextStep = () => {
     if (currentStep === 'cart') setCurrentStep('user');
+    else if (currentStep === 'adminPayment') setCurrentStep('user');
+    else if (currentStep === 'payment') {
+      if (isAdminMode) setCurrentStep('adminPayment');
+      else setCurrentStep('cart');
+    }
     else if (currentStep === 'user') setCurrentStep('payment');
   };
 
@@ -92,8 +99,7 @@ const Checkout: React.FC = () => {
       const fullDiscountReason =
         discount_description === 'other' ? `Other: ${otherReason}` : discount_description;
 
-      const response = await axios.post(
-        `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
         {
           ...userDetails,
           paymentMethods,
@@ -160,43 +166,51 @@ const Checkout: React.FC = () => {
 
       <h1>Checkout</h1>
 
-      {currentStep === 'cart' && (
-        <CartAndPayment
-          cartItems={cartItems}
-          cartTotal={cartTotal}
-          paymentMethods={paymentMethods}
-          setPaymentMethods={setPaymentMethods}
-          onNext={handleNextStep}
-        />
-      )}
+      {currentStep === 'cart' && !isAdminMode && (
+  <CartAndPayment
+    cartItems={cartItems}
+    cartTotal={cartTotal}
+    paymentMethods={paymentMethods}
+    setPaymentMethods={setPaymentMethods}
+    onNext={handleNextStep}
+  />
+)}
 
-      {currentStep === 'user' && (
-        <UserDetails userDetails={userDetails} setUserDetails={setUserDetails} onNext={handleNextStep} />
-      )}
+{currentStep === 'adminPayment' && isAdminMode && (
+  <AdminPaymentPage
+    cartTotal={cartTotal}
+    userDetails={userDetails}
+    paymentMethods={paymentMethods}
+    cartItems={cartItems}
+    onPaymentSuccess={(finalAmount, discount) => {
+      handleAdminPaymentSuccess(finalAmount, discount);
+      setCurrentStep('user'); // move to next step
+    }}
+    isAdmin={true}
+    discount_description={discount_description}
+    setDiscountDescription={setDiscountDescription}
+    otherReason={otherReason}
+    setOtherReason={setOtherReason}
+  />
+)}
 
-      {currentStep === 'payment' && (
-        isAdminMode ? (
-          <AdminPaymentPage
-            cartTotal={cartTotal}
-            userDetails={userDetails}
-            paymentMethods={paymentMethods}
-            cartItems={cartItems}
-            onPaymentSuccess={handleAdminPaymentSuccess}
-            isAdmin={true}
-            discount_description={discount_description}
-            setDiscountDescription={setDiscountDescription}
-            otherReason={otherReason}
-            setOtherReason={setOtherReason}
-          />
-        ) : (
-          <PaymentPage
-            cartTotal={cartTotal}
-            userDetails={userDetails}
-            paymentMethods={paymentMethods}
-            onPaymentSuccess={handlePaymentSuccess}
-          />
-        )
-      )}
+{currentStep === 'user' && (
+  <UserDetails
+    userDetails={userDetails}
+    setUserDetails={setUserDetails}
+    onNext={handleNextStep}
+  />
+)}
+
+{currentStep === 'payment' && (
+  <PaymentPage
+    cartTotal={cartTotal}
+    userDetails={userDetails}
+    paymentMethods={paymentMethods}
+    onPaymentSuccess={handlePaymentSuccess}
+  />
+)}
+
     </div>
   );
 };

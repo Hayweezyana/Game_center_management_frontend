@@ -3,6 +3,20 @@
     background-color: #f4f4f4;
     text-align: center;
   }
+
+  .searchBar {
+    width: 90%;
+    max-width: 400px;
+    padding: 10px;
+    font-size: 16px;
+    margin: 10px auto 20px auto;
+    display: block;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  .searchBar::placeholder {
+    color: #999;
+  }  
   
   .title {
     font-size: 24px;
@@ -69,25 +83,38 @@
   }
   
   .quantity-input {
-    width: 50px;
-    padding: 5px;
-    font-size: 14px;
+    width: 100%;
+    max-width: 80px;
+    padding: 8px;
+    font-size: 16px;
     border-radius: 5px;
     border: 1px solid #b9abab;
     text-align: center;
+    margin-top: 10px;
   }
+  /* Mobile responsiveness */
+  @media (max-width: 768px) {
+  .quantity-input {
+    max-width: 100%;
+    font-size: 18px;
+  }
+
   
   .checkout-button {
+    width: 100%;
+    max-width: 200px;
     background-color: #2a9d8f;
     color: white;
     padding: 10px 20px;
     border-radius: 5px;
+    font-size: 18px;
     border: none;
     cursor: pointer;
     transition: background-color 0.3s ease;
   }
   
-  .checkout-button:hover {
-    background-color: #218838;
+    .checkout-button:hover {
+      background-color: #218838;
+    }
   }
   
