@@ -77,7 +77,8 @@ const Ticket: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
 
-  const { id, games, totalAmount, dateTime, userDetails, cartItems, adminName, discount } = location.state as {
+  console.log("Ticket location.state:", location.state);
+const { id, games, totalAmount, dateTime, userDetails, cartItems, adminName, discount } = location.state as {
     id: string;
     games: { name: string; quantity: number; price: number }[];
     totalAmount: number;

@@ -12,8 +12,8 @@ interface CartItem {
 interface CartAndPaymentProps {
   cartItems: CartItem[];
   cartTotal: number;
-  paymentMethods: { method: string; amount: number }[];
-  setPaymentMethods: React.Dispatch<React.SetStateAction<{ method: string; amount: number }[]>>;
+  payment_methods: { method: 'paystack'; amount: number }[];
+  setPaymentMethods: React.Dispatch<React.SetStateAction<{ method: 'paystack'; amount: number }[]>>;
   onNext: () => void;
   userEmail?: string;
 }
@@ -23,10 +23,9 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   cartTotal,
   setPaymentMethods,
   onNext,
-  userEmail,
 }) => {
-  const email = userEmail || 'immersiavr@immersiavr.com';
-  const [isPaying, setIsPaying] = useState(false);
+  
+  const [isPaying,] = useState(false);
   const [items, setItems] = useState<CartItem[]>(cartItems);
   const [total, setTotal] = useState<number>(cartTotal);
   const { clearCart } = UseCart();
@@ -36,7 +35,7 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
     setTotal(newTotal);
 
     // Update payment method total as well
-    setPaymentMethods([{ method: 'cash', amount: newTotal }]);
+    setPaymentMethods([{ method: 'paystack', amount: newTotal }]);
   }, [items, setPaymentMethods]);
 
   const handleQuantityChange = (index: number, delta: number) => {
@@ -47,34 +46,6 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
     );
   };
 
-  const handlePayWithPaystack = () => {
-    setIsPaying(true);
-
-    const paystack = (window as any).PaystackPop.setup({
-      key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY,
-      email: email,
-      amount: total * 100,
-      currency: 'NGN',
-      metadata: {
-        cartItems: items.map((item) => ({
-          title: item.title,
-          quantity: item.quantity,
-          duration: item.gameDuration,
-        })),
-      },
-      callback: function (response: any) {
-        console.log('Payment successful. Reference:', response.reference);
-        setIsPaying(false);
-        onNext(); // proceed after payment
-      },
-      onClose: function () {
-        setIsPaying(false);
-        alert('Transaction was not completed.');
-      },
-    });
-
-    paystack.openIframe();
-  };
 
   const handleCancelTransaction = () => {
     if (window.confirm('Are you sure you want to cancel the transaction and clear the cart?')) {
@@ -104,8 +75,8 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
 
       <h2>Total: ₦{total}</h2>
 
-      <button onClick={handlePayWithPaystack} disabled={isPaying}>
-        {isPaying ? 'Processing payment...' : 'Pay with Paystack'}
+      <button onClick={onNext} disabled={isPaying || total === 0}>
+        {isPaying ? 'Processing...' : 'Enter Details'}
       </button>
 
       <button onClick={handleCancelTransaction} style={{ marginLeft: '1rem', color: 'red' }}>

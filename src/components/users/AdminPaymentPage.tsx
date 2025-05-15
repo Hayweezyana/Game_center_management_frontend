@@ -6,7 +6,7 @@ import { useCartContext } from '../hooks/useCart';
 interface AdminPaymentPageProps {
   cartTotal: number;
   userDetails: { username: string; phone: string; email?: string };
-  paymentMethods: { method: string; amount: number }[];
+  payment_methods: { method: string; amount: number }[];
   cartItems: any[];
   onPaymentSuccess: (finalAmount: number, discount: number) => void;
   isAdmin: boolean;
@@ -19,7 +19,7 @@ interface AdminPaymentPageProps {
 const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
   cartTotal,
   userDetails,
-  paymentMethods,
+  payment_methods,
   cartItems,
   onPaymentSuccess,
   isAdmin = false,
@@ -36,7 +36,7 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
   const navigate = useNavigate();
   const { setCart } = useCartContext();
 
-  const isCashPayment = paymentMethods.some((method) => method.method === 'cash');
+  const isCashPayment = payment_methods.some((method) => method.method === '');
   const finalAmount = Math.max(0, cartTotal - discount);
 
   const config = {

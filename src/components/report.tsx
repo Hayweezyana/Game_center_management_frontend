@@ -12,7 +12,7 @@ interface Record {
   game_title: string;
   game_duration: number;
   userId: string;
-  payment_method: string;
+  payment_methods: string;
   createdAt: string;
 }
 
@@ -157,7 +157,7 @@ const Report: React.FC = () => {
       'Game Title': record.game_title,
       'Quantity Sold': record.game_quantity,
       'Amount': record.amount,
-      'Payment Method': record.payment_method,
+      'Payment Method': record.payment_methods,
       'Date': record.createdAt,
     }));
 
@@ -320,7 +320,7 @@ const Report: React.FC = () => {
                 <td>{record.game_title}</td>
                 <td>{record.game_quantity}</td>
                 <td>{(parseFloat(record.amount) * record.game_quantity).toFixed(2)}</td>
-                <td>{record.payment_method}</td>
+                <td>{record.payment_methods}</td>
                 <td>{record.createdAt}</td>
               </tr>
             ))

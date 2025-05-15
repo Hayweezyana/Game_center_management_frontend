@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 
 interface UserDetailsProps {
-  userDetails: { user_id?: string; username: string; phone: string; email?: string };
-  setUserDetails: (details: { user_id?: string; username: string; phone: string; email?: string }) => void;
+  userDetails: {  username: string; phone: string; email?: string };
+  setUserDetails: (details: { username: string; phone: string; email?: string }) => void;
   onNext: () => void;
 }
 
@@ -32,7 +32,7 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
         const result = await response.json();
         if (result.status && result.data?.success && result.data.data) {
           setUserDetails({
-            user_id: result.data.data.user_id,
+            
             username: result.data.data.username,
             phone: result.data.data.phone,
             email: result.data.data.email || '',
@@ -87,10 +87,10 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
 
       const payload = isExistingUser
   ? userDetails
-  : { ...userDetails, user_id: userDetails.user_id || uuidv4() };
+  : { ...userDetails, phone: userDetails.phone || uuidv4() };
 
-if (!isExistingUser && !userDetails.user_id) {
-  setUserDetails({ ...userDetails, user_id: payload.user_id });
+if (!isExistingUser && !userDetails.phone) {
+  setUserDetails({ ...userDetails, phone: payload.phone });
 }
 
 const response = await fetch(url, {
@@ -107,6 +107,7 @@ const response = await fetch(url, {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to process user');
       }
+      
 
       onNext(); // Proceed to the next step
     } catch (error) {

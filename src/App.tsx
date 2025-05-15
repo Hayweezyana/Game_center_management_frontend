@@ -33,13 +33,13 @@ const App: React.FC = () => {
           <Route path="/GameSelection" element={<GameSelection />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/UserDetails" element={<UserDetails userDetails={{ username: '', phone: '' }} setUserDetails={() => {}} onNext={() => {}} />} />
-          <Route path="/CartAndPayment" element={<CartAndPayment cartItems={[]} cartTotal={0} paymentMethods={[]} setPaymentMethods={() => {}} onNext={() => {}} />} />
+          <Route path="/CartAndPayment" element={<CartAndPayment cartItems={[]} cartTotal={0} payment_methods={[]} setPaymentMethods={() => {}} onNext={() => {}} />} />
           <Route path="/Queue" element={<Queue />} />
           <Route path="/PC" element={<PC cart={[]} />} />
           <Route path="/Ticket/" element={<Ticket />} />
           <Route path="/report" element={<Report />} />
-          <Route path="/PaymentPage" element={<Payment cartTotal={100} userDetails={{ username: '', phone: '' }} paymentMethods={[]} onPaymentSuccess={() => {}} />} />
-          <Route path="/AdminPaymentPage" element={<AdminPaymentPage cartTotal={100} userDetails={{ username: '', phone: '' }} paymentMethods={[]} cartItems={[]} onPaymentSuccess={() => {}} isAdmin={false} discount_description="" setDiscountDescription={() => {}} otherReason="" setOtherReason={() => {}} />} />
+          <Route path="/PaymentPage" element={<Payment cartTotal={100} userDetails={{ username: '', phone: '' }} onPaymentSuccess={() => {}} />} />
+          <Route path="/AdminPaymentPage" element={<AdminPaymentPage cartTotal={100} userDetails={{ username: '', phone: '' }} payment_methods={[]} cartItems={[]} onPaymentSuccess={() => {}} isAdmin={false} discount_description="" setDiscountDescription={() => {}} otherReason="" setOtherReason={() => {}} />} />
           
         </Routes>
     </Router>

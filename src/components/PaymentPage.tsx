@@ -4,22 +4,13 @@ import { usePaystackPayment } from 'react-paystack';
 interface PaymentPageProps {
   cartTotal: number;
   userDetails: { username: string; phone: string; email?: string };
-  paymentMethods: { method: string; amount: number }[];
+  // paymentMethods: { method: string; amount: number }[];
   onPaymentSuccess: () => void;
 }
 
-const PaymentPage: React.FC<PaymentPageProps> = ({ cartTotal, userDetails, paymentMethods, onPaymentSuccess }) => {
-  const isCashPayment = paymentMethods.some((method) => method.method === 'cash');
+const PaymentPage: React.FC<PaymentPageProps> = ({ cartTotal, userDetails, onPaymentSuccess }) => {
+  //const isCashPayment = paymentMethods.some((method) => method.method === 'cash');
 
-  const handlePayment = () => {
-    if (isCashPayment) {
-      // If payment method is cash, proceed directly to success
-      onPaymentSuccess();
-    } else {
-      // Otherwise, use Paystack for payment
-      initializePayment({ onSuccess, onClose });
-    }
-  };
   const config = {
     reference: new Date().getTime().toString(),
     email: userDetails.email || 'immersiavr@immersiavr.com',
@@ -34,7 +25,15 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ cartTotal, userDetails, payme
   };
 
   const onClose = () => {
-    console.log('Payment closed');
+    console.log('Payment window closed');
+  };
+
+  const handlePayment = () => {
+    // if (isCashPayment) {
+    //   onPaymentSuccess(); // Skip online payment
+    // } else {
+      initializePayment({ onSuccess, onClose }); // Trigger Paystack
+    // }
   };
 
   return (
