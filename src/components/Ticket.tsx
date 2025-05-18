@@ -22,7 +22,10 @@ interface ResponseData {
 }
 
 
-const handleProceedToQueue = async (cartItems: CartItem[], username: string, 
+const handleProceedToQueue = async (
+  cartItems: CartItem[],
+  user_id: string,
+  userDetails: { id: string; username: string },
   setValidationErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>
 ) => {
   const errors: Record<string, string> = {};
@@ -42,7 +45,8 @@ const handleProceedToQueue = async (cartItems: CartItem[], username: string,
   try {
     const queueData = cartItems.map((item) => ({
       game_id: item.id,
-      username,
+      user_id,
+      username: userDetails.username,
       game_duration: item.gameDuration,
       quantity: item.quantity,
       game_title: item.gameTitle,
@@ -53,7 +57,8 @@ const handleProceedToQueue = async (cartItems: CartItem[], username: string,
       cartItems.map((item) =>
         axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/queue/add`, {
           game_id: item.id,
-          username,
+          user_id,
+          username: userDetails.username,
           game_duration: item.gameDuration,
           quantity: item.quantity,
           game_title: item.gameTitle,
@@ -78,31 +83,31 @@ const Ticket: React.FC = () => {
   
 
   console.log("Ticket location.state:", location.state);
-const { id, games, totalAmount, dateTime, userDetails, cartItems, adminName, discount } = location.state as {
-    id: string;
+const { transaction_id, games, totalAmount, dateTime, userDetails, cartItems, adminName, discount } = location.state as {
+    transaction_id: string;
     games: { name: string; quantity: number; price: number }[];
     totalAmount: number;
     dateTime: string;
     adminName?: string;
     discount?: number;
-    userDetails: { username: string };
+    userDetails: { id: string; username: string };
     cartItems: CartItem[];
   };
 
 
   //to get transactionId from the backend
-  const [fetchedTransactionId, setFetchedTransactionId] = useState<string | null>(id);
+  const [fetchedTransactionId, setFetchedTransactionId] = useState<string | null>(transaction_id);
 
   // Fetch transaction ID only if not available in state
   useEffect(() => {
-    if (!id) {
+    if (!transaction_id) {
       console.warn("No transaction ID provided in location state.");
       setFetchedTransactionId("");
       return;
     }
   
     axios
-      .get<ResponseData>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions/${id}`)
+      .get<ResponseData>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions/${transaction_id}`)
       .then((response) => {
         console.log("Fetched Transaction:", response.data);
         const data = response.data?.data;
@@ -118,7 +123,7 @@ const { id, games, totalAmount, dateTime, userDetails, cartItems, adminName, dis
         console.error("Error fetching transaction:", error);
         setFetchedTransactionId("Error");
       });
-  }, [id]);
+  }, [transaction_id]);
   
   
 
@@ -141,7 +146,7 @@ const { id, games, totalAmount, dateTime, userDetails, cartItems, adminName, dis
       <div id="printable-area"> {/* Add this wrapper */}
       <div style={styles.header}>
       <pre style={{ background: '#eee', padding: '10px', fontSize: '12px' }}>
-        Raw transactionId: {id}
+        Raw transactionId: {transaction_id}
         {"\n"}Fetched transactionId: {fetchedTransactionId}</pre>
 
         <img src={logo} alt="Immersia Logo" style={styles.logo} />
@@ -150,7 +155,7 @@ const { id, games, totalAmount, dateTime, userDetails, cartItems, adminName, dis
 
       <div style={styles.details}>
         <h2 style={styles.sectionTitle}>Transaction Details</h2>
-        <p><strong>Transaction ID:</strong> {fetchedTransactionId || id || 'Loading...'}</p>
+        <p><strong>Transaction ID:</strong> {fetchedTransactionId || transaction_id || 'Loading...'}</p>
         <p><strong>Username:</strong> {userDetails.username}</p>
 
         <p><strong>Date & Time:</strong> {dateTime}</p>
@@ -215,7 +220,7 @@ const { id, games, totalAmount, dateTime, userDetails, cartItems, adminName, dis
       <button
         style={styles.queueButton}
         onClick={async () => {
-          const success = await handleProceedToQueue(cartItems, userDetails.username, setValidationErrors);
+          const success = await handleProceedToQueue(cartItems, userDetails.id, userDetails, setValidationErrors);
           if (success) {
             navigate('/Queue');
           }

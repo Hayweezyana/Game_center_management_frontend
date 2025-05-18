@@ -4,13 +4,13 @@ import { v4 as uuidv4 } from 'uuid';
 
 
 interface UserDetailsProps {
-  userDetails: {  username: string; phone: string; email?: string };
-  setUserDetails: (details: { username: string; phone: string; email?: string }) => void;
+  userDetails: {  id?: string; username: string; phone: string; email?: string };
+  setUserDetails: (details: { id?: string; username: string; phone: string; email?: string }) => void;
   onNext: () => void;
 }
 
 const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, onNext }) => {
-  const [errors, setErrors] = useState<{ username?: string; phone?: string; email?: string }>({});
+  const [errors, setErrors] = useState<{ id?: String; username?: string; phone?: string; email?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isExistingUser, setIsExistingUser] = useState(false);
@@ -33,6 +33,7 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
         if (result.status && result.data?.success && result.data.data) {
           setUserDetails({
             
+            id: result.data.data.id,
             username: result.data.data.username,
             phone: result.data.data.phone,
             email: result.data.data.email || '',

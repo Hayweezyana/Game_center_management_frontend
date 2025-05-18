@@ -19,6 +19,9 @@ import AdminLogin from './components/users/AdminLogin';
 import Admin from './components/users/Admin';
 import CreateAdminForm from './components/users/CreateAdminForm';
 import AdminPaymentPage from './components/users/AdminPaymentPage';
+import OperatorLogin from './components/users/OperatorLogin';
+import OperatorRegister from './components/users/OperatorRegister';
+import OperatorForgotPassword from './components/users/OperatorForgotPassword';
 
 const App: React.FC = () => {
   return (
@@ -40,6 +43,9 @@ const App: React.FC = () => {
           <Route path="/report" element={<Report />} />
           <Route path="/PaymentPage" element={<Payment cartTotal={100} userDetails={{ username: '', phone: '' }} onPaymentSuccess={() => {}} />} />
           <Route path="/AdminPaymentPage" element={<AdminPaymentPage cartTotal={100} userDetails={{ username: '', phone: '' }} payment_methods={[]} cartItems={[]} onPaymentSuccess={() => {}} isAdmin={false} discount_description="" setDiscountDescription={() => {}} otherReason="" setOtherReason={() => {}} />} />
+          <Route path="/OperatorLogin" element={<OperatorLogin onLogin={() => {}} />} />
+          <Route path="/OperatorRegister" element={<OperatorRegister />} />
+          <Route path="/OperatorForgotPassword" element={<OperatorForgotPassword />} />
           
         </Routes>
     </Router>

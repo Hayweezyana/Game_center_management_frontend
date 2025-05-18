@@ -17,7 +17,8 @@ const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<'cart' | 'adminPayment' | 'user' | 'payment'>('cart');
   const [payment_methods, setPaymentMethods] = useState<{ method: 'paystack'; amount: number }[]>([{ method: 'paystack', amount: cartTotal }]);
-  const [userDetails, setUserDetails] = useState<{ username: string; phone: string; email?: string }>({
+  const [userDetails, setUserDetails] = useState<{ id?: string; username: string; phone: string; email?: string }>({
+    id: undefined,
     username: '',
     phone: '',
     email: '',
@@ -100,6 +101,7 @@ const stepIndex = steps.findIndex((step, index) => {
 
     const transactionId = transactionData.transaction_id || transactionData.id;
     const mappedCartItems = mapCartItems(cartItems);
+    const user = transactionData.user;
 
     navigate('/ticket', {
       state: {
@@ -113,7 +115,11 @@ const stepIndex = steps.findIndex((step, index) => {
         totalAmount: finalAmount,
         discount,
         dateTime: new Date().toLocaleString(),
-        userDetails,
+        userDetails: {
+          id: user?.id,
+      username: user?.username,
+      phone: user?.phone
+    },
         cartItems: mappedCartItems,
         ...(isAdminMode && { adminName }),
       },
