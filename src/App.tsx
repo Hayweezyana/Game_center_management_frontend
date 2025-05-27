@@ -10,18 +10,22 @@ import GameSelection from './components/GameSelection';
 import PC from './components/PC';
 import Ticket from './components/Ticket';
 import Report from './components/report';
-import Payment from './components/PaymentPage';
+import PaymentSelection from './components/PaymentSelection';
 import CartAndPayment from './components/CartAndPayment';
 import UserDetails from './components/UserDetails';
+// import MoniepointDashboard from './components/MoniepointDashboard';
+import OperatorDashboard from './components/OperatorDashboard';
+import ImmersiaPaymentPage from './components/ImmersiaPaymentPage';
+import FunstationPaymentPage from './components/FunstationPaymentPage';
+import PaystackPaymentPage from './components/PaystackPaymentPage';
+
 
 // Importing user-related pages
 import AdminLogin from './components/users/AdminLogin';
 import Admin from './components/users/Admin';
 import CreateAdminForm from './components/users/CreateAdminForm';
 import AdminPaymentPage from './components/users/AdminPaymentPage';
-import OperatorLogin from './components/users/OperatorLogin';
-import OperatorRegister from './components/users/OperatorRegister';
-import OperatorForgotPassword from './components/users/OperatorForgotPassword';
+import OperatorAuth from './components/users/OperatorAuth';
 
 const App: React.FC = () => {
   return (
@@ -39,13 +43,17 @@ const App: React.FC = () => {
           <Route path="/CartAndPayment" element={<CartAndPayment cartItems={[]} cartTotal={0} payment_methods={[]} setPaymentMethods={() => {}} onNext={() => {}} />} />
           <Route path="/Queue" element={<Queue />} />
           <Route path="/PC" element={<PC cart={[]} />} />
-          <Route path="/Ticket/" element={<Ticket />} />
+          <Route path="/Ticket" element={<Ticket />} />
           <Route path="/report" element={<Report />} />
-          <Route path="/PaymentPage" element={<Payment cartTotal={100} userDetails={{ username: '', phone: '' }} onPaymentSuccess={() => {}} />} />
-          <Route path="/AdminPaymentPage" element={<AdminPaymentPage cartTotal={100} userDetails={{ username: '', phone: '' }} payment_methods={[]} cartItems={[]} onPaymentSuccess={() => {}} isAdmin={false} discount_description="" setDiscountDescription={() => {}} otherReason="" setOtherReason={() => {}} />} />
-          <Route path="/OperatorLogin" element={<OperatorLogin onLogin={() => {}} />} />
-          <Route path="/OperatorRegister" element={<OperatorRegister />} />
-          <Route path="/OperatorForgotPassword" element={<OperatorForgotPassword />} />
+          <Route path="/PaymentSelection" element={<PaymentSelection  cartTotal={0} userDetails={{ username: '', phone: '' }} cartItems={[]} handlePaymentSuccess={async () => {}} />} />
+          <Route path="/AdminPaymentPage" element={<AdminPaymentPage cartTotal={0} userDetails={{ username: '', phone: '' }} payment_methods={[]} cartItems={[]} onPaymentSuccess={() => {}} isAdmin={false} discount_description="" setDiscountDescription={() => {}} otherReason="" setOtherReason={() => {}} />} />
+          <Route path="/OperatorAuth" element={<OperatorAuth />} />
+          {/* <Route path="/moniepoint" element={<MoniepointDashboard />} /> */}
+          <Route path="/OperatorDashboard" element={<OperatorDashboard />} />
+          <Route path="/ImmersiaPaymentPage" element={<ImmersiaPaymentPage cartTotal={0} userDetails={{ username: '', phone: '' }} onPaymentSuccess={() => {}} />} />
+          <Route path="/FunstationPaymentPage" element={<FunstationPaymentPage cartTotal={0} userDetails={{ username: '', phone: '' }} cartItems={[]} onPaymentSuccess={() => {}} />} />
+          <Route path="/PaystackPaymentPage" element={<PaystackPaymentPage />}/>
+
           
         </Routes>
     </Router>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { usePaystackPayment } from 'react-paystack';
 import { useNavigate } from 'react-router-dom';
 import { useCartContext } from '../hooks/useCart';
+
+
 
 interface AdminPaymentPageProps {
   cartTotal: number;
@@ -36,17 +37,7 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
   const navigate = useNavigate();
   const { setCart } = useCartContext();
 
-  const isCashPayment = payment_methods.some((method) => method.method === '');
   const finalAmount = Math.max(0, cartTotal - discount);
-
-  const config = {
-    reference: new Date().getTime().toString(),
-    email: userDetails.email,
-    amount: finalAmount * 100,
-    publicKey: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || '',
-  };
-
-  const initializePayment = usePaystackPayment(config);
 
   const validateDiscountReason = () => {
     let isValid = true;
@@ -77,33 +68,21 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
     return isValid;
   };
 
-  const handlePayment = () => {
+  const handleProceedToPayment = () => {
     if (isProcessing) return;
     if (!validateDiscountReason()) return;
 
-    setIsProcessing(true);
-
-    if (isCashPayment) {
-      completePayment();
-    } else {
-      initializePayment({ onSuccess: completePayment, onClose: onPaymentClose });
-    }
-  };
-
-  const completePayment = async () => {
-    try {
-      onPaymentSuccess(finalAmount, discount);
-      setCart([]);
-    } catch (error) {
-      console.error('Payment completion error:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const onPaymentClose = () => {
-    console.log('Payment closed');
-    setIsProcessing(false);
+    // Navigate to payment selection with all necessary data
+    navigate('/paymentselection', {
+      state: {
+        cartTotal: finalAmount, // Pass the discounted amount
+        userDetails,
+        cartItems,
+        discount,
+        discountReason: discount_description === 'other' ? otherReason : discount_description,
+        isAdmin: true
+      }
+    });
   };
 
   const handleApplyDiscount = () => {
@@ -157,9 +136,7 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
                 <option value="special">Special Customer</option>
                 <option value="other">Others</option>
               </select>
-              {reasonError && (
-                <p style={{ color: 'red', fontSize: '0.9em' }}>{reasonError}</p>
-              )}
+              {reasonError && <p className="error-message">{reasonError}</p>}
 
               {discount_description === 'other' && (
                 <>
@@ -171,9 +148,7 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
                     className="other-reason-input"
                     style={{ marginTop: '8px' }}
                   />
-                  {otherReasonError && (
-                    <p style={{ color: 'red', fontSize: '0.9em' }}>{otherReasonError}</p>
-                  )}
+                  {otherReasonError && <p className="error-message">{otherReasonError}</p>}
                 </>
               )}
             </div>
@@ -191,17 +166,13 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
         </div>
       </div>
 
-      <div className="payment-methods">
-        <h3>Payment Method: {isCashPayment ? 'Cash' : 'Online (Paystack)'}</h3>
-      </div>
-
       <div className="action-buttons">
         <button
-          onClick={handlePayment}
+          onClick={handleProceedToPayment}
           disabled={isProcessing || finalAmount < 0}
-          className="pay-button"
+          className="proceed-button"
         >
-          {isProcessing ? 'Processing...' : `Pay ₦${finalAmount.toFixed(2)}`}
+          {isProcessing ? 'Processing...' : `Proceed to Payment ₦${finalAmount.toFixed(2)}`}
         </button>
 
         {isAdmin && (

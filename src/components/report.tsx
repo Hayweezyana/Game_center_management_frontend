@@ -3,145 +3,144 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
-interface Record {
+interface Transaction {
   id: string;
-  amount: string;
-  username: string; // Ensure this is included
-  game_id: string;
-  game_quantity: number;
-  game_title: string;
-  game_duration: number;
-  userId: string;
-  payment_methods: string;
-  createdAt: string;
-}
-
-interface GameDurationStat {
-  game_title: string;
-  game_duration: number;
-}
-
-interface HighestPayingCustomers {
   username: string;
-  amount: string;
+  phone: string;
+  discount: number;
+  discount_description: string | null;
+  created_at: string;
 }
 
-interface LeastSellingGames {
+interface TransactionItem {
+  id: string;
+  transaction_id: string;
+  game_id: string;
   game_title: string;
   game_quantity: number;
+  game_duration: number;
+  amount: number;
 }
 
-interface BestSellingGames {
+interface TransactionPayment {
+  id: string;
+  transaction_id: string;
+  payment_method: string;
+  amount: number;
+}
+
+interface CombinedRecord {
+  id: string;
+  username: string;
+  phone: string;
+  discount: number;
+  discount_description: string | null;
+  game_id: string;
   game_title: string;
   game_quantity: number;
+  game_duration: number;
+  amount: number;
+  payment_methods: string;
+  created_at: string;
 }
 
 const Report: React.FC = () => {
-  const [records, setRecords] = useState<Record[]>([]);
+  const [records, setRecords] = useState<CombinedRecord[]>([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [bestSellingGames, setBestSellingGames] = useState<BestSellingGames[]>([]);
-  const [leastSellingGames, setLeastSellingGames] = useState<LeastSellingGames[]>([]);
-  const [highestPayingCustomers, setHighestPayingCustomers] = useState<HighestPayingCustomers[]>([]);
-  const [gameDurationStats, setGameDurationStats] = useState<GameDurationStat[]>([]);
+
+  // Metrics state (same as your existing metrics)
+  const [bestSellingGames, setBestSellingGames] = useState<{ game_title: string; game_quantity: number }[]>([]);
+  const [leastSellingGames, setLeastSellingGames] = useState<{ game_title: string; game_quantity: number }[]>([]);
+  const [highestPayingCustomers, setHighestPayingCustomers] = useState<{ username: string; amount: number }[]>([]);
+  const [gameDurationStats, setGameDurationStats] = useState<{ game_title: string; game_duration: number }[]>([]);
 
   useEffect(() => {
     if (startDate && endDate) {
-      axios
-        .get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions`, {
-          params: { startDate, endDate },
-        })
-        .then((response) => {
-          console.log("API Response:", response.data);
-
-          interface ResponseData {
-            status: boolean;
-            data: Record[];
-          }
-
-          const responseData = response.data as ResponseData;
-
-          if (responseData.status && Array.isArray(responseData.data)) {
-            console.log("Fetched Records:", responseData.data); // Debug fetched records
-            setRecords(responseData.data);
-
-            // Calculate metrics from the fetched records
-            calculateMetrics(responseData.data);
-          } else {
-            setRecords([]);
-            resetMetrics();
-          }
-        })
-        .catch((error) => {
-          console.error('Error fetching report summary:', error);
-          setRecords([]);
-          resetMetrics();
-        });
+      fetchAllData();
     }
   }, [startDate, endDate]);
 
-  const calculateMetrics = (records: Record[]) => {
-    // Calculate Best Selling Games
+  const fetchAllData = async () => {
+    try {
+      const [transactionsRes, itemsRes, paymentsRes] = await Promise.all([
+        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions`, { params: { startDate, endDate } }),
+        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionItems`, { params: { startDate, endDate } }),
+        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionPayments`, { params: { startDate, endDate } }),
+      ]);
+
+      console.log('itemsRes.data:', itemsRes.data);
+      console.log('paymentsRes.data:', paymentsRes.data);
+      console.log('transactionsRes.data:', transactionsRes.data);
+
+      const transactions: Transaction[] = transactionsRes.data.data.data || [];
+      const transactionItems: TransactionItem[] = itemsRes.data.data.data || [];
+      const transactionPayments: TransactionPayment[] = paymentsRes.data.data.data || [];
+
+      // Combine the data
+      const combined: CombinedRecord[] = [];
+      transactions.forEach((txn) => {
+        const items = transactionItems.filter((item) => item.transaction_id === txn.id);
+        const payments = transactionPayments.filter((p) => p.transaction_id === txn.id);
+        const paymentMethods = payments.map((p) => p.payment_method).join(', ');
+
+        items.forEach((item) => {
+          combined.push({
+            id: txn.id,
+            username: txn.username,
+            phone: txn.phone,
+            discount: txn.discount,
+            discount_description: txn.discount_description,
+            game_id: item.game_id,
+            game_title: item.game_title,
+            game_quantity: item.game_quantity,
+            game_duration: item.game_duration,
+            amount: item.amount,
+            payment_methods: paymentMethods,
+            created_at: txn.created_at,
+          });
+        });
+      });
+
+      setRecords(combined);
+      calculateMetrics(combined);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setRecords([]);
+      resetMetrics();
+    }
+  };
+
+  const calculateMetrics = (records: CombinedRecord[]) => {
+    // Best/Least Selling Games
     const gameSales = records.reduce((acc, record) => {
-      if (!acc[record.game_title]) {
-        acc[record.game_title] = 0;
-      }
-      acc[record.game_title] += record.game_quantity;
+      acc[record.game_title] = (acc[record.game_title] || 0) + record.game_quantity;
       return acc;
     }, {} as { [key: string]: number });
 
-    const sortedBestSellingGames = Object.entries(gameSales)
-      .sort((a, b) => b[1] - a[1])
-      .map(([game_title, game_quantity]) => ({
-        game_title,
-        game_quantity,
-      }));
+    const sortedGames = Object.entries(gameSales).sort((a, b) => b[1] - a[1]);
+    setBestSellingGames(sortedGames.map(([title, qty]) => ({ game_title: title, game_quantity: qty })));
+    setLeastSellingGames([...sortedGames].reverse().map(([title, qty]) => ({ game_title: title, game_quantity: qty })));
 
-    setBestSellingGames(sortedBestSellingGames);
-
-    // Calculate Least Selling Games
-    const sortedLeastSellingGames = Object.entries(gameSales)
-      .sort((a, b) => a[1] - b[1])
-      .map(([game_title, game_quantity]) => ({
-        game_title,
-        game_quantity,
-      }));
-
-    setLeastSellingGames(sortedLeastSellingGames);
-
-    // Calculate Highest Paying Customers
+    // Highest Paying Customers
     const customerPayments = records.reduce((acc, record) => {
-      if (!acc[record.userId]) {
-        acc[record.userId] = { username: record.username || "Unknown", amount: 0 }; // Provide a default value for username
-      }
-      acc[record.userId].amount += parseFloat(record.amount) * record.game_quantity;
-      return acc;
-    }, {} as { [key: string]: { username: string; amount: number } });
-
-    const sortedHighestPayingCustomers = Object.entries(customerPayments)
-      .sort((a, b) => b[1].amount - a[1].amount)
-      .map(([userId, { username, amount }]) => ({
-        username,
-        amount: amount.toFixed(2),
-      }));
-
-    setHighestPayingCustomers(sortedHighestPayingCustomers);
-
-    // Calculate Total Duration of Games Played
-    const gameDurations = records.reduce((acc, record) => {
-      if (!acc[record.game_title]) {
-        acc[record.game_title] = 0;
-      }
-      acc[record.game_title] += record.game_duration * record.game_quantity;
+      const total = Number(record.amount) * record.game_quantity;
+      acc[record.username] = (acc[record.username] || 0) + total;
       return acc;
     }, {} as { [key: string]: number });
 
-    const sortedGameDurationStats: GameDurationStat[] = Object.entries(gameDurations).map(([game_title, game_duration]) => ({
-      game_title,
-      game_duration,
-    }));
+    const sortedCustomers = Object.entries(customerPayments)
+      .sort((a, b) => b[1] - a[1])
+      .map(([username, amount]) => ({ username, amount: Number(amount.toFixed(2)) }));
+    setHighestPayingCustomers(sortedCustomers);
 
-    setGameDurationStats(sortedGameDurationStats);
+    // Game Duration Stats
+    const gameDurations = records.reduce((acc, record) => {
+      acc[record.game_title] = (acc[record.game_title] || 0) + record.game_duration * record.game_quantity;
+      return acc;
+    }, {} as { [key: string]: number });
+
+    setGameDurationStats(Object.entries(gameDurations).map(([game_title, game_duration]) => ({ game_title, game_duration })));
   };
 
   const resetMetrics = () => {
@@ -152,29 +151,20 @@ const Report: React.FC = () => {
   };
 
   const exportToExcel = () => {
-    // Prepare the data for the Excel file
-    const worksheetData = records.map((record) => ({
-      'Game Title': record.game_title,
-      'Quantity Sold': record.game_quantity,
-      'Amount': record.amount,
-      'Payment Method': record.payment_methods,
-      'Date': record.createdAt,
+    const worksheetData = records.map((r) => ({
+      'Game Title': r.game_title,
+      'Quantity': r.game_quantity,
+      'Amount': r.amount,
+      'Payment Method': r.payment_methods,
+      'Date': r.created_at,
     }));
 
-    // Create a worksheet
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-
-    // Create a workbook
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
 
-    // Generate Excel file
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([excelBuffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-
-    // Save the file
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, `Report_${startDate}_to_${endDate}.xlsx`);
   };
 
@@ -319,9 +309,9 @@ const Report: React.FC = () => {
                 <td>{(parseFloat(record.game_duration.toString()) * record.game_quantity).toFixed(2)}</td>
                 <td>{record.game_title}</td>
                 <td>{record.game_quantity}</td>
-                <td>{(parseFloat(record.amount) * record.game_quantity).toFixed(2)}</td>
+                <td>{(Number(record.amount) * record.game_quantity).toFixed(2)}</td>
                 <td>{record.payment_methods}</td>
-                <td>{record.createdAt}</td>
+                <td>{record.created_at}</td>
               </tr>
             ))
           ) : (

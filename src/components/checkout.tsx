@@ -5,39 +5,55 @@ import axios from 'axios';
 import './checkout.css';
 import CartAndPayment from './CartAndPayment';
 import UserDetails from './UserDetails';
-import PaymentPage from './PaymentPage';
+import PaymentSelection from './PaymentSelection';
 import AdminPaymentPage from './users/AdminPaymentPage';
 import AdminLogin from './users/AdminLogin';
 
+
+export interface UserInfo {
+  id?: string;
+  username: string;
+  phone: string;
+  email?: string; // Keep it optional
+}
+
 const Checkout: React.FC = () => {
+  const navigate = useNavigate();
+  const { cartItems, cartTotal, setCart } = useCartContext();
+
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminName, setAdminName] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const { cartItems, cartTotal, setCart } = useCartContext();
-  const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState<'cart' | 'adminPayment' | 'user' | 'payment'>('cart');
-  const [payment_methods, setPaymentMethods] = useState<{ method: 'paystack'; amount: number }[]>([{ method: 'paystack', amount: cartTotal }]);
-  const [userDetails, setUserDetails] = useState<{ id?: string; username: string; phone: string; email?: string }>({
-    id: undefined,
+  const [currentStep, setCurrentStep] = useState<'cart' | 'adminPayment' | 'user' | 'paymentSelection'>('cart');
+  const [payment_methods, setPaymentMethods] = useState<{ method: 'Moniepoint'; amount: number }[]>([{ method: 'Moniepoint', amount: cartTotal }]);
+  const [userDetails, setUserDetails] = useState<{
+    username: string;
+    phone: string;
+    email?: string;
+  }>({
     username: '',
     phone: '',
     email: '',
   });
   const [discount_description, setDiscountDescription] = useState('');
   const [otherReason, setOtherReason] = useState('');
+  const [adminPaymentData, setAdminPaymentData] = useState<null | { finalAmount: number; discount: number }>(null);
+  const [merchantReference, setMerchantReference] = useState<string | null>(null);
+
 
   const steps = isAdminMode
-  ? ['Admin Payment', 'User Details']
-  : ['Cart & Payment', 'User Details', 'Payment'];
+    ? ['Cart & Payment', 'User Details', 'Admin Payment']
+    : ['Cart & Payment', 'User Details', 'Payment Selection'];
 
-const stepIndex = steps.findIndex((step, index) => {
-  if (isAdminMode && currentStep === 'adminPayment') return index === 0;
-  if (currentStep === 'cart') return index === 0;
-  if (currentStep === 'user') return index === 1;
-  if (currentStep === 'payment') return index === 2;
-  return false;
-});
-
+  const stepIndex = (() => {
+    switch (currentStep) {
+      case 'cart': return 0;
+      case 'user': return 1;
+      case 'adminPayment': return 2;
+      case 'paymentSelection': return 2;
+      default: return 0;
+    }
+  })();
 
   useEffect(() => {
     const adminData = localStorage.getItem('adminData');
@@ -49,20 +65,11 @@ const stepIndex = steps.findIndex((step, index) => {
     }
   }, []);
 
-//   useEffect(() => {
-//   const total = cartTotal;
-//   const totalAssigned = paymentMethods.reduce((sum, p) => sum + Number(p.amount), 0);
-
-//   if (totalAssigned !== total) {
-//     setPaymentMethods([{ method: 'cash', amount: total }]);
-//   }
-// }, [cartTotal]);
-
-
   const handleAdminLoginSuccess = (name: string) => {
     setAdminName(name);
     setIsAdminMode(true);
     setShowAdminLogin(false);
+    setCurrentStep('adminPayment');
   };
 
   const handleAdminLogout = () => {
@@ -74,14 +81,31 @@ const stepIndex = steps.findIndex((step, index) => {
   };
 
   const handleNextStep = () => {
-    if (currentStep === 'cart') { setCurrentStep('user');
-    } else if (currentStep === 'adminPayment') { setCurrentStep('user');
+    if (currentStep === 'cart') {
+      setCurrentStep('user');
+    } else if (currentStep === 'adminPayment') {
+      setCurrentStep('user');
     } else if (currentStep === 'user') {
       if (!userDetails.username || !userDetails.phone) {
-    alert("Please provide username and phone.");
-    return;
-  }
-      setCurrentStep('payment');
+        alert("Please provide username and phone.");
+        return;
+      }
+
+      if (isAdminMode && adminPaymentData) {
+        completeAdminTransaction(adminPaymentData.finalAmount, adminPaymentData.discount, userDetails);
+      } else {
+        setCurrentStep('paymentSelection');
+      }
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep === 'user') {
+      setCurrentStep(isAdminMode ? 'adminPayment' : 'cart');
+    } else if (currentStep === 'adminPayment') {
+      setCurrentStep('cart');
+    } else if (currentStep === 'paymentSelection') {
+      setCurrentStep('user');
     }
   };
 
@@ -97,86 +121,81 @@ const stepIndex = steps.findIndex((step, index) => {
     finalAmount: number,
     discount: number
   ) => {
-    console.log('Transaction data passed to completeTransaction:', transactionData);
-
-    const transactionId = transactionData.transaction_id || transactionData.id;
-    const mappedCartItems = mapCartItems(cartItems);
-    const user = transactionData.user;
-
-    navigate('/ticket', {
-      state: {
-        id: transactionData.id,
-        transactionId,
-        games: mappedCartItems.map(({ title, quantity, price }) => ({
-          name: title,
-          quantity,
-          price,
-        })),
-        totalAmount: finalAmount,
-        discount,
-        dateTime: new Date().toLocaleString(),
-        userDetails: {
-          id: user?.id,
-      username: user?.username,
-      phone: user?.phone
-    },
-        cartItems: mappedCartItems,
-        ...(isAdminMode && { adminName }),
-      },
-    });
+    console.log('Transaction completed:', {
+    transactionData,
+    finalAmount,
+    discount,
+  });
 
     setCart([]);
   };
 
   const handleAdminPaymentSuccess = async (finalAmount: number, discount: number) => {
-  try {
-    const fullDiscountReason =
-      discount_description === 'other' ? `Other: ${otherReason}` : discount_description;
+    setAdminPaymentData({ finalAmount, discount });
+    setCurrentStep('user');
+  };
 
-    const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
-      {
-        ...userDetails,
-        payment_methods: [{ method: 'paystack', amount: cartTotal }],
-        cartItems,
-        discount,
-        isAdmin: true,
-        discount_description: discount > 0 ? fullDiscountReason : undefined,
-      }
-    );
+  const fullDiscountReason = discount_description === 'other'
+    ? `Other: ${otherReason}`
+    : discount_description;
 
-    const transactionPayload = Array.isArray(response.data?.data)
-      ? response.data.data[0]
-      : response.data?.data;
+  const completeAdminTransaction = async (
+    cartTotal: number,
+    discount: number,
+    userDetails: { username: string; phone: string; email?: string }
+  ) => {
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
+        {
+          ...userDetails,
+          reference: new Date().getTime().toString(),
+          merchantReference,
+          payment_methods: [{ method: 'Moniepoint', amount: cartTotal }],
+          cartItems,
+          discount,
+          isAdmin: true,
+          discount_description: discount > 0 ? fullDiscountReason : undefined,
+        }
+      );
 
-    completeTransaction(transactionPayload, finalAmount, discount);
-  } catch (error) {
-    console.error('Error during admin payment:', error);
-  }
-};
+      const transactionPayload = Array.isArray(response.data?.data)
+        ? response.data.data[0]
+        : response.data?.data;
 
+      completeTransaction(transactionPayload, cartTotal, discount);
+    } catch (error) {
+      console.error('Error during admin payment:', error);
+    }
+  };
 
   const handlePaymentSuccess = async () => {
-  try {
-    const response = await axios.post(
-      `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
-      {
-        ...userDetails,
-        payment_methods,
-        cartItems,
-        discount: 0,
-        discount_description,
-      }
-    );
+    try {
+      const payload = {
+          ...userDetails,
+          reference: new Date().getTime().toString(),
+          merchantReference,
+          payment_methods,
+          cartItems,
+          discount: 0,
+          discount_description,
+      };
+      console.log('Submitting transaction:', payload);
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
+        payload
+      );
 
-    const transactionPayload = Array.isArray(response.data?.data)
-      ? response.data.data[0]
-      : response.data?.data;
+      const transactionPayload = Array.isArray(response.data?.data)
+        ? response.data.data[0]
+        : response.data?.data;
 
-    completeTransaction(transactionPayload, cartTotal, 0);
-  } catch (error) {
-    console.error('Error during payment:', error);
-  }
-};
+      completeTransaction(transactionPayload, cartTotal, 0);
+    } catch (error) {
+      console.error('Error during payment:', error);
+    }
+  };
+
 
 
   return (
@@ -197,68 +216,74 @@ const stepIndex = steps.findIndex((step, index) => {
       </div>
 
       {showAdminLogin && (
-        <AdminLogin onLoginSuccess={handleAdminLoginSuccess} onClose={() => setShowAdminLogin(false)} />
+        <AdminLogin
+          onLoginSuccess={handleAdminLoginSuccess}
+          onClose={() => setShowAdminLogin(false)}
+        />
       )}
 
       <h1>Checkout</h1>
 
       <div className="checkout-steps">
-  {steps.map((label, index) => (
-    <div key={label} className={`step ${index <= stepIndex ? 'active' : ''}`}>
-      <div className="step-number">{index + 1}</div>
-      <div className="step-label">{label}</div>
-    </div>
-  ))}
-</div>
-
+        {steps.map((label, index) => (
+          <div key={label} className={`step ${index <= stepIndex ? 'active' : ''}`}>
+            <div className="step-number">{index + 1}</div>
+            <div className="step-label">{label}</div>
+          </div>
+        ))}
+      </div>
 
       {currentStep === 'cart' && (
-  <CartAndPayment
-    cartItems={cartItems}
-    cartTotal={cartTotal}
-    payment_methods={payment_methods}
-    setPaymentMethods={setPaymentMethods}
-    onNext={handleNextStep}
-    userEmail={userDetails.email}
-  />
-)}
+        <CartAndPayment
+          cartItems={cartItems}
+          cartTotal={cartTotal}
+          payment_methods={payment_methods}
+          setPaymentMethods={setPaymentMethods}
+          onNext={handleNextStep}
+          userEmail={userDetails.email}
+        />
+      )}
 
-{currentStep === 'adminPayment' && isAdminMode && (
-  <AdminPaymentPage
-    cartTotal={cartTotal}
-    userDetails={userDetails}
-    payment_methods={payment_methods}
-    cartItems={cartItems}
-    onPaymentSuccess={(finalAmount, discount) => {
-      handleAdminPaymentSuccess(finalAmount, discount);
-      setCurrentStep('user'); // move to next step
-    }}
-    isAdmin={true}
-    discount_description={discount_description}
-    setDiscountDescription={setDiscountDescription}
-    otherReason={otherReason}
-    setOtherReason={setOtherReason}
-    
-  />
-)}
+      {currentStep === 'adminPayment' && isAdminMode && (
+        <AdminPaymentPage
+          cartTotal={cartTotal}
+          userDetails={userDetails}
+          payment_methods={payment_methods}
+          cartItems={cartItems}
+          onPaymentSuccess={handleAdminPaymentSuccess}
+          isAdmin={true}
+          discount_description={discount_description}
+          setDiscountDescription={setDiscountDescription}
+          otherReason={otherReason}
+          setOtherReason={setOtherReason}
+        />
+      )}
 
-{currentStep === 'user' && (
-  <UserDetails
-    userDetails={userDetails}
-    setUserDetails={setUserDetails}
-    onNext={handleNextStep}
-  />
-)}
+      {currentStep === 'user' && (
+        <UserDetails
+          userDetails={userDetails}
+          setUserDetails={setUserDetails}
+          onNext={handleNextStep}
+        />
+      )}
 
-{currentStep === 'payment' && (
-  <PaymentPage
-    cartTotal={cartTotal}
-    userDetails={userDetails}
-    //paymentMethods={paymentMethods}
-    onPaymentSuccess={handlePaymentSuccess}
-  />
-)}
 
+
+      {currentStep === 'paymentSelection' && (
+        <PaymentSelection
+          cartTotal={cartTotal}
+          userDetails={userDetails}
+          cartItems={cartItems}
+          handlePaymentSuccess={handlePaymentSuccess}
+          onMerchantReference={(ref) => setMerchantReference(ref)}
+        />
+      )}
+
+      {currentStep !== 'cart' && (
+        <div className="navigation-buttons">
+          <button className="back-button" onClick={handleBack}>Back</button>
+        </div>
+      )}
     </div>
   );
 };

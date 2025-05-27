@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { debounce } from 'lodash';
+import { debounce, set } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 
 
@@ -25,28 +25,34 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
         const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/users/phone?phone=${phone}`);
         if (response.status === 404) {
           setIsExistingUser(false);
+          setUserDetails({ id: '', username: '', phone, email: '' });
+          setErrors({});
+          setSubmitError(null);
           return;
         }
         if (!response.ok) throw new Error('Failed to fetch user details');
 
         const result = await response.json();
-        if (result.status && result.data?.success && result.data.data) {
-          setUserDetails({
-            
-            id: result.data.data.id,
-            username: result.data.data.username,
-            phone: result.data.data.phone,
-            email: result.data.data.email || '',
-          });
-          setIsExistingUser(true);
-        }
+        console.log("Fetch Result:", result);
+
+        if (result.success && result.data) {
+        setUserDetails({
+          id: result.data.id,
+          username: result.data.username,
+          phone: result.data.phone,
+          email: result.data.email || '',
+        });
+        setIsExistingUser(true);
+      } else {
+        setIsExistingUser(false);
+      }
       } catch (error) {
         setSubmitError('Error fetching user details.');
       } finally {
         setIsLoading(false);
       }
     }, 500), // 500ms debounce
-    []
+    [setUserDetails]
   );
 
   useEffect(() => {
@@ -82,7 +88,7 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
 
     try {
       const url = isExistingUser
-        ? `${process.env.REACT_APP_BACKEND_URL}/v1/admin/users/${userDetails.phone}`
+        ? `${process.env.REACT_APP_BACKEND_URL}/v1/admin/users/phone?=${userDetails.phone}`
         : `${process.env.REACT_APP_BACKEND_URL}/v1/admin/users`;
       const method = isExistingUser ? 'PUT' : 'POST';
 

@@ -12,8 +12,8 @@ interface CartItem {
 interface CartAndPaymentProps {
   cartItems: CartItem[];
   cartTotal: number;
-  payment_methods: { method: 'paystack'; amount: number }[];
-  setPaymentMethods: React.Dispatch<React.SetStateAction<{ method: 'paystack'; amount: number }[]>>;
+  payment_methods: { method: 'Moniepoint'; amount: number }[];
+  setPaymentMethods: React.Dispatch<React.SetStateAction<{ method: 'Moniepoint'; amount: number }[]>>;
   onNext: () => void;
   userEmail?: string;
 }
@@ -31,11 +31,19 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   const { clearCart } = UseCart();
 
   useEffect(() => {
-    const newTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    setTotal(newTotal);
+  const newTotal = items.reduce((sum, item) => {
+    if (item.title === '360 Video Booth') {
+      // First item at regular price, rest at ₦1000 each
+      const extraQuantity = Math.max(0, item.quantity - 1);
+      return sum + item.price + (extraQuantity * 1000);
+    } else {
+      return sum + item.price * item.quantity;
+    }
+  }, 0);
 
     // Update payment method total as well
-    setPaymentMethods([{ method: 'paystack', amount: newTotal }]);
+    setTotal(newTotal);
+    setPaymentMethods([{ method: 'Moniepoint', amount: newTotal }]);
   }, [items, setPaymentMethods]);
 
   const handleQuantityChange = (index: number, delta: number) => {
@@ -64,7 +72,9 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
         {items.map((item, index) => (
           <li key={item.id}>
             <strong>{item.title}</strong> - ₦{item.price} x {item.quantity} = ₦
-            {item.price * item.quantity}{' '}
+    {item.title === '360 Video Booth' 
+      ? (item.price + ((item.quantity - 1) * 1000))
+      : (item.price * item.quantity)}{' '}
             <button onClick={() => handleQuantityChange(index, -1)} disabled={item.quantity === 1}>
               -
             </button>

@@ -1,40 +1,48 @@
-// OperatorDashboard.tsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-interface Game {
-  id: string;
-  title: string;
+interface GameItem {
+  id: string; // transaction_item ID
+  game_title: string;
   customer: string;
+  transaction_id: string;
+  game_id: string;
+  transaction_time: string;
 }
 
 const OperatorDashboard = () => {
-  const [assignedGames, setAssignedGames] = useState<Game[]>([]);
+  const [unconsumedGames, setUnconsumedGames] = useState<GameItem[]>([]);
   const token = localStorage.getItem('operatorToken');
 
   useEffect(() => {
-    const fetchAssignedGames = async () => {
+    const fetchUnconsumedGames = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions/`, {
+        const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/consumed-game`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setAssignedGames(res.data);
+        setUnconsumedGames(res.data);
       } catch (err) {
-        console.error('Error fetching games:', err);
+        console.error('Error fetching unconsumed games:', err);
       }
     };
 
-    fetchAssignedGames();
+    fetchUnconsumedGames();
   }, []);
 
-  const handleConsume = async (gameItemId: string) => {
+  const handleConsume = async (item: GameItem) => {
     try {
       await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/v1/admin/consumed-game/consume`,
-        { gameItemId },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          gameItemId: item.id,
+          operator_name: localStorage.getItem('operatorName') || 'Unknown Operator',
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
-      setAssignedGames(prev => prev.filter(g => g.id !== gameItemId));
+
+      setUnconsumedGames(prev => prev.filter(g => g.id !== item.id));
     } catch (err) {
       console.error('Error consuming game:', err);
     }
@@ -43,14 +51,24 @@ const OperatorDashboard = () => {
   return (
     <div>
       <h2>Operator Dashboard</h2>
-      <ul>
-        {assignedGames.map(game => (
-          <li key={game.id}>
-            {game.title} - {game.customer}
-            <button onClick={() => handleConsume(game.id)}>Mark as Attended</button>
-          </li>
-        ))}
-      </ul>
+      {unconsumedGames.length === 0 ? (
+        <p>No games to consume at the moment.</p>
+      ) : (
+        <ul>
+          {unconsumedGames.map((item) => (
+            <li key={item.id} style={{ marginBottom: '1rem' }}>
+              <strong>{item.game_title}</strong> - {item.customer}
+              <br />
+              {item.transaction_time && (
+                <small>
+                  Date & Time: {new Date(item.transaction_time).toLocaleString()}
+                </small>
+              )}
+              <button onClick={() => handleConsume(item)}>Mark as Attended</button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };

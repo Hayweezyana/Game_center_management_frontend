@@ -1,133 +1,93 @@
-import { useLocation, useNavigate } from 'react-router-dom';
-import logo from './logo/immersia.png';
-import axios from 'axios';
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import logo from './logo/immersia.png';
+import { useParams as useRouterParams } from 'react-router-dom';
 
 interface CartItem {
   id: string;
   pc_id: string;
   gameDuration: number;
   quantity: number;
-  gameTitle: string;
+  title: string;
   pc_title: string;
   price: number;
 }
 
-interface ResponseData {
-  status: boolean;
-  data: {
-    transaction_id: string;
-    [key: string]: any;
-  };
+interface UserDetails {
+  id: string;
+  username: string;
 }
 
-
-const handleProceedToQueue = async (
-  cartItems: CartItem[],
-  user_id: string,
-  userDetails: { id: string; username: string },
-  setValidationErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>
-) => {
-  const errors: Record<string, string> = {};
-
-  for (const item of cartItems) {
-    if (!item.gameTitle || !item.quantity || !item.gameDuration) {
-      errors[item.id] = 'Missing required fields (title, quantity, or duration)';
-    }
-  }
-
-  if (Object.keys(errors).length > 0) {
-    setValidationErrors(errors);
-    return false;
-  }
-
-
-  try {
-    const queueData = cartItems.map((item) => ({
-      game_id: item.id,
-      user_id,
-      username: userDetails.username,
-      game_duration: item.gameDuration,
-      quantity: item.quantity,
-      game_title: item.gameTitle,
-    }));
-    console.log('Sending queueData:', queueData);
-    
-    await Promise.all(
-      cartItems.map((item) =>
-        axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/queue/add`, {
-          game_id: item.id,
-          user_id,
-          username: userDetails.username,
-          game_duration: item.gameDuration,
-          quantity: item.quantity,
-          game_title: item.gameTitle,
-        })
-      )
-    );
-    alert('Successfully added to queue!');
-    setValidationErrors({});
-    return true;
-  } catch (error) {
-    console.error('Error posting to queue:', error);
-    alert('Failed to add to queue.');
-    return false;
-  }
-};
+interface LocationState {
+  merchantReference?: string;
+  reference?: string;
+  cartItems?: CartItem[];
+  cartTotal?: number;
+  dateTime?: string;
+  adminName?: string;
+  discount?: number;
+  userDetails?: UserDetails;
+}
 
 const Ticket: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  
 
-  console.log("Ticket location.state:", location.state);
-const { transaction_id, games, totalAmount, dateTime, userDetails, cartItems, adminName, discount } = location.state as {
-    transaction_id: string;
-    games: { name: string; quantity: number; price: number }[];
-    totalAmount: number;
-    dateTime: string;
-    adminName?: string;
-    discount?: number;
-    userDetails: { id: string; username: string };
-    cartItems: CartItem[];
-  };
+  const [reference, setReference] = useState<string | null>(null);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartTotal, setTotalAmount] = useState<number>(0);
+  const [dateTime, setDateTime] = useState<string>('');
+  const [adminName, setAdminName] = useState<string>('');
+  const [discount, setDiscount] = useState<number>(0);
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
-
-  //to get transactionId from the backend
-  const [fetchedTransactionId, setFetchedTransactionId] = useState<string | null>(transaction_id);
-
-  // Fetch transaction ID only if not available in state
   useEffect(() => {
-    if (!transaction_id) {
-      console.warn("No transaction ID provided in location state.");
-      setFetchedTransactionId("");
+    const state = location.state as LocationState | null;
+
+    if (state && (state.merchantReference || state.reference) && state.cartItems) {
+      const ref = state.merchantReference || state.reference || null;
+
+      setReference(ref);
+      setCartItems(state.cartItems || []);
+      setTotalAmount(state.cartTotal || 0);
+      setDateTime(state.dateTime || '');
+      setAdminName(state.adminName || '');
+      setDiscount(state.discount || 0);
+      setUserDetails(state.userDetails || null);
+    } else {
+      setErrorMessage('No ticket data available. Please complete a transaction first.');
+    }
+  }, [location.state]);
+
+  const handleProceedToQueue = async () => {
+    if (!cartItems.length || !userDetails) {
+      alert('Missing cart items or user details.');
       return;
     }
-  
-    axios
-      .get<ResponseData>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions/${transaction_id}`)
-      .then((response) => {
-        console.log("Fetched Transaction:", response.data);
-        const data = response.data?.data;
-  
-        if (data) {
-          const txId = data.transaction_id || data.id || 'Unknown';
-          setFetchedTransactionId(txId);
-        } else {
-          setFetchedTransactionId('Not Found');
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching transaction:", error);
-        setFetchedTransactionId("Error");
-      });
-  }, [transaction_id]);
-  
-  
 
-
+    try {
+      await Promise.all(
+        cartItems.map((item) =>
+          axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/queue/add`, {
+            game_id: item.id,
+            user_id: userDetails.id,
+            username: userDetails.username,
+            game_duration: item.gameDuration,
+            quantity: item.quantity,
+            game_title: item.title,
+          })
+        )
+      );
+      alert('Successfully added to queue!');
+      navigate('/Queue');
+    } catch (error) {
+      console.error('Error posting to queue:', error);
+      alert('Failed to add to queue.');
+    }
+  };
 
   const printTicket = () => {
     const content = document.getElementById('printable-area')?.innerHTML;
@@ -141,91 +101,87 @@ const { transaction_id, games, totalAmount, dateTime, userDetails, cartItems, ad
     }
   };
 
+  if (errorMessage) {
+    return (
+      <div style={styles.ticketContainer}>
+        <p style={{ color: 'red' }}>{errorMessage}</p>
+        <button style={styles.queueButton} onClick={() => navigate('/gameselection')}>
+          Go to Home
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.ticketContainer}>
-      <div id="printable-area"> {/* Add this wrapper */}
-      <div style={styles.header}>
-      <pre style={{ background: '#eee', padding: '10px', fontSize: '12px' }}>
-        Raw transactionId: {transaction_id}
-        {"\n"}Fetched transactionId: {fetchedTransactionId}</pre>
+      <div id="printable-area">
+        <div style={styles.header}>
+          <img src={logo} alt="Immersia Logo" style={styles.logo} />
+          <p style={styles.subtitle}>IG: @immersiang | www.immersiavr.com</p>
+        </div>
 
-        <img src={logo} alt="Immersia Logo" style={styles.logo} />
-        <p style={styles.subtitle}>IG: @immersiang | www.immersiavr.com</p>
-      </div>
+        <div style={styles.details}>
+          <h2 style={styles.sectionTitle}>Ticket Details</h2>
+          <p>
+            <strong>Reference:</strong> {reference || 'N/A'}
+          </p>
+          <p>
+            <strong>Username:</strong> {userDetails?.username || 'N/A'}
+          </p>
+          <p>
+            <strong>Date & Time:</strong> {dateTime || 'N/A'}
+          </p>
+        </div>
 
-      <div style={styles.details}>
-        <h2 style={styles.sectionTitle}>Transaction Details</h2>
-        <p><strong>Transaction ID:</strong> {fetchedTransactionId || transaction_id || 'Loading...'}</p>
-        <p><strong>Username:</strong> {userDetails.username}</p>
-
-        <p><strong>Date & Time:</strong> {dateTime}</p>
-      </div>
-
-      <div style={styles.games}>
-        <h2 style={styles.sectionTitle}>Games</h2>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Game</th>
-              <th style={styles.th}>Quantity</th>
-              <th style={styles.th}>Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            {games.map((game, index) => {
-              const error = validationErrors[cartItems[index]?.id];
-              return (
-                <React.Fragment key={index}>
-                  <tr
-                    style={
-                      error
-                        ? { backgroundColor: '#ffe6e6', border: '1px solid red' }
-                        : undefined
-                    }
-                  >
-                <td style={styles.td}>{game.name}</td>
-                <td style={styles.td}>{game.quantity}</td>
-                <td style={styles.td}>₦{game.price.toFixed(2)}</td>
+        <div style={styles.games}>
+          <h2 style={styles.sectionTitle}>Cart Items</h2>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Game</th>
+                <th style={styles.th}>Quantity</th>
+                <th style={styles.th}>Price</th>
               </tr>
-              {error && (
-          <tr>
-            <td colSpan={3} style={{ color: 'red', padding: '6px', fontSize: '14px' }}>
-              ⚠️ {error}
-            </td>
-          </tr>
-        )}
-      </React.Fragment>
-    );
-  })}
-          </tbody>
-        </table>
-      </div>
-      {discount && (
-        <p><strong>discount:</strong> {discount}</p>
-        )}
+            </thead>
+            <tbody>
+              {cartItems.map((item, index) => (
+                <tr key={index}>
+                  <td style={styles.td}>{item.title}</td>
+                  <td style={styles.td}>{item.quantity}</td>
+                  <td style={styles.td}>₦{item.price.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      <div style={styles.total}>
-        <p><strong>Total Amount Paid:</strong> ₦{totalAmount.toFixed(2)}</p>
-      </div>
-      {adminName && (
-        <p><strong>Processed by:</strong> {adminName}</p>
+        {discount > 0 && (
+          <p>
+            <strong>Discount:</strong> ₦{discount.toFixed(2)}
+          </p>
         )}
 
-      <div style={styles.footer}>
-        <p style={styles.thankYou}>Thank you for choosing Immersia VR!</p>
-      </div>
-      </div> {/* End of printable-area */}
+        <div style={styles.total}>
+          <p>
+            <strong>Total Amount Paid:</strong> ₦{cartTotal.toFixed(2)}
+          </p>
+        </div>
 
-      <button style={styles.printButton} onClick={printTicket}>Print Ticket</button>
-      <button
-        style={styles.queueButton}
-        onClick={async () => {
-          const success = await handleProceedToQueue(cartItems, userDetails.id, userDetails, setValidationErrors);
-          if (success) {
-            navigate('/Queue');
-          }
-        }}
-      >
+        {adminName && (
+          <p>
+            <strong>Processed by:</strong> {adminName}
+          </p>
+        )}
+
+        <div style={styles.footer}>
+          <p style={styles.thankYou}>Thank you for choosing Immersia VR!</p>
+        </div>
+      </div>
+
+      <button style={styles.printButton} onClick={printTicket}>
+        Print Ticket
+      </button>
+      <button style={styles.queueButton} onClick={handleProceedToQueue}>
         To Queue
       </button>
     </div>
@@ -234,38 +190,63 @@ const { transaction_id, games, totalAmount, dateTime, userDetails, cartItems, ad
 
 export default Ticket;
 
-// Add this to the existing React import at the top of the file
-
 const styles = {
-  sectionTitle: {
-    fontSize: '1.5em',
-    marginBottom: '15px',
-    color: '#333',
-  },
   ticketContainer: {
-    maxWidth: '600px',
+    maxWidth: '800px',
     margin: '20px auto',
     padding: '20px',
-    border: '1px solid #ccc',
+    backgroundColor: '#fff',
     borderRadius: '8px',
+    boxShadow: '0 0 10px rgba(0,0,0,0.1)'
+  },
+  sectionTitle: {
+    fontSize: '18px',
+    marginBottom: '15px',
+    color: '#333'
+  },
+  games: {
+    marginBottom: '20px',
+    padding: '10px'
+  },
+  total: {
+    marginTop: '20px',
+    padding: '10px',
+    borderTop: '1px solid #ddd'
   },
   header: {
     textAlign: 'center' as const,
     marginBottom: '20px'
   },
+  details: {
+    marginBottom: '20px',
+    padding: '10px'
+  },
+  queueButton: {
+    padding: '10px 20px',
+    margin: '10px',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  },
+  printButton: {
+    padding: '10px 20px',
+    margin: '10px',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  },
   logo: {
-    width: '200px',
-    height: 'auto',
-    marginBottom: '10px'
+    maxWidth: '200px',
+    height: 'auto'
   },
   subtitle: {
     fontSize: '14px',
     color: '#666',
-    marginBottom: '20px'
-  },
-  details: {
-    marginBottom: '20px',
-    padding: '10px'
+    marginTop: '10px'
   },
   table: {
     width: '100%',
@@ -275,49 +256,26 @@ const styles = {
   th: {
     border: '1px solid #ddd',
     padding: '8px',
-    backgroundColor: '#333'
+    textAlign: 'left' as const,
+    backgroundColor: '#f4f4f4'
   },
   td: {
     border: '1px solid #ddd',
     padding: '8px'
   },
-  total: {
-    marginTop: '20px',
-    padding: '10px',
-    fontWeight: 'bold'
-  },
   footer: {
     textAlign: 'center' as const,
     marginTop: '20px',
-    padding: '10px'
-  },
-  games: {
-    marginBottom: '20px',
-    padding: '10px'
+    borderTop: '1px solid #ddd',
+    paddingTop: '10px'
   },
   thankYou: {
     fontSize: '16px',
-    color: '#333',
-    fontWeight: 'bold'
-  },
-  printButton: {
-    padding: '10px 20px',
-    margin: '10px',
-    backgroundColor: '#4CAF50',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer'
-  },
-  queueButton: {
-    padding: '10px 20px',
-    margin: '10px',
-    backgroundColor: '#2196F3',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer'
+    fontWeight: 'bold',
+    color: '#333'
   }
 };
 
-
+function useParams<T extends string | Record<string, string | undefined>>() {
+  return useRouterParams<T>();
+}
