@@ -34,13 +34,13 @@
 }
 
 .immersia-icon {
-  background-image: url('public/logo512.png');
+  background-image: url('../../public/logo512.png');
 }
 
 .funstation-icon {
-  background-image: url('public/funstation.jpg');
+  background-image: url('../../public/funstation.jpg');
 }
 
 .paystack-icon {
-  background-image: url('public/logo192.png');
+  background-image: url('../../public/paystack.PNG');
 }
