@@ -21,7 +21,7 @@ const WelcomePage: React.FC = () => {
                         className="welcome-button admin-button" 
                         onClick={() => navigate('/adminlogin')}
                     >
-                        <span className="button-icon">👑</span>
+                        <span className="button-icon">👨🏻‍💼</span>
                         Admin Portal
                     </button>
                     <button 
@@ -29,7 +29,7 @@ const WelcomePage: React.FC = () => {
                         onClick={() => navigate('/GameSelection')}
                     >
                         <span className="button-icon">🎮</span>
-                        Shall We?
+                        Let's play
                     </button>
                 </div>
             </div>

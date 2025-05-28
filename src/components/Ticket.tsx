@@ -185,7 +185,7 @@ const Ticket: React.FC = () => {
         Print Ticket
       </button>
       <button style={styles.homeButton} onClick={() => navigate('/gameselection')}>
-        Return to Home
+        Let's play again
       </button>
       <button style={styles.queueButton} onClick={handleProceedToQueue}>
         To Queue
