@@ -112,6 +112,9 @@ const Ticket: React.FC = () => {
     );
   }
 
+  //add return to home button
+
+
   return (
     <div style={styles.ticketContainer}>
       <div id="printable-area">
@@ -180,6 +183,9 @@ const Ticket: React.FC = () => {
 
       <button style={styles.printButton} onClick={printTicket}>
         Print Ticket
+      </button>
+      <button style={styles.homeButton} onClick={() => navigate('/gameselection')}>
+        Return to Home
       </button>
       <button style={styles.queueButton} onClick={handleProceedToQueue}>
         To Queue
@@ -273,6 +279,15 @@ const styles = {
     fontSize: '16px',
     fontWeight: 'bold',
     color: '#333'
+  },
+  homeButton: {
+    padding: '10px 20px',
+    margin: '10px',
+    backgroundColor: '#f0ad4e',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer'
   }
 };
 
