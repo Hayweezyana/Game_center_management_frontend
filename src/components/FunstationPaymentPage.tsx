@@ -20,6 +20,16 @@ interface PaymentPageProps {
 const FunstationPaymentPage: React.FC<PaymentPageProps> = ({ onPaymentSuccess }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const styles = {
+    homeButton: {
+      margin: '10px',
+      padding: '8px 16px',
+      backgroundColor: '#f0f0f0',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      cursor: 'pointer'
+    }
+  };
 const { cartTotal, userDetails, cartItems, dateTime } = location.state as PaymentPageProps;
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -92,6 +102,9 @@ else if (status === 'CANCELLED') {
     <p>Total: ₦{cartTotal.toLocaleString()}</p>
       <button onClick={handlePayment} disabled={loading}>
         {loading ? 'Processing...' : 'Pay Now via POS'}
+      </button>
+      <button style={styles.homeButton} onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, cartTotal } })}>
+      Edit cart
       </button>
       {status && <p>{status}</p>}
     </div>

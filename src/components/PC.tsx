@@ -13,7 +13,7 @@ interface PC {
 }
 
 interface CartItem {
-  id: UUID; // Unique identifier for the item
+  id: string; // Unique identifier for the item
   title: string;
   price: number;
   quantity: number;

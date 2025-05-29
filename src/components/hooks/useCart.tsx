@@ -1,5 +1,6 @@
-import { UUID } from 'crypto';
 import { useState, useEffect, ReactNode, createContext, useContext } from 'react';
+
+export type UUID = string;
 
 interface CartItem {
   id: UUID; // Unique identifier for the item
@@ -21,13 +22,13 @@ interface UseCart {
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
 }
 
+
 const useCart = (): UseCart => {
   const [cartItems, setCart] = useState<CartItem[]>([]);
   useEffect(() => {
     console.log('Cart Items in useCart:', cartItems);
   }, [cartItems]);
   
-
   // Calculate the total cost of the cart
   const cartTotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
 
@@ -52,7 +53,7 @@ const useCart = (): UseCart => {
   };
 
   // Update the quantity of an existing cart item
-  const updateCartItem = (itemId: string, quantity: number) => {
+  const updateCartItem = (itemId: UUID, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(itemId); // Automatically remove the item if quantity is zero or less
     } else {
@@ -69,10 +70,10 @@ const useCart = (): UseCart => {
     setCart([]);
   };
 
-  // Persist cart state to localStorage
+  // Persist cart state to sessionStorage
   useEffect(() => {
-    const storedCart = localStorage.getItem('cart');
-    console.log('Stored Cart in LocalStorage:', localStorage.getItem('cart'), storedCart);
+    const storedCart = sessionStorage.getItem('cart');
+    console.log('Stored Cart in sessionStorage:', sessionStorage.getItem('cart'), storedCart);
     if (storedCart) {
       setCart(JSON.parse(storedCart));
     }
@@ -80,11 +81,11 @@ const useCart = (): UseCart => {
   
   // clear cart after payment
   useEffect(() => {
-    localStorage.removeItem('cart');
+    sessionStorage.removeItem('cart');
   }, [cartItems]);
 
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
+    sessionStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
   

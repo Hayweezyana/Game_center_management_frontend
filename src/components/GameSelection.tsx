@@ -6,6 +6,7 @@ import io, { Socket } from 'socket.io-client';
 import { useCartContext } from './hooks/useCart';
 import styles from './GameSelection.module.css';
 import { UUID } from 'crypto';
+import { FaPlus, FaMinus } from 'react-icons/fa';
 
 // Define types for the cart items
 interface CartItem {
@@ -22,8 +23,9 @@ interface Game {
   url: string;
   title: string;
   price: number;
-  time_slot?: string; // Optional: If some games may not have this property
+  time_slot?: string;
 }
+
 
 const GameSelection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,13 +38,15 @@ const GameSelection: React.FC = () => {
   const [loading, setLoading] = useState(true); // Track loading state
   const [error, setError] = useState<string | null>(null); // Track errors
   const navigate = useNavigate();
-  const { addToCart, cartItems, cartTotal } = useCartContext();
+  const { addToCart, cartItems, updateCartItem, } = useCartContext();
   const socket: Socket = useMemo(() => io("ws:https://game-center-management.onrender.com", {
     transports: ["websocket"],
   }), []);
 
   // Ref to store YouTube player instances
   const playerRefs = useRef<{ [key: string]: any }>({});
+
+  
 
   useEffect(() => {
     // Fetch games data from the backend
@@ -70,54 +74,47 @@ const GameSelection: React.FC = () => {
       console.log('Socket disconnected');
     };
   }, [socket]);
+  
+  
 
-  const handleAddToCart = useCallback((game: Game, quantity: number) => {
-    const updatedItems = cartItems.map((item) =>
-      item.id === game.id.toString() ? { ...item, quantity } : item
-    );
-    
-    if (!cartItems.find((item) => item.id === game.id.toString())) {
-      if (quantity > 0) {
-        console.log('Adding to cart:', game, 'Quantity:', quantity);
-        addToCart({
-          id: game.id,
-          title: game.title,
-          price: game.price,
-          quantity,
-          gameDuration: game.time_slot ? parseInt(game.time_slot) : 10, // Assuming default duration is 10 minutes
-        });
-      }
+  const getCartQuantity = (gameId: UUID) => {
+    const item = cartItems.find((item) => item.id === gameId.toString());
+    return item ? item.quantity : 0;
+  };
+
+  const handleQuantityChange = (game: Game, quantity: number) => {
+  if (quantity <= 0) {
+    // Remove from cart
+    updateCartItem(game.id, 0); // This will trigger removal in useCart
+  } else {
+    const cartItem = cartItems.find((item) => item.id === game.id);
+    if (cartItem) {
+      updateCartItem(game.id, quantity); // Just update the quantity directly
     } else {
-      setCart(updatedItems);
-      console.log('Updated cart items:', cartItems);
+      addToCart({
+        id: game.id,
+        title: game.title,
+        price: game.price,
+        quantity, // Set initial quantity
+        gameDuration: game.time_slot ? parseInt(game.time_slot) : 10,
+      });
     }
-  }, [cartItems, addToCart]);
+  }
+};
 
-  const handleCheckout = useCallback(() => {
+
+  const handleCheckout = () => {
     if (cartItems.length === 0) {
       alert('No games selected for checkout!');
       return;
     }
-
-    // Redirect to the checkout page with selected games
     navigate('/checkout');
-  }, [cartItems, navigate]);
+  };
 
-  const debouncedHandleAddToCart = useMemo(() => {
-    let timeoutId: NodeJS.Timeout;
-    return (game: Game, quantity: number) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => handleAddToCart(game, quantity), 300);
-    };
-  }, [handleAddToCart]);
-
-  // Handle YouTube player ready event
   const onPlayerReady = (event: any, gameId: string) => {
-    // Store the player instance in the ref
     playerRefs.current[gameId] = event.target;
   };
 
-  // Handle YouTube player error event
   const onPlayerError = (error: any, gameId: string) => {
     console.error(`YouTube player error for game ${gameId}:`, error);
   };
@@ -126,11 +123,11 @@ const GameSelection: React.FC = () => {
     <div className={styles['game-selection-container']}>
       <h1 className={styles.title}>Immersia POS</h1>
       <input
-      type="text"
-      placeholder="Search games..."
-      className={styles.searchBar}
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
+        type="text"
+        placeholder="Search games..."
+        className={styles.searchBar}
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
       />
 
       {loading ? (
@@ -139,28 +136,41 @@ const GameSelection: React.FC = () => {
         <p className={styles['error-message']}>{error}</p>
       ) : (
         <div className={styles['video-grid']}>
-          {filteredGames.map((game) => (
-            <div key={game.id} className={styles['video-container']}>
-              <h2 className={styles['game-title']}>{game.title}</h2>
-              <p className={styles['game-price']}>Price: ₦{game.price}</p>
-              <p className={styles['game-time_slot']}>
-                Duration: {game.time_slot || '10 minutes'}
-              </p>
-              <YouTube
-                videoId={game.url}
-                onReady={(event) => onPlayerReady(event, game.id)}
-                onError={(event) => onPlayerError(event, game.id)}
-              />
-              <input
-                type="number"
-                min="0"
-                className={styles['quantity-input']}
-                onBlur={(e) => debouncedHandleAddToCart(game, Number(e.target.value))}
-              />
-            </div>
-          ))}
+          {filteredGames.map((game) => {
+            const cartItem = cartItems.find(item => item.id === game.id);
+            const currentQty = cartItem?.quantity || 0;
+            return (
+              <div key={game.id} className={styles['video-container']}>
+                <h2 className={styles['game-title']}>{game.title}</h2>
+                <p className={styles['game-price']}>Price: ₦{game.price}</p>
+                <p className={styles['game-time_slot']}>Duration: {game.time_slot || '10 minutes'}</p>
+                <YouTube
+                  videoId={game.url}
+                  onReady={(event) => onPlayerReady(event, game.id)}
+                  onError={(event) => onPlayerError(event, game.id)}
+                />
+
+                <div className={styles['quantity-controls']}>
+        <button onClick={() => handleQuantityChange(game, currentQty - 1)} disabled={currentQty === 0}>
+          <FaMinus />
+        </button>
+        <input
+          type="number"
+          min="0"
+          value={currentQty}
+          onChange={(e) => handleQuantityChange(game, Number(e.target.value))}
+          className={styles['quantity-input']}
+        />
+        <button onClick={() => handleQuantityChange(game, currentQty + 1)}>
+          <FaPlus />
+        </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
+
       <button
         className={styles['checkout-button']}
         onClick={handleCheckout}
@@ -173,7 +183,3 @@ const GameSelection: React.FC = () => {
 };
 
 export default React.memo(GameSelection);
-
-function setCart(updatedItems: CartItem[]) {
-  throw new Error('Function not implemented.');
-}

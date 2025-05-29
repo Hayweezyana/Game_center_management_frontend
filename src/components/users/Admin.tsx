@@ -248,7 +248,7 @@ const Admin: React.FC = () => {
 
     //to handle logout
     const handleLogout = () => {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         alert('Logged out successfully');
         navigate('/');
     }

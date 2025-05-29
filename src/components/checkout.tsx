@@ -56,7 +56,7 @@ const Checkout: React.FC = () => {
   })();
 
   useEffect(() => {
-    const adminData = localStorage.getItem('adminData');
+    const adminData = sessionStorage.getItem('adminData');
     if (adminData) {
       const { name } = JSON.parse(adminData);
       setAdminName(name);
@@ -73,8 +73,8 @@ const Checkout: React.FC = () => {
   };
 
   const handleAdminLogout = () => {
-    localStorage.removeItem('adminData');
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('adminData');
+    sessionStorage.removeItem('token');
     setAdminName('');
     setIsAdminMode(false);
     setCurrentStep('cart');

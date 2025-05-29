@@ -3,6 +3,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { usePaystackPayment } from 'react-paystack';
 import axios from 'axios';
 
+const styles = {
+  homeButton: {
+    marginLeft: '10px',
+    padding: '8px 16px',
+    cursor: 'pointer'
+  }
+};
+
 const PaystackPaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,6 +102,9 @@ const onSuccess = async (reference: any) => {
       <p>Phone: {userDetails?.phone}</p>
       {userDetails?.email && <p>Email: {userDetails.email}</p>}
       <button onClick={handlePayment}>Pay Now</button>
+      <button style={styles.homeButton} onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, cartTotal } })}>
+        Edit Cart
+      </button>
     </div>
   );
 };

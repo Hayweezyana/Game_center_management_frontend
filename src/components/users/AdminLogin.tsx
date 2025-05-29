@@ -55,8 +55,8 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onClose }) => {
       });
 
       const { token, role } = response.data;
-    localStorage.setItem('token', token);
-    localStorage.setItem('adminData', JSON.stringify(role));
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('adminData', JSON.stringify(role));
     navigate('/admin');
     
   } catch (error: any) {
