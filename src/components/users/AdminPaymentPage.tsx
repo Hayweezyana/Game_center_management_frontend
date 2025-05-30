@@ -73,7 +73,7 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
     if (isProcessing) return;
     if (!validateDiscountReason()) return;
 
-    Navigate to payment selection with all necessary data
+    //Navigate to payment selection with all necessary data
     onPaymentSuccess(finalAmount, discount);
     
     navigate('/payment', {
