@@ -74,17 +74,17 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
     if (!validateDiscountReason()) return;
 
     // Navigate to payment selection with all necessary data
-    onPaymentSuccess(finalAmount, discount), {
-      state: {
-        cartTotal: finalAmount, // Pass the discounted amount
-        userDetails,
-        cartItems,
-        discount,
-        discountReason: discount_description === 'other' ? otherReason : discount_description,
-        isAdmin: true
-      }
-    };
-  };
+  //   onPaymentSuccess(finalAmount, discount), {
+  //     state: {
+  //       cartTotal: finalAmount, // Pass the discounted amount
+  //       userDetails,
+  //       cartItems,
+  //       discount,
+  //       discountReason: discount_description === 'other' ? otherReason : discount_description,
+  //       isAdmin: true
+  //     }
+  //   };
+  // };
 
   const handleApplyDiscount = () => {
     if (discount > cartTotal) {
