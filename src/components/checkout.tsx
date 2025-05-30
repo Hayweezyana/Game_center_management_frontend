@@ -19,7 +19,7 @@ export interface UserInfo {
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { cartItems, cartTotal, setCart } = useCartContext();
+  const { cartItems, cartTotal, setCart, finalAmount } = useCartContext();
 
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminName, setAdminName] = useState('');
@@ -83,19 +83,15 @@ const Checkout: React.FC = () => {
   const handleNextStep = () => {
     if (currentStep === 'cart') {
       setCurrentStep('user');
-    } else if (currentStep === 'adminPayment') {
+    } if (currentStep === 'adminPayment') {
       setCurrentStep('user');
     } else if (currentStep === 'user') {
       if (!userDetails.username || !userDetails.phone) {
         alert("Please provide username and phone.");
         return;
       }
-
-      if (isAdminMode && adminPaymentData) {
-        completeAdminTransaction(adminPaymentData.finalAmount, adminPaymentData.discount, userDetails);
-      } else {
         setCurrentStep('paymentSelection');
-      }
+
     }
   };
 
@@ -104,6 +100,8 @@ const Checkout: React.FC = () => {
       setCurrentStep(isAdminMode ? 'adminPayment' : 'cart');
     } else if (currentStep === 'adminPayment') {
       setCurrentStep('cart');
+    } else if (currentStep === 'cart') {
+      navigate('/gameselection'); // Navigate to home or previous page
     } else if (currentStep === 'paymentSelection') {
       setCurrentStep('user');
     }
@@ -151,7 +149,7 @@ const Checkout: React.FC = () => {
           ...userDetails,
           reference: new Date().getTime().toString(),
           merchantReference,
-          payment_methods: [{ method: 'Moniepoint', amount: cartTotal }],
+          payment_methods: [{ method: 'Moniepoint', amount: finalAmount }],
           cartItems,
           discount,
           isAdmin: true,
@@ -171,14 +169,17 @@ const Checkout: React.FC = () => {
 
   const handlePaymentSuccess = async () => {
     try {
+      const discount = isAdminMode && adminPaymentData ? adminPaymentData.discount : 0;
+    const finalAmount = isAdminMode && adminPaymentData ? adminPaymentData.finalAmount : cartTotal;
+
       const payload = {
           ...userDetails,
           reference: new Date().getTime().toString(),
           merchantReference,
-          payment_methods,
+          payment_methods: [{ method: 'Moniepoint', amount: finalAmount }],
           cartItems,
           discount: 0,
-          discount_description,
+          discount_description: discount > 0 ? fullDiscountReason : undefined,
       };
       console.log('Submitting transaction:', payload);
       const response = await axios.post(
@@ -190,7 +191,7 @@ const Checkout: React.FC = () => {
         ? response.data.data[0]
         : response.data?.data;
 
-      completeTransaction(transactionPayload, cartTotal, 0);
+      completeTransaction(transactionPayload, finalAmount, discount);
     } catch (error) {
       console.error('Error during payment:', error);
     }
@@ -271,7 +272,7 @@ const Checkout: React.FC = () => {
 
       {currentStep === 'paymentSelection' && (
         <PaymentSelection
-          cartTotal={cartTotal}
+          cartTotal={adminPaymentData ? adminPaymentData.finalAmount : cartTotal}
           userDetails={userDetails}
           cartItems={cartItems}
           handlePaymentSuccess={handlePaymentSuccess}

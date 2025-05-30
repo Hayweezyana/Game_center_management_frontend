@@ -72,7 +72,7 @@ const OperatorAuth = () => {
         password: loginData.password
       });
 
-      localStorage.setItem('operatorToken', res.data.token);
+      sessionStorage.setItem('operatorToken', res.data.token);
       navigate('/OperatorDashboard'); // Or your success route
     } catch (err) {
       setError('Invalid credentials');

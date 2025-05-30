@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logo from './logo/immersia.png';
 import { useParams as useRouterParams } from 'react-router-dom';
+import  {useCartContext}  from './hooks/useCart'; // Adjust the import based on your project structure
 
 interface CartItem {
   id: string;
@@ -43,6 +44,7 @@ const Ticket: React.FC = () => {
   const [discount, setDiscount] = useState<number>(0);
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const { setCart } = useCartContext(); // Adjust based on your hook/contexts
 
   useEffect(() => {
     const state = location.state as LocationState | null;
@@ -112,6 +114,14 @@ const Ticket: React.FC = () => {
     );
   }
 
+  const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr);
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+};
+
+  
+
+
   //add return to home button
 
 
@@ -132,7 +142,7 @@ const Ticket: React.FC = () => {
             <strong>Username:</strong> {userDetails?.username || 'N/A'}
           </p>
           <p>
-            <strong>Date & Time:</strong> {dateTime || 'N/A'}
+            <strong>Date & Time:</strong> {formatDate(dateTime) || 'N/A'}
           </p>
         </div>
 
@@ -184,9 +194,16 @@ const Ticket: React.FC = () => {
       <button style={styles.printButton} onClick={printTicket}>
         Print Ticket
       </button>
-      <button style={styles.homeButton} onClick={() => navigate('/gameselection')}>
-        Let's play again
-      </button>
+      <button
+  style={styles.homeButton}
+  onClick={() => {
+    setCart([]); // Clear the cart
+    navigate('/gameselection'); // Navigate
+  }}
+>
+  Let's play again
+</button>
+
       <button style={styles.queueButton} onClick={handleProceedToQueue}>
         To Queue
       </button>

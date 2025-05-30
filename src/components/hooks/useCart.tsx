@@ -15,6 +15,7 @@ interface CartItem {
 interface UseCart {
   cartItems: CartItem[];
   cartTotal: number;
+  finalAmount?: number; // Optional, can be used for admin payment
   addToCart: (item: CartItem) => void;
   removeFromCart: (itemId: UUID) => void;
   updateCartItem: (itemId: UUID, quantity: number) => void;

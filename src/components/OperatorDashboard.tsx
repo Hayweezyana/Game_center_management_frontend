@@ -35,7 +35,7 @@ const OperatorDashboard = () => {
         `${process.env.REACT_APP_BACKEND_URL}/v1/admin/consumed-game/consume`,
         {
           gameItemId: item.id,
-          operator_name: localStorage.getItem('operatorName') || 'Unknown Operator',
+          operator_name: localStorage.getItem('name') || 'Unknown Operator',
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -47,6 +47,12 @@ const OperatorDashboard = () => {
       console.error('Error consuming game:', err);
     }
   };
+
+  const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr);
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+};
+
 
   return (
     <div>
@@ -61,7 +67,7 @@ const OperatorDashboard = () => {
               <br />
               {item.transaction_time && (
                 <small>
-                  Date & Time: {new Date(item.transaction_time).toLocaleString()}
+                  Date & Time: {formatDate(item.transaction_time).toLocaleString()}
                 </small>
               )}
               <button onClick={() => handleConsume(item)}>Mark as Attended</button>

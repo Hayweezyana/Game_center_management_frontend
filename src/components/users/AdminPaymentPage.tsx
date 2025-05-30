@@ -15,6 +15,7 @@ interface AdminPaymentPageProps {
   setDiscountDescription: (reason: string) => void;
   otherReason: string;
   setOtherReason: (reason: string) => void;
+  
 }
 
 const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
@@ -73,7 +74,7 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
     if (!validateDiscountReason()) return;
 
     // Navigate to payment selection with all necessary data
-    navigate('/paymentselection', {
+    onPaymentSuccess(finalAmount, discount), {
       state: {
         cartTotal: finalAmount, // Pass the discounted amount
         userDetails,
@@ -82,7 +83,7 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
         discountReason: discount_description === 'other' ? otherReason : discount_description,
         isAdmin: true
       }
-    });
+    };
   };
 
   const handleApplyDiscount = () => {

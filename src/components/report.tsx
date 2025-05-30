@@ -124,7 +124,7 @@ const Report: React.FC = () => {
 
     // Highest Paying Customers
     const customerPayments = records.reduce((acc, record) => {
-      const total = Number(record.amount) * record.game_quantity;
+      const total = Number(record.amount)
       acc[record.username] = (acc[record.username] || 0) + total;
       return acc;
     }, {} as { [key: string]: number });
@@ -309,9 +309,9 @@ const Report: React.FC = () => {
                 <td>{(parseFloat(record.game_duration.toString()) * record.game_quantity).toFixed(2)}</td>
                 <td>{record.game_title}</td>
                 <td>{record.game_quantity}</td>
-                <td>{(Number(record.amount) * record.game_quantity).toFixed(2)}</td>
+                <td>{((Number(record.amount) || 0) || 0).toFixed(2)}</td>
                 <td>{record.payment_methods}</td>
-                <td>{record.created_at}</td>
+                <td>{new Date(record.created_at).toLocaleDateString()}</td>
               </tr>
             ))
           ) : (
