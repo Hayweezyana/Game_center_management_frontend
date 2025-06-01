@@ -42,7 +42,7 @@ const { cartTotal, userDetails, cartItems, dateTime } = location.state as Paymen
       setStatus('Initiating payment on Terminal 2...');
 
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
-        amount: cartTotal,
+        amount: cartTotal * 100,
         terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_FUNSTATION, // Different terminal serial for Funstation
         transactionType: 'PURCHASE',
         PaymentMethod: 'CARD_PURCHASE',
