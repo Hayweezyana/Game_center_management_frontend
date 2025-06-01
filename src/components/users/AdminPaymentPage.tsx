@@ -78,6 +78,7 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
     onPaymentSuccess(finalAmount, discount);
 
     setIsProcessing(false);
+  };
 
   const handleApplyDiscount = () => {
     if (discount > cartTotal) {
