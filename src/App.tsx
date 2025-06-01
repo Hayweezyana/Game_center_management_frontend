@@ -40,7 +40,7 @@ const App: React.FC = () => {
           <Route path="/GameSelection" element={<GameSelection />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/UserDetails" element={<UserDetails userDetails={{ username: '', phone: '' }} setUserDetails={() => {}} onNext={() => {}} />} />
-          <Route path="/CartAndPayment" element={<CartAndPayment cartItems={[]} cartTotal={0} payment_methods={[]} setPaymentMethods={() => {}} onNext={() => {}} />} />
+          <Route path="/CartAndPayment" element={<CartAndPayment cartItems={[]} cartTotal={0} payment_methods={[]} setPaymentMethods={() => {}} setCartItems={() => {}} onNext={() => {}} />} />
           <Route path="/Queue" element={<Queue />} />
           <Route path="/PC" element={<PC cart={[]} />} />
           <Route path="/Ticket" element={<Ticket />} />

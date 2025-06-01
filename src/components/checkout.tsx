@@ -19,13 +19,24 @@ export interface UserInfo {
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { cartItems, cartTotal, setCart, finalAmount } = useCartContext();
+  const { cartItems, setCart, finalAmount } = useCartContext();
+
+  const computedCartTotal = cartItems.reduce((sum, item) => {
+    if (item.title === '360 Video Booth') {
+      // First item at regular price, rest at ₦1000 each
+      const extraQuantity = Math.max(0, item.quantity - 1);
+      return sum + item.price + (extraQuantity * 1000);
+    } else {
+      return sum + item.price * item.quantity;
+    }
+  }, 0);
+
 
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminName, setAdminName] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [currentStep, setCurrentStep] = useState<'cart' | 'adminPayment' | 'user' | 'paymentSelection'>('cart');
-  const [payment_methods, setPaymentMethods] = useState<{ method: 'Moniepoint'; amount: number }[]>([{ method: 'Moniepoint', amount: cartTotal }]);
+  const [payment_methods, setPaymentMethods] = useState<{ method: 'Moniepoint'; amount: number }[]>([{ method: 'Moniepoint', amount: 0 }]);
   const [userDetails, setUserDetails] = useState<{
     username: string;
     phone: string;
@@ -39,7 +50,7 @@ const Checkout: React.FC = () => {
   const [otherReason, setOtherReason] = useState('');
   const [adminPaymentData, setAdminPaymentData] = useState<null | { finalAmount: number; discount: number }>(null);
   const [merchantReference, setMerchantReference] = useState<string | null>(null);
-
+  const [cartFinalAmount, setCartFinalAmount] = useState<number | null>(null);
 
   const steps = isAdminMode
     ? ['Cart & Payment', 'User Details', 'Admin Payment']
@@ -130,6 +141,7 @@ const Checkout: React.FC = () => {
 
   const handleAdminPaymentSuccess = async (finalAmount: number, discount: number) => {
     setAdminPaymentData({ finalAmount, discount });
+    setCartFinalAmount(finalAmount);
     setCurrentStep('user');
   };
 
@@ -170,7 +182,10 @@ const Checkout: React.FC = () => {
   const handlePaymentSuccess = async () => {
     try {
       const discount = isAdminMode && adminPaymentData ? adminPaymentData.discount : 0;
-    const finalAmount = isAdminMode && adminPaymentData ? adminPaymentData.finalAmount : cartTotal;
+    const finalAmount = isAdminMode && adminPaymentData
+  ? adminPaymentData.finalAmount
+  : computedCartTotal;
+
 
       const payload = {
           ...userDetails,
@@ -237,17 +252,18 @@ const Checkout: React.FC = () => {
       {currentStep === 'cart' && (
         <CartAndPayment
           cartItems={cartItems}
-          cartTotal={cartTotal}
+          cartTotal={finalAmount ?? 0}
           payment_methods={payment_methods}
           setPaymentMethods={setPaymentMethods}
           onNext={handleNextStep}
           userEmail={userDetails.email}
+          setCartItems={setCart}
         />
       )}
 
       {currentStep === 'adminPayment' && isAdminMode && (
         <AdminPaymentPage
-          cartTotal={cartTotal}
+          cartTotal={computedCartTotal}
           userDetails={userDetails}
           payment_methods={payment_methods}
           cartItems={cartItems}
@@ -272,7 +288,7 @@ const Checkout: React.FC = () => {
 
       {currentStep === 'paymentSelection' && (
         <PaymentSelection
-          cartTotal={adminPaymentData ? adminPaymentData.finalAmount : cartTotal}
+          cartTotal={isAdminMode ? (adminPaymentData?.finalAmount ?? 0) : computedCartTotal}
           userDetails={userDetails}
           cartItems={cartItems}
           handlePaymentSuccess={handlePaymentSuccess}

@@ -7,6 +7,7 @@ interface PaymentSelectionProps {
   cartTotal: number;
   userDetails: { username: string; phone: string; email?: string };
   cartItems: any[];
+  finalAmount?: number; // Optional prop for final amount
   discount?: number;
   discountReason?: string;
   isAdmin?: boolean;
@@ -31,6 +32,7 @@ interface AdminPaymentPageProps {
 
 const PaymentSelection: React.FC<PaymentSelectionProps> = ({
   cartTotal,
+  finalAmount = cartTotal, // Default to cartTotal if finalAmount is not provided
   userDetails,
   cartItems,
   discount,
@@ -44,7 +46,7 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
     console.log(`Selected ${terminal} terminal`);
     navigate(`/${terminal}paymentpage`, {
       state: {
-        cartTotal,
+        finalAmount: cartTotal,
         userDetails,
         cartItems,
         discount,
@@ -79,7 +81,7 @@ const handlePayment = (funstationResponse: FunstationResponse): void => {
 
       <div className="payment-total">
         <span>Total Amount:</span>
-        <span className="amount">₦{cartTotal.toLocaleString()}</span>
+        <span className="amount">₦{finalAmount.toLocaleString()}</span>
       </div>
       
       <div className="payment-options-grid">

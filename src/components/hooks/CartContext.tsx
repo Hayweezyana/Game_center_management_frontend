@@ -16,6 +16,7 @@ interface CartContextType {
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: UUID) => void;
   clearCart: () => void;
+  setCartFinalAmount?: (amount: number) => void; // Optional method for setting final amount
 }
 
 // Create the context

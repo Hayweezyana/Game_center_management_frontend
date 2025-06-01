@@ -73,18 +73,12 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
     if (isProcessing) return;
     if (!validateDiscountReason()) return;
 
-    // Navigate to payment selection with all necessary data
-    onPaymentSuccess(finalAmount, discount), {
-      state: {
-        cartTotal: finalAmount, // Pass the discounted amount
-        userDetails,
-        cartItems,
-        discount,
-        discountReason: discount_description === 'other' ? otherReason : discount_description,
-        isAdmin: true
-      }
-    };
-  };
+    setIsProcessing(true);
+
+  onPaymentSuccess(finalAmount, discount);
+
+  setIsProcessing(false);
+};
 
   const handleApplyDiscount = () => {
     if (discount > cartTotal) {

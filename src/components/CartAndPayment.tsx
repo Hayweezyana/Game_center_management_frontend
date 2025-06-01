@@ -16,6 +16,7 @@ interface CartAndPaymentProps {
   setPaymentMethods: React.Dispatch<React.SetStateAction<{ method: 'Moniepoint'; amount: number }[]>>;
   onNext: () => void;
   userEmail?: string;
+  setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
 }
 
 const CartAndPayment: React.FC<CartAndPaymentProps> = ({
@@ -23,6 +24,7 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   cartTotal,
   setPaymentMethods,
   onNext,
+  setCartItems,
 }) => {
   
   const [isPaying,] = useState(false);
@@ -47,18 +49,20 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   }, [items, setPaymentMethods]);
 
   const handleQuantityChange = (index: number, delta: number) => {
-    setItems((prev) =>
-      prev.map((item, i) =>
-        i === index ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
-      )
+    setItems((prev) => {
+    const updated = prev.map((item, i) =>
+      i === index ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
     );
-  };
-
+    setCartItems(updated); // Update the global cart
+    return updated;
+  });
+};
 
   const handleCancelTransaction = () => {
     if (window.confirm('Are you sure you want to cancel the transaction and clear the cart?')) {
       const zeroedItems = items.map(item => ({ ...item, quantity: 0 }));
     setItems(zeroedItems);
+    setCartItems([]);
       setTotal(0);
       setPaymentMethods([]); // Clear payment methods
       clearCart(); // Clear the cart in the context
