@@ -14,9 +14,9 @@ const styles = {
 const PaystackPaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { cartTotal, userDetails, cartItems } = location.state || {};
+  const { finalAmount, userDetails, cartItems } = location.state || {};
 
-  console.log("cartTotal:", cartTotal);
+  console.log("cartTotal:", finalAmount);
   console.log("userDetails:", userDetails);
   console.log("PAYSTACK PUBLIC KEY:", process.env.REACT_APP_PAYSTACK_PUBLIC_KEY);
   
@@ -25,7 +25,7 @@ const PaystackPaymentPage: React.FC = () => {
     reference: new Date().getTime().toString(),
     dateTime: new Date().toISOString(),
     email: userDetails.email || 'immersiavr@immersiavr.com',
-    amount: cartTotal * 100, // Paystack expects amount in kobo
+    amount: finalAmount * 100, // Paystack expects amount in kobo
     publicKey: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY!,
     currency: 'NGN',
 
@@ -61,14 +61,14 @@ const onSuccess = async (reference: any) => {
       ...userDetails,
       reference: reference.reference, // from Paystack
       merchantReference: reference.reference, // optional, if using
-      payment_methods: [{ method: 'Paystack', amount: cartTotal }],
+      payment_methods: [{ method: 'Paystack', amount: finalAmount }],
       cartItems,
       discount: 0,
-      discount_description: '',
+      discount_description: '', 
     });
 
     console.log('Submitting transaction:', response.data);
-    navigate('/ticket', { state: { cartTotal, userDetails, cartItems, reference: config.reference, dateTime: config.dateTime } });
+    navigate('/ticket', { state: { finalAmount, userDetails, cartItems, reference: config.reference, dateTime: config.dateTime } });
   } catch (error) {
     console.error('Transaction error:', error);
   }
@@ -79,7 +79,7 @@ const onSuccess = async (reference: any) => {
   };
 
   const handlePayment = () => {
-    if (!cartTotal || cartTotal <= 0) {
+    if (!finalAmount || finalAmount <= 0) {
       alert("Invalid cart total. Please go back and try again.");
       return;
     }
@@ -97,12 +97,12 @@ const onSuccess = async (reference: any) => {
   return (
     <div>
       <h2>Payment</h2>
-      <p>Total: ₦{cartTotal}</p>
+      <span>Total: ₦{finalAmount ? finalAmount.toLocaleString() : 0}</span>
       <p>Username: {userDetails?.username}</p>
       <p>Phone: {userDetails?.phone}</p>
       {userDetails?.email && <p>Email: {userDetails.email}</p>}
       <button onClick={handlePayment}>Pay Now</button>
-      <button style={styles.homeButton} onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, cartTotal } })}>
+      <button style={styles.homeButton} onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, finalAmount } })}>
         Edit Cart
       </button>
     </div>

@@ -51,7 +51,7 @@ const App: React.FC = () => {
           {/* <Route path="/moniepoint" element={<MoniepointDashboard />} /> */}
           <Route path="/OperatorDashboard" element={<OperatorDashboard />} />
           <Route path="/ImmersiaPaymentPage" element={<ImmersiaPaymentPage cartTotal={0} userDetails={{ username: '', phone: '' }} cartItems={[]} onPaymentSuccess={() => {}} />} />
-          <Route path="/FunstationPaymentPage" element={<FunstationPaymentPage cartTotal={0} userDetails={{ username: '', phone: '' }} cartItems={[]} onPaymentSuccess={() => {}} />} />
+          <Route path="/FunstationPaymentPage" element={<FunstationPaymentPage finalAmount={0} userDetails={{ username: '', phone: '' }} cartItems={[]} onPaymentSuccess={() => {}} />} />
           <Route path="/PaystackPaymentPage" element={<PaystackPaymentPage />}/>
 
           

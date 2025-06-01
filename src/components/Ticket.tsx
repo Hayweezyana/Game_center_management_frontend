@@ -24,7 +24,7 @@ interface LocationState {
   merchantReference?: string;
   reference?: string;
   cartItems?: CartItem[];
-  cartTotal?: number;
+  finalAmount?: number;
   dateTime?: string;
   adminName?: string;
   discount?: number;
@@ -38,7 +38,7 @@ const Ticket: React.FC = () => {
 
   const [reference, setReference] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [cartTotal, setTotalAmount] = useState<number>(0);
+  const [finalAmount, setTotalAmount] = useState<number>(0);
   const [dateTime, setDateTime] = useState<string>('');
   const [adminName, setAdminName] = useState<string>('');
   const [discount, setDiscount] = useState<number>(0);
@@ -54,7 +54,7 @@ const Ticket: React.FC = () => {
 
       setReference(ref);
       setCartItems(state.cartItems || []);
-      setTotalAmount(state.cartTotal || 0);
+      setTotalAmount(state.finalAmount || 0);
       setDateTime(state.dateTime || '');
       setAdminName(state.adminName || '');
       setDiscount(state.discount || 0);
@@ -176,7 +176,7 @@ const Ticket: React.FC = () => {
 
         <div style={styles.total}>
           <p>
-            <strong>Total Amount Paid:</strong> ₦{cartTotal.toFixed(2)}
+            <strong>Total Amount Paid:</strong> ₦{finalAmount.toFixed(2)}
           </p>
         </div>
 

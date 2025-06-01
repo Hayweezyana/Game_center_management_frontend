@@ -42,11 +42,13 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  const discountedAmount = cartTotal - (discount || 0);
+
   const handleSelectPayment = (terminal: 'immersia' | 'funstation' | 'paystack') => {
     console.log(`Selected ${terminal} terminal`);
     navigate(`/${terminal}paymentpage`, {
       state: {
-        finalAmount: cartTotal,
+        finalAmount: discountedAmount,
         userDetails,
         cartItems,
         discount,
