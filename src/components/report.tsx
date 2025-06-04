@@ -7,6 +7,7 @@ interface Transaction {
   id: string;
   username: string;
   phone: string;
+  email: string | null;
   discount: number;
   discount_description: string | null;
   created_at: string;
@@ -19,7 +20,6 @@ interface TransactionItem {
   game_title: string;
   game_quantity: number;
   game_duration: number;
-  amount: number;
 }
 
 interface TransactionPayment {
@@ -33,14 +33,15 @@ interface CombinedRecord {
   id: string;
   username: string;
   phone: string;
+  email: string | null;
   discount: number;
   discount_description: string | null;
   game_id: string;
   game_title: string;
   game_quantity: number;
   game_duration: number;
-  amount: number;
   payment_methods: string;
+  amount: number;
   created_at: string;
 }
 
@@ -49,11 +50,12 @@ const Report: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Metrics state (same as your existing metrics)
   const [bestSellingGames, setBestSellingGames] = useState<{ game_title: string; game_quantity: number }[]>([]);
   const [leastSellingGames, setLeastSellingGames] = useState<{ game_title: string; game_quantity: number }[]>([]);
   const [highestPayingCustomers, setHighestPayingCustomers] = useState<{ username: string; amount: number }[]>([]);
   const [gameDurationStats, setGameDurationStats] = useState<{ game_title: string; game_duration: number }[]>([]);
+  const [endOfDaySummary, setEndOfDaySummary] = useState<CombinedRecord[]>([]);
+
 
   useEffect(() => {
     if (startDate && endDate) {
@@ -63,10 +65,11 @@ const Report: React.FC = () => {
 
   const fetchAllData = async () => {
     try {
-      const [transactionsRes, itemsRes, paymentsRes] = await Promise.all([
+      const [transactionsRes, itemsRes, paymentsRes, gamesRes] = await Promise.all([
         axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions`, { params: { startDate, endDate } }),
         axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionItems`, { params: { startDate, endDate } }),
         axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionPayments`, { params: { startDate, endDate } }),
+        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/games`),
       ]);
 
       console.log('itemsRes.data:', itemsRes.data);
@@ -76,6 +79,12 @@ const Report: React.FC = () => {
       const transactions: Transaction[] = transactionsRes.data.data.data || [];
       const transactionItems: TransactionItem[] = itemsRes.data.data.data || [];
       const transactionPayments: TransactionPayment[] = paymentsRes.data.data.data || [];
+      const games: { id: string; price: number }[] = gamesRes.data.data || [];
+
+      const gamePriceMap = new Map<string, number>();
+    games.forEach(game => {
+      gamePriceMap.set(game.id, game.price);
+    });
 
       // Combine the data
       const combined: CombinedRecord[] = [];
@@ -83,20 +92,43 @@ const Report: React.FC = () => {
         const items = transactionItems.filter((item) => item.transaction_id === txn.id);
         const payments = transactionPayments.filter((p) => p.transaction_id === txn.id);
         const paymentMethods = payments.map((p) => p.payment_method).join(', ');
+        const totalPayment = payments.reduce((sum, p) => sum + p.amount, 0);
+
+        let totalCost = 0;
+      const itemCosts: { item: TransactionItem; cost: number }[] = [];
 
         items.forEach((item) => {
+          const price = gamePriceMap.get(item.game_id) || 0;
+        const cost = price * item.game_quantity;
+        totalCost += cost;
+        itemCosts.push({ item, cost });
+      });
+
+      // Distribute amounts proportionally
+      let allocatedAmount = 0;
+      itemCosts.forEach((itemCost, index) => {
+        let amount = 0;
+        if (index === itemCosts.length - 1) {
+          // Last item gets the remaining amount after discount
+          amount = totalPayment - allocatedAmount - txn.discount;
+        } else {
+          amount = (itemCost.cost / totalCost) * totalPayment;
+          allocatedAmount += amount;
+        }
+
           combined.push({
             id: txn.id,
             username: txn.username,
             phone: txn.phone,
+            email: txn.email,
             discount: txn.discount,
             discount_description: txn.discount_description,
-            game_id: item.game_id,
-            game_title: item.game_title,
-            game_quantity: item.game_quantity,
-            game_duration: item.game_duration,
-            amount: item.amount,
+            game_id: itemCost.item.game_id,
+            game_title: itemCost.item.game_title,
+            game_quantity: itemCost.item.game_quantity,
+            game_duration: itemCost.item.game_duration,
             payment_methods: paymentMethods,
+            amount: parseFloat(amount.toFixed(2)),
             created_at: txn.created_at,
           });
         });
@@ -104,6 +136,8 @@ const Report: React.FC = () => {
 
       setRecords(combined);
       calculateMetrics(combined);
+      setEndOfDaySummary(combined);
+
     } catch (err) {
       console.error('Error fetching data:', err);
       setRecords([]);
@@ -148,6 +182,19 @@ const Report: React.FC = () => {
     setLeastSellingGames([]);
     setHighestPayingCustomers([]);
     setGameDurationStats([]);
+    setEndOfDaySummary([]);
+  }
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>, setDate: React.Dispatch<React.SetStateAction<string>>) => {
+    const value = e.target.value;
+    if (value) {
+      setDate(value);
+      if (startDate && endDate) {
+        fetchAllData();
+      }
+    } else {
+      setDate('');
+      resetMetrics();
+    }
   };
 
   const exportToExcel = () => {
@@ -183,6 +230,44 @@ const Report: React.FC = () => {
   return (
     <div>
       <h1>Reports</h1>
+      <h2>End of Day Sales Summary</h2>
+<table border={1}>
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Phone</th>
+      <th>Email</th>
+      <th>Total Amount</th>
+      <th>Discount</th>
+      <th>Discount Description</th>
+      <th>Game Title</th>
+      <th>Game Quantity</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody>
+    {endOfDaySummary.length > 0 ? (
+      endOfDaySummary.map((record, index) => (
+        <tr key={index}>
+          <td>{record.username}</td>
+          <td>{record.phone}</td>
+          <td>{record.email}</td>
+          <td>{record.amount}</td>
+          <td>{record.discount}</td>
+          <td>{record.discount_description}</td>
+          <td>{record.game_title}</td>
+          <td>{record.game_quantity}</td>
+          <td>{new Date(record.created_at).toLocaleString()}</td>
+        </tr>
+      ))
+    ) : (
+      <tr>
+        <td colSpan={9}>No records found</td>
+      </tr>
+    )}
+  </tbody>
+</table>
+      <h2>Select Date Range</h2>
       <div>
         <label>
           Start Date:

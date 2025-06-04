@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface PaymentPageProps {
-  cartTotal: number;
+  finalAmount: number;
   userDetails: {
         username: string;
         phone: string;
@@ -30,20 +30,20 @@ const ImmersiaPaymentPage: React.FC<PaymentPageProps> = ({ onPaymentSuccess }) =
       cursor: 'pointer'
     }
   };
-const { cartTotal, userDetails, cartItems, dateTime } = location.state as PaymentPageProps;
+const { finalAmount, userDetails, cartItems, dateTime } = location.state as PaymentPageProps;
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [transactionId] = useState(uuidv4());
-  const [merchantReference] = useState<string>('');
+  const [merchantReference, setMerchantReference] = useState<string>('');
 
   const handlePayment = async () => {
     try {
       setLoading(true);
       setStatus('Initiating payment on Terminal 1...');
 
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
-        amount: cartTotal,
-        terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_IMMERSIA, // Different terminal serial for Funstation
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepointImmersia/transactions`, {
+        amount: finalAmount * 100, // Convert to kobo
+        terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_IMMERSIA,
         transactionType: 'PURCHASE',
         PaymentMethod: 'CARD_PURCHASE',
         merchantReference: merchantReference || transactionId
@@ -69,7 +69,7 @@ const { cartTotal, userDetails, cartItems, dateTime } = location.state as Paymen
     const interval = setInterval(async () => {
       try {
         const res = await axios.get(
-          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/${merchantReference}`
+          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/Immersiamoniepoint/${merchantReference}`
         );
         const status = res.data?.processingStatus;
 
@@ -78,7 +78,7 @@ const { cartTotal, userDetails, cartItems, dateTime } = location.state as Paymen
           setStatus('Payment successful!');
           onPaymentSuccess();
 
-  navigate('/ticket', { state: { cartTotal, userDetails, cartItems, merchantReference, dateTime } });
+  navigate('/ticket', { state: { finalAmount, userDetails, cartItems, merchantReference, dateTime } });
 }
 
 else if (status === 'CANCELLED') {
@@ -99,11 +99,11 @@ else if (status === 'CANCELLED') {
     <div>
       <h2>Pay with Moniepoint (Terminal 1)</h2>
       {/* ... rest of your JSX */}
-    <p>Total: ₦{cartTotal.toLocaleString()}</p>
+    <p>Total: ₦{finalAmount.toLocaleString()}</p>
       <button onClick={handlePayment} disabled={loading}>
         {loading ? 'Processing...' : 'Pay Now via POS'}
       </button>
-      <button style={styles.homeButton} onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, cartTotal } })}>
+      <button style={styles.homeButton} onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, finalAmount } })}>
       Edit cart
       </button>
       {status && <p>{status}</p>}
