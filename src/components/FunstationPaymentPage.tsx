@@ -45,7 +45,7 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
         amount: finalAmount * 100,
         terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_FUNSTATION, // Different terminal serial for Funstation
         transactionType: 'PURCHASE',
-        PaymentMethod: 'CARD_PURCHASE',
+        PaymentMethod: 'FUNSTATION_POS',
         merchantReference: merchantReference || transactionId
       });
 

@@ -42,7 +42,7 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
       setStatus('Initiating payment on Terminal 1...');
 
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepointImmersia/transactions`, {
-        amount: finalAmount,
+        amount: finalAmount * 100,
         terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_IMMERSIA,
         transactionType: 'PURCHASE',
         PaymentMethod: 'IMMERSIA_POS',
