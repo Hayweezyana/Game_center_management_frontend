@@ -76,6 +76,29 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
         if (status === 'PROCESSED') {
           clearInterval(interval);
           setStatus('Payment successful!');
+
+          try {
+    const transactionPayload = {
+      ...userDetails,
+      reference: uuidv4(),
+      merchantReference,
+      total_amount: finalAmount * 100, // store in kobo
+      discount: 0, // or apply discount logic if any
+      discount_description: '',
+      game_time_slot: null, // set if applicable
+    };
+
+    const txnRes = await axios.post(
+      `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
+      transactionPayload
+    );
+
+    console.log("Transaction saved:", txnRes.data);
+  } catch (err: any) {
+    console.error("Failed to save transaction:", err.response?.data || err.message);
+    setStatus('Payment succeeded but saving transaction failed');
+  }
+
           onPaymentSuccess();
 
   navigate('/ticket', { state: { finalAmount, userDetails, cartItems, merchantReference, dateTime } });
