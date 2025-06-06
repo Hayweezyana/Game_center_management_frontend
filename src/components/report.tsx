@@ -10,6 +10,8 @@ interface Transaction {
   email: string | null;
   discount: number;
   discount_description: string | null;
+  reference: string;
+  merchantReference: string;
   created_at: string;
 }
 
@@ -42,6 +44,8 @@ interface CombinedRecord {
   game_duration: number;
   payment_methods: string;
   amount: number;
+  reference: string;
+  merchantReference: string;
   created_at: string;
 }
 
@@ -129,6 +133,8 @@ const Report: React.FC = () => {
             game_duration: itemCost.item.game_duration,
             payment_methods: paymentMethods,
             amount: parseFloat(amount.toFixed(2)),
+            reference: txn.reference,
+            merchantReference: txn.merchantReference,
             created_at: txn.created_at,
           });
         });
@@ -199,6 +205,14 @@ const Report: React.FC = () => {
 
   const exportToExcel = () => {
     const worksheetData = records.map((r) => ({
+      'Username': r.username,
+      'Phone': r.phone,
+      'Email': r.email || 'N/A',
+      'Total Amount': r.amount.toFixed(2),
+      'Discount': r.discount.toFixed(2),
+      'Discount Description': r.discount_description || 'N/A',
+      'Reference': r.reference,
+      'Merchant Reference': r.merchantReference,
       'Game Title': r.game_title,
       'Quantity': r.game_quantity,
       'Amount': r.amount,
@@ -242,6 +256,8 @@ const Report: React.FC = () => {
       <th>Discount Description</th>
       <th>Game Title</th>
       <th>Game Quantity</th>
+      <th>Reference</th>
+      <th>Merchant Reference</th>
       <th>Date</th>
     </tr>
   </thead>
@@ -257,6 +273,8 @@ const Report: React.FC = () => {
           <td>{record.discount_description}</td>
           <td>{record.game_title}</td>
           <td>{record.game_quantity}</td>
+          <td>{record.reference}</td>
+          <td>{record.merchantReference}</td>
           <td>{new Date(record.created_at).toLocaleString()}</td>
         </tr>
       ))
