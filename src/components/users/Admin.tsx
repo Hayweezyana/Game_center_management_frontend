@@ -463,7 +463,7 @@ const Admin: React.FC = () => {
     {/* Report button */}
     <button onClick={() => navigate('/report')}>View Reports</button>
     {/* View Moniepoint Transaction button */}
-    <button onClick={() => navigate('/moniepoint')}>View Moniepoint Transactions</button>
+    <button onClick={() => navigate('/moniepointdashboard')}>View Moniepoint Transactions</button>
     {/* View Users button */}
     {/* Logout button */}
     <button onClick={handleLogout}>Logout</button>
