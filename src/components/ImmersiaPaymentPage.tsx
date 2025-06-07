@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 interface PaymentPageProps {
   finalAmount: number;
   userDetails: {
+    id?: string;
         username: string;
         phone: string;
         email?: string;
@@ -78,8 +79,10 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
           setStatus('Payment successful!');
 
           try {
+            const { id, ...safeUserDetails } = userDetails;
+
     const transactionPayload = {
-      ...userDetails,
+      ...safeUserDetails,
       reference: uuidv4(),
       merchantReference,
       total_amount: finalAmount * 100, // store in kobo

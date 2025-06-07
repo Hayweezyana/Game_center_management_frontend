@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 interface PaymentPageProps {
   finalAmount: number;
   userDetails: {
+    id?: string;
         username: string;
         phone: string;
         email?: string;
@@ -43,7 +44,7 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
 
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
         amount: finalAmount * 100,
-        terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_FUNSTATION, // Different terminal serial for Funstation
+        terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_FUNSTATION,
         transactionType: 'PURCHASE',
         PaymentMethod: 'FUNSTATION_POS',
         merchantReference: merchantReference || transactionId
@@ -78,14 +79,16 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
           setStatus('Payment successful!');
 
           try {
+            const { id, ...safeUserDetails } = userDetails;
+
     const transactionPayload = {
-      ...userDetails,
+      ...safeUserDetails,
       reference: uuidv4(),
       merchantReference,
       total_amount: finalAmount * 100, // store in kobo
-      discount: 0, // or apply discount logic if any
+      discount: 0, 
       discount_description: '',
-      game_time_slot: null, // set if applicable
+      game_time_slot: null,
     };
 
     const txnRes = await axios.post(
