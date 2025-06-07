@@ -118,12 +118,16 @@ else if (status === 'CANCELLED') {
 
   return (
     <div>
+      <style>{spinnerKeyframes}</style>
       <h2>Pay with Moniepoint (Terminal 1)</h2>
       {/* ... rest of your JSX */}
     <p>Total: ₦{finalAmount.toLocaleString()}</p>
-      <button onClick={handlePayment} disabled={loading}>
-        {loading ? 'Processing...' : 'Pay Now via POS'}
-      </button>
+      <button onClick={handlePayment} disabled={loading || status?.includes('Awaiting')}>
+  {(loading || status?.includes('Awaiting')) && (
+    <span style={spinnerStyle}></span>
+  )}
+         {loading ? 'Processing...' : status?.includes('Awaiting') ? 'Awaiting POS...' : 'Pay Now via POS'}
+</button>
       <button style={styles.homeButton} onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, finalAmount } })}>
       Edit cart
       </button>
@@ -133,3 +137,20 @@ else if (status === 'CANCELLED') {
 };
 
 export default ImmersiaPaymentPage;
+
+const spinnerStyle = {
+    width: '16px',
+    height: '16px',
+    border: '2px solid #f3f3f3',
+    borderTop: '2px solid #3498db',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    marginRight: '8px'
+};
+
+const spinnerKeyframes = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
