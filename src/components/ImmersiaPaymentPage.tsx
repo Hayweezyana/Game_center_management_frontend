@@ -119,6 +119,7 @@ else if (status === 'CANCELLED') {
   return (
     <div>
       <style>{spinnerKeyframes}</style>
+      <h1>Immersia Payment</h1>
       <h2>Pay with Moniepoint (Terminal 1)</h2>
       {/* ... rest of your JSX */}
     <p>Total: ₦{finalAmount.toLocaleString()}</p>
