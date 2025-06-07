@@ -1,4 +1,4 @@
-// PaymentPage1.tsx
+// PaymentPage2.tsx
 import React, { useState } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
@@ -34,16 +34,16 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [transactionId] = useState(uuidv4());
-  const [merchantReference, setMerchantReference] = useState<string>('');
+  const [merchantReference] = useState<string>('');
 
   const handlePayment = async () => {
     try {
       setLoading(true);
       setStatus('Initiating payment on Terminal 1...');
 
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepointImmersia/transactions`, {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
         amount: finalAmount * 100,
-        terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_IMMERSIA,
+        terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_IMMERSIA, // Different terminal serial for Immersia
         transactionType: 'PURCHASE',
         PaymentMethod: 'IMMERSIA_POS',
         merchantReference: merchantReference || transactionId
@@ -69,13 +69,14 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
     const interval = setInterval(async () => {
       try {
         const res = await axios.get(
-          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/Immersiamoniepoint/${merchantReference}`
+          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/${merchantReference}`
         );
         const status = res.data?.processingStatus;
 
         if (status === 'PROCESSED') {
           clearInterval(interval);
           setStatus('Payment successful!');
+
           try {
     const transactionPayload = {
       ...userDetails,
@@ -98,7 +99,6 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
     setStatus('Payment succeeded but saving transaction failed');
   }
 
-
           onPaymentSuccess();
 
   navigate('/ticket', { state: { finalAmount, userDetails, cartItems, merchantReference, dateTime } });
@@ -112,10 +112,6 @@ else if (status === 'CANCELLED') {
         console.error('Polling error:', error);
       }
     }, 5000);
-  };
-
-  const onClose = () => {
-    console.log('Payment window closed');
   };
 
   return (

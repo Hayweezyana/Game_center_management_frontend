@@ -92,18 +92,19 @@ const Checkout: React.FC = () => {
   };
 
   const handleNextStep = () => {
-    if (currentStep === 'cart') {
-      setCurrentStep('user');
-    } if (currentStep === 'adminPayment') {
-      setCurrentStep('user');
-    } else if (currentStep === 'user') {
-      if (!userDetails.username || !userDetails.phone) {
-        alert("Please provide username and phone.");
-        return;
-      }
-        setCurrentStep('paymentSelection');
-
+    switch (currentStep) {
+  case 'cart':
+  case 'adminPayment':
+    setCurrentStep('user');
+    break;
+  case 'user':
+    if (!userDetails.username || !userDetails.phone) {
+      alert("Please provide username and phone.");
+      return;
     }
+    setCurrentStep('paymentSelection');
+    break;
+}
   };
 
   const handleBack = () => {
@@ -193,7 +194,7 @@ const Checkout: React.FC = () => {
           merchantReference,
           payment_methods: [{ method: 'Moniepoint', amount: finalAmount }],
           cartItems,
-          discount: 0,
+          discount,
           discount_description: discount > 0 ? fullDiscountReason : undefined,
       };
       console.log('Submitting transaction:', payload);

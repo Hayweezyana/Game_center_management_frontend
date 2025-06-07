@@ -34,7 +34,7 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [transactionId] = useState(uuidv4());
-  const [merchantReference, setMerchantReference] = useState<string>('');
+  const [merchantReference] = useState<string>('');
 
   const handlePayment = async () => {
     try {
@@ -112,10 +112,6 @@ else if (status === 'CANCELLED') {
         console.error('Polling error:', error);
       }
     }, 5000);
-  };
-
-  const onClose = () => {
-    console.log('Payment window closed');
   };
 
   return (
