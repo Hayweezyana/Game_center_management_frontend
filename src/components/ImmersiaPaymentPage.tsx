@@ -7,7 +7,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 interface PaymentPageProps {
   finalAmount: number;
   userDetails: {
-    id?: string;
         username: string;
         phone: string;
         email?: string;
@@ -31,7 +30,7 @@ const ImmersiaPaymentPage: React.FC<PaymentPageProps> = ({ onPaymentSuccess }) =
       cursor: 'pointer'
     }
   };
-const { finalAmount, userDetails, cartItems, dateTime } = location.state as PaymentPageProps;
+const { finalAmount, userDetails, cartItems} = location.state || {};
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [transactionId] = useState(uuidv4());
@@ -79,15 +78,14 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
           setStatus('Payment successful!');
 
           try {
-            const { id, ...safeUserDetails } = userDetails;
-
     const transactionPayload = {
-      ...safeUserDetails,
+      ...userDetails,
       reference: uuidv4(),
       merchantReference,
-      total_amount: finalAmount * 100, // store in kobo
       discount: 0, // or apply discount logic if any
       discount_description: '',
+      cartItems,
+      payment_methods: [{ method: 'Immersia_Moniepoint', amount: finalAmount }],
       game_time_slot: null, // set if applicable
     };
 
@@ -104,7 +102,8 @@ const { finalAmount, userDetails, cartItems, dateTime } = location.state as Paym
 
           onPaymentSuccess();
 
-  navigate('/ticket', { state: { finalAmount, userDetails, cartItems, merchantReference, dateTime } });
+  navigate('/ticket', { state: { finalAmount, userDetails, cartItems, merchantReference, dateTime: new Date().toISOString()
+ } });
 }
 
 else if (status === 'CANCELLED') {

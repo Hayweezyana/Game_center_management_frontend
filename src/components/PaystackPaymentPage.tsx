@@ -15,10 +15,6 @@ const PaystackPaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { finalAmount, userDetails, cartItems } = location.state || {};
-
-  console.log("cartTotal:", finalAmount);
-  console.log("userDetails:", userDetails);
-  console.log("PAYSTACK PUBLIC KEY:", process.env.REACT_APP_PAYSTACK_PUBLIC_KEY);
   
 
   const config = {
