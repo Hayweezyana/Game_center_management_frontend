@@ -7,7 +7,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 interface PaymentPageProps {
   finalAmount: number;
   userDetails: {
-    id?: string;
         username: string;
         phone: string;
         email?: string;
