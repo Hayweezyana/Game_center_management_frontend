@@ -83,6 +83,11 @@ const handleAdminLogin = async () => {
       setLoading(true);
       setStatus('Initiating payment on Terminal 2...');
 
+      if (discountAmount > 0 && (!discountReason || (discountReason === 'Others' && customDiscountReason.trim() === ''))) {
+      alert("Please select or enter a valid discount reason");
+      return;
+    }
+
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
         amount: finalAmount * 100,
         terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_FUNSTATION,
@@ -90,11 +95,6 @@ const handleAdminLogin = async () => {
         PaymentMethod: 'FUNSTATION_POS',
         merchantReference: merchantReference || transactionId
       });
-
-      if (!discountReason){
-      alert("Please select or enter a valid discount reason");
-    return;
-}
 
       if (response.status === 202) {
         setStatus('Awaiting payment on POS terminal 2...');

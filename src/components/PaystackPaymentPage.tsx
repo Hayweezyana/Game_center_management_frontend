@@ -116,10 +116,10 @@ const onSuccess = async (reference: any) => {
       alert("Invalid cart total. Please go back and try again.");
       return;
     }
-    if (!discountReason){
+    if (discountAmount > 0 && (!discountReason || (discountReason === 'Others' && customDiscountReason.trim() === ''))) {
       alert("Please select or enter a valid discount reason");
-    return;
-}
+      return;
+    }
     if (!userDetails) {
       alert("Missing user details. Please go back and try again.");
       return;

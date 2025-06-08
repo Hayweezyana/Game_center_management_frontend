@@ -84,6 +84,11 @@ const handleAdminLogin = async () => {
       setLoading(true);
       setStatus('Initiating payment on Terminal 1...');
 
+      if (discountAmount > 0 && (!discountReason || (discountReason === 'Others' && customDiscountReason.trim() === ''))) {
+      alert("Please select or enter a valid discount reason");
+      return;
+    }
+
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
         amount: finalAmount * 100,
         terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_IMMERSIA, // Different terminal serial for Immersia
@@ -91,11 +96,6 @@ const handleAdminLogin = async () => {
         PaymentMethod: 'IMMERSIA_POS',
         merchantReference: merchantReference || transactionId
       });
-
-      if (!discountReason){
-      alert("Please select or enter a valid discount reason");
-    return;
-}
 
       if (response.status === 202) {
         setStatus('Awaiting payment on POS terminal 1...');
