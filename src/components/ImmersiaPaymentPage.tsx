@@ -17,6 +17,13 @@ interface PaymentPageProps {
   onPaymentSuccess: () => void;
 }
 
+const spinnerKeyframes = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
 const ImmersiaPaymentPage: React.FC<PaymentPageProps> = ({ onPaymentSuccess }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -30,11 +37,47 @@ const ImmersiaPaymentPage: React.FC<PaymentPageProps> = ({ onPaymentSuccess }) =
       cursor: 'pointer'
     }
   };
-const { finalAmount, userDetails, cartItems} = location.state || {};
+const { finalAmount: originalAmount, userDetails, cartItems } = location.state || {};
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [transactionId] = useState(uuidv4());
   const [merchantReference] = useState<string>('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [username, setUsername] = useState('');
+const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+const [discountWarning, setDiscountWarning] = useState('');
+
+
+const [discountAmount, setDiscountAmount] = useState(0);
+const finalAmount = Math.max(originalAmount - discountAmount, 0);
+const [discountReason, setDiscountReason] = useState('');
+const [customDiscountReason, setCustomDiscountReason] = useState('');
+
+const handleAdminLogin = async () => {
+  try {
+    const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/roles/login`, {
+      name: username,
+      password: adminPassword
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+    const { token, role } = res.data;
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('adminData', JSON.stringify(role));
+
+    if (res.status === 200) {
+      setIsAdminAuthenticated(true);
+      alert("Admin authenticated successfully.");
+    }
+  } catch (err: any) {
+    alert("Invalid admin password.");
+    console.error(err.response?.data || err.message);
+  }
+};
+
 
   const handlePayment = async () => {
     try {
@@ -48,6 +91,11 @@ const { finalAmount, userDetails, cartItems} = location.state || {};
         PaymentMethod: 'IMMERSIA_POS',
         merchantReference: merchantReference || transactionId
       });
+
+      if (!discountReason){
+      alert("Please select or enter a valid discount reason");
+    return;
+}
 
       if (response.status === 202) {
         setStatus('Awaiting payment on POS terminal 1...');
@@ -82,10 +130,10 @@ const { finalAmount, userDetails, cartItems} = location.state || {};
       ...userDetails,
       reference: uuidv4(),
       merchantReference,
-      discount: 0, // or apply discount logic if any
-      discount_description: '',
+      discount: discountAmount,
+      discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
       cartItems,
-      payment_methods: [{ method: 'Immersia_Moniepoint', amount: finalAmount }],
+      payment_methods: [{ method: 'Immersia_Moniepoint', amount: finalAmount, }],
       game_time_slot: null, // set if applicable
     };
 
@@ -102,8 +150,7 @@ const { finalAmount, userDetails, cartItems} = location.state || {};
 
           onPaymentSuccess();
 
-  navigate('/ticket', { state: { finalAmount, userDetails, cartItems, merchantReference, dateTime: new Date().toISOString()
- } });
+ navigate('/ticket', { state: { finalAmount, userDetails, cartItems, merchantReference, dateTime: new Date().toISOString(), discount: discountAmount } });
 }
 
 else if (status === 'CANCELLED') {
@@ -118,12 +165,99 @@ else if (status === 'CANCELLED') {
 
   return (
     <div>
+      {!isAdminAuthenticated && (
+        <div>
+    <input
+    type="name"
+    placeholder="username"
+    value={username}
+    onChange={(e) => setUsername(e.target.value)}
+    />
+    <input
+      type="password"
+      placeholder="Enter admin password"
+      value={adminPassword}
+      onChange={(e) => setAdminPassword(e.target.value)}
+    />
+    <button onClick={handleAdminLogin}>Login as Admin</button>
+  </div>
+)}
+
+{isAdminAuthenticated && (
+  <div>
+    <h3>Apply Discount</h3>
+  <input
+    type="number"
+    placeholder="Discount amount (₦)"
+    value={discountAmount}
+    onChange={(e) => {
+      const value = parseInt(e.target.value, 10) || 0;
+      setDiscountAmount(value);
+      if (value > 0 && discountReason.trim() === '') {
+        setDiscountWarning('Please select or enter a discount reason.');
+      } else {
+        setDiscountWarning('');
+      }
+    }}
+  />
+  <select
+    value={discountReason}
+    onChange={(e) => {
+      setDiscountReason(e.target.value);
+      if (discountAmount > 0 && e.target.value.trim() === '') {
+        setDiscountWarning('Please select or enter a discount reason.');
+      } else {
+        setDiscountWarning('');
+      }
+    }}
+  >
+      <option value="">Select Discount Reason</option>
+      <option value="Promo">Promo</option>
+      <option value="Customer Request">Customer Request</option>
+      <option value="Others">Others</option>
+    </select>
+        {discountReason === 'Others' && (
+          <input
+            type="text"
+            placeholder="Enter custom discount reason"
+            value={customDiscountReason}
+onChange={(e) => {
+  setCustomDiscountReason(e.target.value);
+  if (discountReason === 'Others' && discountAmount > 0 && e.target.value.trim() === '') {
+    setDiscountWarning('Please enter a custom discount reason.');
+  } else {
+    setDiscountWarning('');
+  }
+}}
+      />
+    )}
+    {discountWarning && (
+      <p style={{ color: 'red', fontWeight: 'bold' }}>{discountWarning}</p>
+    )}
+  </div>
+)}
+    <div>
       <style>{spinnerKeyframes}</style>
       <h1>Immersia Payment</h1>
       <h2>Pay with Moniepoint (Terminal 1)</h2>
       {/* ... rest of your JSX */}
-    <p>Total: ₦{finalAmount.toLocaleString()}</p>
-      <button onClick={handlePayment} disabled={loading || status?.includes('Awaiting')}>
+    <p>
+  <strong>Total:</strong>{' '}
+  {discountAmount > 0 ? (
+    <>
+      <span style={{ textDecoration: 'line-through', color: 'gray' }}>
+        ₦{originalAmount.toLocaleString()}
+      </span>{' '}
+      <span style={{ color: 'green' }}>
+        ₦{finalAmount.toLocaleString()}
+      </span>
+    </>
+  ) : (
+    <>₦{originalAmount.toLocaleString()}</>
+  )}
+</p>
+
+      <button onClick={handlePayment} disabled={loading || status?.includes('Awaiting') || (discountAmount > 0 && discountReason.trim() === '')}>
   {(loading || status?.includes('Awaiting')) && (
     <span style={spinnerStyle}></span>
   )}
@@ -134,6 +268,7 @@ else if (status === 'CANCELLED') {
       </button>
       {status && <p>{status}</p>}
     </div>
+    </div>
   );
 };
 
@@ -142,16 +277,4 @@ export default ImmersiaPaymentPage;
 const spinnerStyle = {
     width: '16px',
     height: '16px',
-    border: '2px solid #f3f3f3',
-    borderTop: '2px solid #3498db',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    marginRight: '8px'
 };
-
-const spinnerKeyframes = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
