@@ -51,8 +51,11 @@ interface CombinedRecord {
 
 const Report: React.FC = () => {
   const [records, setRecords] = useState<CombinedRecord[]>([]);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  // const formattedStart = new Date(startDate).toISOString();
+  // const formattedEnd = new Date(endDate + 'T23:59:59').toISOString();
+
 
   const [bestSellingGames, setBestSellingGames] = useState<{ game_title: string; game_quantity: number }[]>([]);
   const [leastSellingGames, setLeastSellingGames] = useState<{ game_title: string; game_quantity: number }[]>([]);
@@ -69,10 +72,15 @@ const Report: React.FC = () => {
 
   const fetchAllData = async () => {
     try {
+
+      const formattedStart = startDate ? new Date(startDate).toISOString() : '';
+      const formattedEnd = endDate ? new Date(endDate + 'T23:59:59').toISOString() : '';
+      
+      if (!formattedStart || !formattedEnd) return;
       const [transactionsRes, itemsRes, paymentsRes, gamesRes] = await Promise.all([
-        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions`, { params: { startDate, endDate } }),
-        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionItems`, { params: { startDate, endDate } }),
-        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionPayments`, { params: { startDate, endDate } }),
+        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions`, { params: { startDate: formattedStart, endDate: formattedEnd } }),
+        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionItems`, { params: { startDate: formattedStart, endDate: formattedEnd } }),
+        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionPayments`, { params: { startDate: formattedStart, endDate: formattedEnd } }),
         axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/games`),
       ]);
 
@@ -103,9 +111,17 @@ const Report: React.FC = () => {
 
         items.forEach((item) => {
           const price = gamePriceMap.get(item.game_id) || 0;
-        const cost = price * item.game_quantity;
+        let cost: number;
+        if (item.game_title === '360 Video Booth') {
+          const regularPrice = price;
+          const extraQty = Math.max(0, item.game_quantity - 1);
+          cost = regularPrice + extraQty * 1000;
+        } else {
+          cost = price * item.game_quantity;
+        }
         totalCost += cost;
         itemCosts.push({ item, cost });
+        
       });
 
       // Distribute amounts proportionally
@@ -194,9 +210,6 @@ const Report: React.FC = () => {
     const value = e.target.value;
     if (value) {
       setDate(value);
-      if (startDate && endDate) {
-        fetchAllData();
-      }
     } else {
       setDate('');
       resetMetrics();
@@ -243,6 +256,24 @@ const Report: React.FC = () => {
 
   return (
     <div>
+      <React.Fragment>
+  <style>
+    {`@media print {
+        body * {
+          visibility: hidden;
+        }
+        #print-area, #print-area * {
+          visibility: visible;
+        }
+        #print-area {
+          position: absolute;
+          left: 0;
+          top: 0;
+        }
+      }`}
+  </style>
+
+  <div id="print-area">
       <h1>Reports</h1>
       <h2>End of Day Sales Summary</h2>
 <table border={1}>
@@ -280,7 +311,7 @@ const Report: React.FC = () => {
       ))
     ) : (
       <tr>
-        <td colSpan={9}>No records found</td>
+        <td colSpan={11}>No records found</td>
       </tr>
     )}
   </tbody>
@@ -424,6 +455,8 @@ const Report: React.FC = () => {
           )}
         </tbody>
       </table>
+       </div>
+</React.Fragment>
 
       <button onClick={exportToExcel}>Export to Excel</button>
       <button onClick={handlePrint}>Print Report</button>

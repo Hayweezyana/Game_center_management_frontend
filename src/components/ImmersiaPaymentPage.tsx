@@ -47,7 +47,6 @@ const { finalAmount: originalAmount, userDetails, cartItems } = location.state |
 const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 const [discountWarning, setDiscountWarning] = useState('');
 
-
 const [discountAmount, setDiscountAmount] = useState(0);
 const finalAmount = Math.max(originalAmount - discountAmount, 0);
 const [discountReason, setDiscountReason] = useState('');
@@ -89,12 +88,17 @@ const handleAdminLogin = async () => {
       return;
     }
 
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
-        amount: finalAmount * 100,
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepointImmersia/transactions`, {
+        amount: finalAmount,
         terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_IMMERSIA, // Different terminal serial for Immersia
         transactionType: 'PURCHASE',
         PaymentMethod: 'IMMERSIA_POS',
-        merchantReference: merchantReference || transactionId
+        merchantReference: merchantReference || transactionId,
+        provider_metadata: { 
+        username: userDetails.username,
+        phone: userDetails.phone,
+        email: userDetails.email
+        }
       });
 
       if (response.status === 202) {
@@ -147,8 +151,7 @@ const handleAdminLogin = async () => {
     console.error("Failed to save transaction:", err.response?.data || err.message);
     setStatus('Payment succeeded but saving transaction failed');
   }
-
-          onPaymentSuccess();
+  onPaymentSuccess();
 
  navigate('/ticket', { state: { finalAmount, userDetails, cartItems, merchantReference, dateTime: new Date().toISOString(), discount: discountAmount } });
 }

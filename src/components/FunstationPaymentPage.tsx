@@ -93,7 +93,12 @@ const handleAdminLogin = async () => {
         terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_FUNSTATION,
         transactionType: 'PURCHASE',
         PaymentMethod: 'FUNSTATION_POS',
-        merchantReference: merchantReference || transactionId
+        merchantReference: merchantReference || transactionId,
+        provider_metadata: { 
+        username: userDetails.username,
+        phone: userDetails.phone,
+        email: userDetails.email
+        }
       });
 
       if (response.status === 202) {
@@ -125,11 +130,10 @@ const handleAdminLogin = async () => {
           setStatus('Payment successful!');
 
           try {
-
     const transactionPayload = {
       ...userDetails,
       reference: uuidv4(),
-      merchantReference, // store in kobo
+      merchantReference,
       discount: discountAmount,
       discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
       cartItems,
