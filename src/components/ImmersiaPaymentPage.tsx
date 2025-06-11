@@ -121,7 +121,7 @@ const handleAdminLogin = async () => {
     const interval = setInterval(async () => {
       try {
         const res = await axios.get(
-          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/${merchantReference}`
+          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/Immersiamoniepoint/${merchantReference}`
         );
         const status = res.data?.processingStatus;
 
