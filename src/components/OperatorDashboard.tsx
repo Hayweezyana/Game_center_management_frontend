@@ -46,6 +46,10 @@ const OperatorDashboard = () => {
   }, []);
 
   const handleConsume = async (item: GameItem) => {
+    if (item.unit_index >= item.game_quantity) {
+    console.warn("All units already consumed. Skipping.");
+    return;
+  }
     try {
       const token = localStorage.getItem('operatorToken');
       if (!token) {
