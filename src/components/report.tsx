@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import ReactMarkdown from 'react-markdown';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 interface Transaction {
   id: string;
@@ -55,6 +57,12 @@ const Report: React.FC = () => {
   const [endDate, setEndDate] = useState<string>('');
   // const formattedStart = new Date(startDate).toISOString();
   // const formattedEnd = new Date(endDate + 'T23:59:59').toISOString();
+
+  // Add state for insights
+const [insights, setAIInsights] = useState<string | null>(null);
+const [summary, setSummary] = useState('');
+const [topGames, setTopGames] = useState([]);
+const [salesTrend, setSalesTrend] = useState([]);
 
 
   const [bestSellingGames, setBestSellingGames] = useState<{ game_title: string; game_quantity: number }[]>([]);
@@ -199,6 +207,20 @@ const Report: React.FC = () => {
     setGameDurationStats(Object.entries(gameDurations).map(([game_title, game_duration]) => ({ game_title, game_duration })));
   };
 
+  const fetchAIInsights = async (range: 'daily' | 'weekly' | 'custom' | 'yearly', startDate?: string, endDate?: string) => {
+    try {
+      const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/ai-insights`, {
+    range, startDate, endDate
+    });
+    setAIInsights(res.data.insights);  // ✅ Store in state
+    setSummary(res.data.summary);
+    setTopGames(res.data.charts?.topGames || []);
+    setSalesTrend(res.data.charts?.salesTrend || []);
+  } catch (error) {
+    console.error('Error fetching AI insights:', error);
+  }
+};
+
   const resetMetrics = () => {
     setBestSellingGames([]);
     setLeastSellingGames([]);
@@ -276,6 +298,12 @@ const Report: React.FC = () => {
   <div id="print-area">
       <h1>Reports</h1>
       <h2>End of Day Sales Summary</h2>
+      {insights && (
+  <div className="insights-card">
+    <h3>AI Insights</h3>
+    <pre>{insights}</pre>
+  </div>
+)}
 <table border={1}>
   <thead>
     <tr>
@@ -457,6 +485,48 @@ const Report: React.FC = () => {
       </table>
        </div>
 </React.Fragment>
+      <h2>Fetch AI Insights</h2>
+<button onClick={async () => await fetchAIInsights('daily')}>Get Daily Insights</button>
+<button onClick={async () => await fetchAIInsights('weekly')}>Get Weekly Insights</button>
+<button onClick={async () => await fetchAIInsights('yearly')}>Get Yearly Insights</button>
+<button onClick={async () => await fetchAIInsights('custom', startDate, endDate)}>Get Custom Insights</button>
+
+{summary && (
+  <div>
+    <h3>AI Summary:</h3>
+    <ReactMarkdown>{summary}</ReactMarkdown>
+  </div>
+)}
+
+{topGames.length > 0 && (
+  <div>
+    <h4>Top Selling Games</h4>
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={topGames}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" />
+        <YAxis allowDecimals={false} />
+        <Tooltip />
+        <Bar dataKey="value" fill="#8884d8" />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+)}
+
+{salesTrend.length > 0 && (
+  <div>
+    <h4>Sales Trend</h4>
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={salesTrend}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="date" />
+        <YAxis />
+        <Tooltip />
+        <Line type="monotone" dataKey="value" stroke="#82ca9d" strokeWidth={2} />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+)}
 
       <button onClick={exportToExcel}>Export to Excel</button>
       <button onClick={handlePrint}>Print Report</button>
@@ -465,3 +535,7 @@ const Report: React.FC = () => {
 };
 
 export default Report;
+
+
+
+
