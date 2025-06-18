@@ -18,6 +18,8 @@ import OperatorDashboard from './components/OperatorDashboard';
 import ImmersiaPaymentPage from './components/ImmersiaPaymentPage';
 import FunstationPaymentPage from './components/FunstationPaymentPage';
 import PaystackPaymentPage from './components/PaystackPaymentPage';
+import AIChatBox from './components/AIChatBox';
+
 
 
 // Importing user-related pages
@@ -53,6 +55,7 @@ const App: React.FC = () => {
           <Route path="/ImmersiaPaymentPage" element={<ImmersiaPaymentPage finalAmount={0} userDetails={{ username: '', phone: '' }} cartItems={[]} onPaymentSuccess={() => {}} />} />
           <Route path="/FunstationPaymentPage" element={<FunstationPaymentPage finalAmount={0} userDetails={{ username: '', phone: '' }} cartItems={[]} onPaymentSuccess={() => {}} />} />
           <Route path="/PaystackPaymentPage" element={<PaystackPaymentPage />}/>
+          <Route path="/AIChatBox" element={<AIChatBox isAdmin={true} />} />
 
           
         </Routes>

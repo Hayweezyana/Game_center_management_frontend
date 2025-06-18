@@ -20,30 +20,34 @@ const OperatorDashboard = () => {
   const [loading, setLoading] = useState(true);
 
 
-  useEffect(() => {
-    const fetchUnconsumedGames = async () => {
-      try {
-        const token = localStorage.getItem('operatorToken');
-        if (!token) {
-          console.warn('No token found for operator.');
-          return;
-        }
-
-        const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/consumed-game`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUnconsumedGames(res.data);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching unconsumed games:', err);
+useEffect(() => {
+  const fetchUnconsumedGames = async () => {
+    try {
+      const token = localStorage.getItem('operatorToken');
+      if (!token) {
+        console.warn('No token found for operator.');
+        return;
       }
-    };
 
-    fetchUnconsumedGames();
-    const interval = setInterval(fetchUnconsumedGames, 5000); // auto-refresh
+      const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/consumed-game`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const now = new Date();
+      const filtered = res.data.filter((item: GameItem) => {
+        const createdAt = new Date(item.transaction_time);
+        const hoursElapsed = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        return hoursElapsed <= 24;
+      });
+      setUnconsumedGames(filtered);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching unconsumed games:', err);
+    }
+  };
 
-    return () => clearInterval(interval); // cleanup
-  }, []);
+  fetchUnconsumedGames();
+}, []);
+
 
   const handleConsume = async (item: GameItem) => {
     if (item.unit_index >= item.game_quantity) {
@@ -112,7 +116,7 @@ return (
       <td>{item.game_title} (Unit #{item.unit_index + 1})</td>
       <td>{new Date(item.transaction_time).toLocaleString()}</td>
       <td>
-        <button onClick={() => handleConsume(item)}>Mark as Attended</button>
+        <button onClick={() => handleConsume(item)}disabled={loading}>Mark as Attended</button>
       </td>
     </tr>
   );

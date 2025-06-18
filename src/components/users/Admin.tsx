@@ -257,6 +257,8 @@ const Admin: React.FC = () => {
     <div className="admin-container">
         <h1>Welcome Admin!</h1>
         {/* User Management */}
+        {/* Report button */}
+    <button onClick={() => navigate('/report')}>View Reports</button>
         <h2>Manage Admins</h2>
         <section>
             <CreateAdminForm />
@@ -460,8 +462,6 @@ const Admin: React.FC = () => {
                     <button onClick={handleAddPC}>Add PC</button>
                 </div>
             </div>
-    {/* Report button */}
-    <button onClick={() => navigate('/report')}>View Reports</button>
     {/* View Moniepoint Transaction button */}
     <button onClick={() => navigate('/moniepointdashboard')}>View Moniepoint Transactions</button>
     {/* View Users button */}

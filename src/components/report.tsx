@@ -58,11 +58,61 @@ const Report: React.FC = () => {
   // const formattedStart = new Date(startDate).toISOString();
   // const formattedEnd = new Date(endDate + 'T23:59:59').toISOString();
 
-  // Add state for insights
-const [insights, setAIInsights] = useState<string | null>(null);
+interface InsightData {
+  immersia?: {
+    summary: string;
+    chartData: {
+      topGames: any[];
+      salesTrend: any[];
+    };
+  };
+  funstation?: {
+    summary: string;
+    chartData: {
+      topGames: any[];
+      salesTrend: any[];
+    };
+  };
+  paystack?: {
+    summary: string;
+    chartData: {
+      topGames: any[];
+      salesTrend: any[];
+    };
+  };
+}
+
+// Add state for insights
+const [insights, setAIInsights] = useState<InsightData | null>(null);
 const [summary, setSummary] = useState('');
 const [topGames, setTopGames] = useState([]);
 const [salesTrend, setSalesTrend] = useState([]);
+const InsightCard = ({ title, data }: { title: string; data: any }) => {
+  if (!data) return null;
+
+  const { summary, chartData } = data;
+  const { topGames, salesTrend } = chartData || {};
+  return (
+    <div>
+      <h3>{title}</h3>
+      {summary && <ReactMarkdown>{summary}</ReactMarkdown>}
+      {topGames && topGames.length > 0 && (
+        <div>
+          <h4>Top Games</h4>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={topGames}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+};
 
 
   const [bestSellingGames, setBestSellingGames] = useState<{ game_title: string; game_quantity: number }[]>([]);
@@ -207,7 +257,7 @@ const [salesTrend, setSalesTrend] = useState([]);
     setGameDurationStats(Object.entries(gameDurations).map(([game_title, game_duration]) => ({ game_title, game_duration })));
   };
 
-  const fetchAIInsights = async (range: 'daily' | 'weekly' | 'custom' | 'yearly', startDate?: string, endDate?: string) => {
+  const fetchAIInsights = async (range: string, startDate?: string, endDate?: string) => {
     try {
       const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/ai-insights`, {
     range, startDate, endDate
@@ -301,7 +351,7 @@ const [salesTrend, setSalesTrend] = useState([]);
       {insights && (
   <div className="insights-card">
     <h3>AI Insights</h3>
-    <pre>{insights}</pre>
+    <pre>{JSON.stringify(insights, null, 2)}</pre>
   </div>
 )}
 <table border={1}>
@@ -485,48 +535,22 @@ const [salesTrend, setSalesTrend] = useState([]);
       </table>
        </div>
 </React.Fragment>
-      <h2>Fetch AI Insights</h2>
-<button onClick={async () => await fetchAIInsights('daily')}>Get Daily Insights</button>
-<button onClick={async () => await fetchAIInsights('weekly')}>Get Weekly Insights</button>
-<button onClick={async () => await fetchAIInsights('yearly')}>Get Yearly Insights</button>
-<button onClick={async () => await fetchAIInsights('custom', startDate, endDate)}>Get Custom Insights</button>
+<h2>Fetch AI Insights</h2>
+<div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+  <button onClick={() => fetchAIInsights('daily')}>Get Daily Insights</button>
+  <button onClick={() => fetchAIInsights('weekly')}>Get Weekly Insights</button>
+  <button onClick={() => fetchAIInsights('yearly')}>Get Yearly Insights</button>
+  <button onClick={() => fetchAIInsights('custom', startDate, endDate)}>Get Custom Insights</button>
+</div>
 
-{summary && (
+{insights && (
   <div>
-    <h3>AI Summary:</h3>
-    <ReactMarkdown>{summary}</ReactMarkdown>
+    <InsightCard title="Immersia" data={insights.immersia} />
+    <InsightCard title="Funstation" data={insights.funstation} />
+    <InsightCard title="Paystack / Online" data={insights.paystack} />
   </div>
 )}
 
-{topGames.length > 0 && (
-  <div>
-    <h4>Top Selling Games</h4>
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={topGames}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" />
-        <YAxis allowDecimals={false} />
-        <Tooltip />
-        <Bar dataKey="value" fill="#8884d8" />
-      </BarChart>
-    </ResponsiveContainer>
-  </div>
-)}
-
-{salesTrend.length > 0 && (
-  <div>
-    <h4>Sales Trend</h4>
-    <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={salesTrend}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="date" />
-        <YAxis />
-        <Tooltip />
-        <Line type="monotone" dataKey="value" stroke="#82ca9d" strokeWidth={2} />
-      </LineChart>
-    </ResponsiveContainer>
-  </div>
-)}
 
       <button onClick={exportToExcel}>Export to Excel</button>
       <button onClick={handlePrint}>Print Report</button>
@@ -535,7 +559,3 @@ const [salesTrend, setSalesTrend] = useState([]);
 };
 
 export default Report;
-
-
-
-
