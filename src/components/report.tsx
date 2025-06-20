@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import AIChatBox from '../components/AIChatBox';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import ReactMarkdown from 'react-markdown';
@@ -33,6 +34,10 @@ interface TransactionPayment {
   amount: number;
 }
 
+interface Props {
+  isAdmin: boolean;
+}
+
 interface CombinedRecord {
   id: string;
   username: string;
@@ -55,6 +60,11 @@ const Report: React.FC = () => {
   const [records, setRecords] = useState<CombinedRecord[]>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [prompt, setPrompt] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [response, setResponse] = useState<string>('');
+  const [selectedGame, setSelectedGame] = useState<string>('');
+  const [selectedMethod, setSelectedMethod] = useState<string>('');
   // const formattedStart = new Date(startDate).toISOString();
   // const formattedEnd = new Date(endDate + 'T23:59:59').toISOString();
 
@@ -326,6 +336,30 @@ const InsightCard = ({ title, data }: { title: string; data: any }) => {
     }
   };
 
+  const handleSend = async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    event.preventDefault();
+    if (!prompt.trim()) return;
+
+    setLoading(true);
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/ai-insights/prompt`, {
+        prompt,
+        period: 'custom',
+      startDate,
+      endDate,
+       gameTitle: selectedGame,
+       paymentMethod: selectedMethod,
+      });
+      setResponse(response.data.response || 'No response from AI');
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      setResponse('Sorry, there was an error processing your request.');
+    } finally {
+      setLoading(false);
+      setPrompt('');
+    }
+  };
+
   return (
     <div>
       <React.Fragment>
@@ -345,13 +379,15 @@ const InsightCard = ({ title, data }: { title: string; data: any }) => {
       }`}
   </style>
 
+  <div className="p-6 mb-6 bg-white shadow rounded">
+    <h2 className="text-xl font-bold mb-2">AI Assistant</h2>
+    <AIChatBox isAdmin={true} />
+  </div>
   <div id="print-area">
       <h1>Reports</h1>
       <h2>End of Day Sales Summary</h2>
       {insights && (
-  <div className="insights-card">
-    <h3>AI Insights</h3>
-    <pre>{JSON.stringify(insights, null, 2)}</pre>
+  <div>
   </div>
 )}
 <table border={1}>
@@ -534,6 +570,29 @@ const InsightCard = ({ title, data }: { title: string; data: any }) => {
         </tbody>
       </table>
        </div>
+       <div>
+      <textarea
+        className="w-full border p-2 rounded"
+        rows={4}
+        placeholder="Ask AI a question about the reports..."
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+      />
+      <button
+        onClick={handleSend}
+        disabled={loading}
+        className="mt-2 px-4 py-2 bg-blue-600 text-white rounded"
+      >
+        {loading ? 'Loading...' : 'Ask AI'}
+      </button>
+      {response && (
+        <div className="mt-4 p-3 border bg-gray-100 rounded">
+          <strong>Response:</strong>
+          <p className="whitespace-pre-wrap">{response}</p>
+          <ReactMarkdown>{response}</ReactMarkdown>
+        </div>
+      )}
+    </div>
 </React.Fragment>
 <h2>Fetch AI Insights</h2>
 <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
