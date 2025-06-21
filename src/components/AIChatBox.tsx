@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {
+  BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
 
 interface Props {
   isAdmin: boolean;
@@ -17,6 +23,11 @@ const AIChatBox: React.FC<Props> = ({ isAdmin, defaultStartDate = '', defaultEnd
   const [gameTitle, setGameTitle] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
 
+  const [chartData, setChartData] = useState<{
+    topGames?: { name: string; value: number }[];
+    salesTrend?: { date: string; value: number }[];
+  }>({});
+
   if (!isAdmin) return null;
 
   const handleSend = async () => {
@@ -32,10 +43,13 @@ const AIChatBox: React.FC<Props> = ({ isAdmin, defaultStartDate = '', defaultEnd
         gameTitle,
         paymentMethod,
       });
+      console.log('AI Response:', res.data);
       setResponse(res.data.response || 'No response received.');
+      setChartData(res.data.chartData || {});
     } catch (err) {
       console.error('Error fetching AI insights:', err);
       setResponse('Error fetching AI insights.');
+      setChartData({});
     } finally {
       setLoading(false);
     }
@@ -88,24 +102,66 @@ const AIChatBox: React.FC<Props> = ({ isAdmin, defaultStartDate = '', defaultEnd
 
       <textarea
         rows={4}
-        className="w-full p-2 border rounded"
+        style={{ width: '100%', marginTop: '1rem', padding: '0.5rem' }}
         placeholder="Ask AI about sales trends, performance, etc..."
         value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
+        onChange={e => setPrompt(e.target.value)}
       />
 
       <button
         onClick={handleSend}
         className="mt-3 px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
         disabled={loading}
+      style={{
+          marginTop: '0.5rem',
+          padding: '0.5rem 1rem',
+          background: '#3b82f6',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }}
       >
         {loading ? 'Analyzing...' : 'Ask AI'}
       </button>
 
       {response && (
-        <div className="mt-4 p-3 bg-gray-100 border rounded">
-          <h3 className="font-semibold mb-1">AI Response:</h3>
-          <p className="whitespace-pre-wrap">{response}</p>
+        <div className="markdown-container">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {response}
+          </ReactMarkdown>
+        </div>
+      )}
+
+      {/* Sales Trend Chart */}
+      {(chartData.salesTrend && chartData.salesTrend.length > 0) && (
+        <div className="chart-wrapper">
+          <h4>Sales Trend</h4>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={chartData.salesTrend}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Top Games Chart */}
+      {chartData.topGames && chartData.topGames.length > 0 && (
+        <div className="chart-wrapper">
+          <h4>Top Games by Revenue</h4>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={chartData.topGames}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value" fill="#6366f1" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       )}
     </div>

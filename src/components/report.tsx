@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import ReactMarkdown from 'react-markdown';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { set } from 'lodash';
 
 interface Transaction {
   id: string;
@@ -83,7 +84,7 @@ interface InsightData {
       salesTrend: any[];
     };
   };
-  paystack?: {
+  online?: {
     summary: string;
     chartData: {
       topGames: any[];
@@ -92,33 +93,67 @@ interface InsightData {
   };
 }
 
+interface InsightCardProps {
+  title: string;
+  data: {
+    summary: string;
+    totalRevenue: number;
+    chartData: { topGames: any[]; salesTrend: any[] };
+  };
+}
+
 // Add state for insights
 const [insights, setAIInsights] = useState<InsightData | null>(null);
 const [summary, setSummary] = useState('');
 const [topGames, setTopGames] = useState([]);
 const [salesTrend, setSalesTrend] = useState([]);
-const InsightCard = ({ title, data }: { title: string; data: any }) => {
-  if (!data) return null;
+const [totalRevenue, setTotalRevenue] = useState(0);
 
-  const { summary, chartData } = data;
-  const { topGames, salesTrend } = chartData || {};
+const InsightCard: React.FC<InsightCardProps> = ({ title, data }) => {
+  if (!data) return null;
+  const { summary, totalRevenue, chartData } = data;
+  const { topGames, salesTrend } = chartData;
+
   return (
-    <div>
-      <h3>{title}</h3>
-      {summary && <ReactMarkdown>{summary}</ReactMarkdown>}
-      {topGames && topGames.length > 0 && (
-        <div>
-          <h4>Top Games</h4>
-          <ResponsiveContainer width="100%" height={300}>
+    <div className="p-4 mb-6 bg-white shadow rounded">
+      <h3 className="text-lg font-bold mb-1">{title}</h3>
+      <p className="mb-2">
+        <strong>Total Revenue:</strong> ₦{totalRevenue.toLocaleString()}
+      </p>
+      {summary && (
+        <div className="prose mb-4">
+          <ReactMarkdown>{summary}</ReactMarkdown>
+        </div>
+      )}
+
+      {topGames?.length > 0 && (
+        <>
+          <h4 className="font-semibold">Top Games</h4>
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={topGames}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="value" fill="#8884d8" />
+              <Bar dataKey="value" fill="#4f46e5" />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </>
+      )}
+
+      {salesTrend?.length > 0 && (
+        <>
+          <h4 className="font-semibold mt-4">Sales Trend</h4>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={salesTrend}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </>
       )}
     </div>
   );
@@ -272,12 +307,21 @@ const InsightCard = ({ title, data }: { title: string; data: any }) => {
       const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/ai-insights`, {
     range, startDate, endDate
     });
-    setAIInsights(res.data.insights);  // ✅ Store in state
+    console.log('INSIGHTS:', res.data.insights);
+    console.log('FULL AI RESPONSE:', res.data)
+    setAIInsights({
+  immersia: res.data.immersia,
+  funstation: res.data.funstation,
+  online:   res.data.online
+});  // ✅ Store in state
+setTotalRevenue(res.data.totalRevenue || 0);
     setSummary(res.data.summary);
     setTopGames(res.data.charts?.topGames || []);
     setSalesTrend(res.data.charts?.salesTrend || []);
   } catch (error) {
     console.error('Error fetching AI insights:', error);
+
+    
   }
 };
 
@@ -361,259 +405,284 @@ const InsightCard = ({ title, data }: { title: string; data: any }) => {
   };
 
   return (
-    <div>
-      <React.Fragment>
-  <style>
-    {`@media print {
-        body * {
-          visibility: hidden;
-        }
-        #print-area, #print-area * {
-          visibility: visible;
-        }
-        #print-area {
-          position: absolute;
-          left: 0;
-          top: 0;
-        }
-      }`}
-  </style>
-
-  <div className="p-6 mb-6 bg-white shadow rounded">
-    <h2 className="text-xl font-bold mb-2">AI Assistant</h2>
-    <AIChatBox isAdmin={true} />
-  </div>
-  <div id="print-area">
-      <h1>Reports</h1>
-      <h2>End of Day Sales Summary</h2>
-      {insights && (
+<div>
   <div>
-  </div>
-)}
-<table border={1}>
-  <thead>
-    <tr>
-      <th>Username</th>
-      <th>Phone</th>
-      <th>Email</th>
-      <th>Total Amount</th>
-      <th>Discount</th>
-      <th>Discount Description</th>
-      <th>Game Title</th>
-      <th>Game Quantity</th>
-      <th>Reference</th>
-      <th>Merchant Reference</th>
-      <th>Date</th>
-    </tr>
-  </thead>
-  <tbody>
-    {endOfDaySummary.length > 0 ? (
-      endOfDaySummary.map((record, index) => (
-        <tr key={index}>
-          <td>{record.username}</td>
-          <td>{record.phone}</td>
-          <td>{record.email}</td>
-          <td>{record.amount}</td>
-          <td>{record.discount}</td>
-          <td>{record.discount_description}</td>
-          <td>{record.game_title}</td>
-          <td>{record.game_quantity}</td>
-          <td>{record.reference}</td>
-          <td>{record.merchantReference}</td>
-          <td>{new Date(record.created_at).toLocaleString()}</td>
-        </tr>
-      ))
-    ) : (
-      <tr>
-        <td colSpan={11}>No records found</td>
-      </tr>
-    )}
-  </tbody>
-</table>
-      <h2>Select Date Range</h2>
-      <div>
-        <label>
-          Start Date:
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </label>
-        <label>
-          End Date:
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </label>
+    <style>
+      {`@media print {
+          body * {
+            visibility: hidden;
+          }
+          #print-area, #print-area * {
+            visibility: visible;
+          }
+          #print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+          }
+        }`}
+    </style>
+
+    <div className="p-6 mb-6 bg-white shadow rounded">
+      <h2 className="text-xl font-bold mb-2">AI Assistant</h2>
+      <AIChatBox isAdmin={true} />
+      </div>
+      <h2>Fetch AI Insights</h2>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <button onClick={() => fetchAIInsights('daily')}>Get Daily Insights</button>
+        <button onClick={() => fetchAIInsights('weekly')}>Get Weekly Insights</button>
+        <button onClick={() => fetchAIInsights('yearly')}>Get Yearly Insights</button>
+        <button onClick={() => fetchAIInsights('custom', startDate, endDate)}>Get Custom Insights</button>
       </div>
 
-      <h2>Best Selling Games</h2>
-      <table border={1}>
-        <thead>
-          <tr>
-            <th>Game Title</th>
-            <th>Total Quantity Sold</th>
-          </tr>
-        </thead>
-        <tbody>
-          {bestSellingGames.length > 0 ? (
-            bestSellingGames.map((game, index) => (
-              <tr key={index}>
-                <td>{game.game_title}</td>
-                <td>{game.game_quantity}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={2}>No records found</td>
-            </tr>
+      {insights && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {insights.immersia && (
+                <InsightCard
+                  title="Immersia"
+                  data={{
+                    summary: insights.immersia.summary,
+                    totalRevenue: (insights.immersia as any).totalRevenue ?? 0,
+                    chartData: insights.immersia.chartData,
+                  }}
+                />
+              )}
+              {insights.funstation && (
+                <InsightCard
+                  title="Funstation"
+                  data={{
+                    summary: insights.funstation.summary,
+                    totalRevenue: (insights.funstation as any).totalRevenue ?? 0,
+                    chartData: insights.funstation.chartData,
+                  }}
+                />
+              )}
+              {insights.online && (
+                <InsightCard
+                  title="Online"
+                  data={{
+                    summary: insights.online.summary,
+                    totalRevenue: (insights.online as any).totalRevenue ?? 0,
+                    chartData: insights.online.chartData,
+                  }}
+                />
+              )}
+            </div>
           )}
-        </tbody>
-      </table>
-
-      <h2>Least Selling Games</h2>
-      <table border={1}>
-        <thead>
-          <tr>
-            <th>Game Title</th>
-            <th>Total Quantity Sold</th>
-          </tr>
-        </thead>
-        <tbody>
-          {leastSellingGames.length > 0 ? (
-            leastSellingGames.map((game, index) => (
-              <tr key={index}>
-                <td>{game.game_title}</td>
-                <td>{game.game_quantity}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={2}>No records found</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      <h2>Highest Paying Customers</h2>
-      <table border={1}>
-        <thead>
-          <tr>
-            <th>Customer Name</th>
-            <th>Total Amount Paid</th>
-          </tr>
-        </thead>
-        <tbody>
-          {highestPayingCustomers.length > 0 ? (
-            highestPayingCustomers.map((customer, index) => (
-              <tr key={index}>
-                <td>{customer.username}</td>
-                <td>{customer.amount}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={2}>No records found</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      <h2>Total Duration of Games Played</h2>
-      <table border={1}>
-        <thead>
-          <tr>
-            <th>Game Title</th>
-            <th>Total Duration Played (Minutes)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {gameDurationStats.length > 0 ? (
-            gameDurationStats.map((record, index) => (
-              <tr key={index}>
-                <td>{record.game_title}</td>
-                <td>{record.game_duration}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={2}>No records found</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      <h2>Transaction Records</h2>
-      <table id="report-table" border={1}>
-        <thead>
-          <tr>
-            <th>Game Duration (Minutes)</th>
-            <th>Title</th>
-            <th>Quantity</th>
-            <th>Total Amount</th>
-            <th>Payment Method</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {records.length > 0 ? (
-            records.map((record) => (
-              <tr key={record.id}>
-                <td>{(parseFloat(record.game_duration.toString()) * record.game_quantity).toFixed(2)}</td>
-                <td>{record.game_title}</td>
-                <td>{record.game_quantity}</td>
-                <td>{((Number(record.amount) || 0) || 0).toFixed(2)}</td>
-                <td>{record.payment_methods}</td>
-                <td>{new Date(record.created_at).toLocaleDateString()}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={6}>No records found</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-       </div>
-       <div>
-      <textarea
-        className="w-full border p-2 rounded"
-        rows={4}
-        placeholder="Ask AI a question about the reports..."
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-      />
-      <button
-        onClick={handleSend}
-        disabled={loading}
-        className="mt-2 px-4 py-2 bg-blue-600 text-white rounded"
-      >
-        {loading ? 'Loading...' : 'Ask AI'}
-      </button>
-      {response && (
-        <div className="mt-4 p-3 border bg-gray-100 rounded">
-          <strong>Response:</strong>
-          <p className="whitespace-pre-wrap">{response}</p>
-          <ReactMarkdown>{response}</ReactMarkdown>
-        </div>
-      )}
+            </div>
+    <div id="print-area">
+        <h1>Reports</h1>
+        <h2>End of Day Sales Summary</h2>
+        {insights && (
+    <div>
     </div>
-</React.Fragment>
-<h2>Fetch AI Insights</h2>
-<div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-  <button onClick={() => fetchAIInsights('daily')}>Get Daily Insights</button>
-  <button onClick={() => fetchAIInsights('weekly')}>Get Weekly Insights</button>
-  <button onClick={() => fetchAIInsights('yearly')}>Get Yearly Insights</button>
-  <button onClick={() => fetchAIInsights('custom', startDate, endDate)}>Get Custom Insights</button>
-</div>
+  )}
+  <table border={1}>
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Phone</th>
+        <th>Email</th>
+        <th>Total Amount</th>
+        <th>Discount</th>
+        <th>Discount Description</th>
+        <th>Game Title</th>
+        <th>Game Quantity</th>
+        <th>Reference</th>
+        <th>Merchant Reference</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {endOfDaySummary.length > 0 ? (
+        endOfDaySummary.map((record, index) => (
+          <tr key={index}>
+            <td>{record.username}</td>
+            <td>{record.phone}</td>
+            <td>{record.email}</td>
+            <td>{record.amount}</td>
+            <td>{record.discount}</td>
+            <td>{record.discount_description}</td>
+            <td>{record.game_title}</td>
+            <td>{record.game_quantity}</td>
+            <td>{record.reference}</td>
+            <td>{record.merchantReference}</td>
+            <td>{new Date(record.created_at).toLocaleString()}</td>
+          </tr>
+        ))
+      ) : (
+        <tr>
+          <td colSpan={11}>No records found</td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+        <h2>Select Date Range</h2>
+        <div>
+          <label>
+            Start Date:
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          </label>
+          <label>
+            End Date:
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </label>
+        </div>
 
-{insights && (
-  <div>
-    <InsightCard title="Immersia" data={insights.immersia} />
-    <InsightCard title="Funstation" data={insights.funstation} />
-    <InsightCard title="Paystack / Online" data={insights.paystack} />
-  </div>
-)}
+        <h2>Best Selling Games</h2>
+        <table border={1}>
+          <thead>
+            <tr>
+              <th>Game Title</th>
+              <th>Total Quantity Sold</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bestSellingGames.length > 0 ? (
+              bestSellingGames.map((game, index) => (
+                <tr key={index}>
+                  <td>{game.game_title}</td>
+                  <td>{game.game_quantity}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={2}>No records found</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
 
+        <h2>Least Selling Games</h2>
+        <table border={1}>
+          <thead>
+            <tr>
+              <th>Game Title</th>
+              <th>Total Quantity Sold</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leastSellingGames.length > 0 ? (
+              leastSellingGames.map((game, index) => (
+                <tr key={index}>
+                  <td>{game.game_title}</td>
+                  <td>{game.game_quantity}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={2}>No records found</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
 
+        <h2>Highest Paying Customers</h2>
+        <table border={1}>
+          <thead>
+            <tr>
+              <th>Customer Name</th>
+              <th>Total Amount Paid</th>
+            </tr>
+          </thead>
+          <tbody>
+            {highestPayingCustomers.length > 0 ? (
+              highestPayingCustomers.map((customer, index) => (
+                <tr key={index}>
+                  <td>{customer.username}</td>
+                  <td>{customer.amount}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={2}>No records found</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        <h2>Total Duration of Games Played</h2>
+        <table border={1}>
+          <thead>
+            <tr>
+              <th>Game Title</th>
+              <th>Total Duration Played (Minutes)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {gameDurationStats.length > 0 ? (
+              gameDurationStats.map((record, index) => (
+                <tr key={index}>
+                  <td>{record.game_title}</td>
+                  <td>{record.game_duration}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={2}>No records found</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        <h2>Transaction Records</h2>
+        <table id="report-table" border={1}>
+          <thead>
+            <tr>
+              <th>Game Duration (Minutes)</th>
+              <th>Title</th>
+              <th>Quantity</th>
+              <th>Total Amount</th>
+              <th>Payment Method</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.length > 0 ? (
+              records.map((record) => (
+                <tr key={record.id}>
+                  <td>{(parseFloat(record.game_duration.toString()) * record.game_quantity).toFixed(2)}</td>
+                  <td>{record.game_title}</td>
+                  <td>{record.game_quantity}</td>
+                  <td>{((Number(record.amount) || 0) || 0).toFixed(2)}</td>
+                  <td>{record.payment_methods}</td>
+                  <td>{new Date(record.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6}>No records found</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <div>
+        {/* <textarea
+          className="w-full border p-2 rounded"
+          rows={4}
+          placeholder="Ask AI a question about the reports..."
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+        />
+        <button
+          onClick={handleSend}
+          disabled={loading}
+          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          {loading ? 'Loading...' : 'Ask AI'}
+        </button>
+        {response && (
+          <div className="mt-4 p-3 border bg-gray-100 rounded">
+            <strong>Response:</strong>
+            <p className="whitespace-pre-wrap">{response}</p>
+            <ReactMarkdown>{response}</ReactMarkdown>
+          </div> */}
+        {/* )} */}
       <button onClick={exportToExcel}>Export to Excel</button>
       <button onClick={handlePrint}>Print Report</button>
     </div>
+  </div>
   );
 };
 

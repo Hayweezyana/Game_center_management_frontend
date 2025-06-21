@@ -1,6 +1,8 @@
 import { CartProvider } from './components/hooks/useCart';
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import './App.css';
+
 
 // Importing pages
 import WelcomePage from "./components/WelcomePage";
