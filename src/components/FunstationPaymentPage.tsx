@@ -140,7 +140,7 @@ const handleAdminLogin = async () => {
               discountReason === 'Others' ? customDiscountReason : discountReason,
             cartItems,
             payment_methods: [
-              { method: 'Immersia_Moniepoint', amount: finalAmount },
+              { method: 'Funstation_Moniepoint', amount: finalAmount },
             ],
             game_time_slot: null,
           };
