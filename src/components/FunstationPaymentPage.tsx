@@ -115,58 +115,81 @@ const handleAdminLogin = async () => {
 
     }
   };
-  
 
-  const pollTransactionStatus = (merchantReference: string) => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await axios.get(
-          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/${merchantReference}`
-        );
-        const status = res.data?.processingStatus;
+ const pollTransactionStatus = (merchantReference: string) => {
+  let pollTimeout: NodeJS.Timeout;
+  const interval = setInterval(async () => {
+    try {
+      const res = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/${merchantReference}`
+      );
+      const txStatus = res.data?.processingStatus;
 
-        if (status === 'PROCESSED') {
-          clearInterval(interval);
-          setStatus('Payment successful!');
+      if (txStatus === 'PROCESSED') {
+        clearInterval(interval);
+        if (pollTimeout) clearTimeout(pollTimeout);
+        setStatus('Payment successful!');
 
-          try {
-    const transactionPayload = {
-      ...userDetails,
-      reference: uuidv4(),
-      merchantReference,
-      discount: discountAmount,
-      discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
-      cartItems,
-      payment_methods: [{ method: 'Funstation_Moniepoint', amount: finalAmount,
- }],
-      game_time_slot: null,
-    };
+        try {
+          const transactionPayload = {
+            ...userDetails,
+            reference: uuidv4(),
+            merchantReference,
+            discount: discountAmount,
+            discount_description:
+              discountReason === 'Others' ? customDiscountReason : discountReason,
+            cartItems,
+            payment_methods: [
+              { method: 'Immersia_Moniepoint', amount: finalAmount },
+            ],
+            game_time_slot: null,
+          };
 
-    const txnRes = await axios.post(
-      `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
-      transactionPayload
-    );
+          const txnRes = await axios.post(
+            `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
+            transactionPayload
+          );
 
-    console.log("Transaction saved:", txnRes.data);
-  } catch (err: any) {
-    console.error("Failed to save transaction:", err.response?.data || err.message);
-    setStatus('Payment succeeded but saving transaction failed');
-  }
-
+          console.log('Transaction saved:', txnRes.data);
           onPaymentSuccess();
-
-  navigate('/ticket', { state: { finalAmount, userDetails, cartItems, merchantReference, dateTime: new Date().toISOString(), discount: discountAmount } });
-}
-
-else if (status === 'CANCELLED') {
-  clearInterval(interval);
-  setStatus('Payment cancelled');
-}
-      } catch (error) {
-        console.error('Polling error:', error);
+          navigate('/ticket', {
+            state: {
+              finalAmount,
+              userDetails,
+              cartItems,
+              merchantReference,
+              dateTime: new Date().toISOString(),
+              discount: discountAmount,
+            },
+          });
+        } catch (err: any) {
+          console.error(
+            'Failed to save transaction:',
+            err.response?.data || err.message
+          );
+          setStatus('Payment succeeded but saving transaction failed');
+        }
+      } else if (txStatus === 'CANCELLED') {
+        clearInterval(interval);
+        if (pollTimeout) clearTimeout(pollTimeout);
+        setStatus('Payment cancelled');
+      } else if (txStatus === 'FAILED') {
+        clearInterval(interval);
+        if (pollTimeout) clearTimeout(pollTimeout);
+        setStatus('Payment failed. Please try again.');
+      } else {
+        setStatus(`Awaiting payment... Current status: ${txStatus}`);
       }
-    }, 5000);
-  };
+    } catch (error) {
+      console.error('Polling error:', error);
+    }
+  }, 5000);
+
+  pollTimeout = setTimeout(() => {
+    clearInterval(interval);
+    setStatus('Payment timed out. Please try again.');
+  }, 90000);
+};
 
   return (
     <div>
