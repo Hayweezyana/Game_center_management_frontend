@@ -209,6 +209,9 @@ const Admin: React.FC = () => {
     const handleDrinkInventory = () => {
         navigate('/DrinkInventory');
     }
+    const handleOperatorConsumedReport = () => {
+        navigate('/OperatorConsumedGames');
+    }
     
     //function to fetch roles
     useEffect(() => {
@@ -263,6 +266,8 @@ const Admin: React.FC = () => {
         {/* User Management */}
         {/* Report button */}
     <button onClick={() => navigate('/report')}>View Reports</button>
+    <button onClick={handleDrinkInventory}>Drink Dashboard</button>
+        <button onClick={handleOperatorConsumedReport}>Operator Consumed Games Report</button>
         <h2>Manage Admins</h2>
         <section>
             <CreateAdminForm />
@@ -290,7 +295,7 @@ const Admin: React.FC = () => {
                     ))}
                 </tbody>
             </table>
-        <button onClick={handleDrinkInventory}>Drink Dashboard</button>
+        
 
             {/* Game Management */}
             <h2>Edit Games</h2>

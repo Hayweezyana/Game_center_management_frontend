@@ -64,7 +64,7 @@ useEffect(() => {
       await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/v1/admin/consumed-game/consume`,
         {
-          gameItemId: item.id,
+          transactionItemId: item.id,
           operator_name: localStorage.getItem('name') || 'Unknown Operator',
           unit_index: item.unit_index,
           game_title: item.game_title,
