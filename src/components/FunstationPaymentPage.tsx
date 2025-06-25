@@ -188,7 +188,7 @@ const handleAdminLogin = async () => {
   pollTimeout = setTimeout(() => {
     clearInterval(interval);
     setStatus('Payment timed out. Please try again.');
-  }, 90000);
+  }, 300000);
 };
 
   return (

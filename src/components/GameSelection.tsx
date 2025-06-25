@@ -8,6 +8,7 @@ import styles from './GameSelection.module.css';
 import { UUID } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { FaPlus, FaMinus } from 'react-icons/fa';
+import { set } from 'lodash';
 
 // Define types for the cart items
 interface CartItem {
@@ -27,6 +28,7 @@ interface Game {
   price: number;
   time_slot?: string;
 }
+
 
 const GameSelection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,6 +50,7 @@ const GameSelection: React.FC = () => {
   const [showAddDrinkForm, setShowAddDrinkForm] = useState(false);
   const [newDrinkTitle, setNewDrinkTitle] = useState('');
 const [newDrinkPrice, setNewDrinkPrice] = useState<number>(0);
+const [newDrinkQuantity, setNewDrinkQuantity] = useState<number>(0);
 
 
   // Ref to store YouTube player instances
@@ -115,55 +118,83 @@ const [newDrinkPrice, setNewDrinkPrice] = useState<number>(0);
   }
 };
 
-const [drinks, setDrinks] = useState<{ id: string; title: string; price: number }[]>([
-  { id: uuidv4(), title: 'Coca-Cola', price: 600 },
-  { id: uuidv4(), title: 'Fanta', price: 600 },
-  { id: uuidv4(), title: 'Eva Water', price: 400 },
-  { id: uuidv4(), title: 'Sprite', price: 600 },
-  { id: uuidv4(), title: 'Pepsi', price: 600 },
-  { id: uuidv4(), title: 'Amstel Malta', price: 1000 },
-  { id: uuidv4(), title: 'Malta Guiness', price: 1000 },
-  { id: uuidv4(), title: 'Viju Chocolate', price: 1500 },
-  { id: uuidv4(), title: 'Schweppes Chapman', price: 700 },
-  { id: uuidv4(), title: 'Schweppes Pineapple', price: 700 },
-  { id: uuidv4(), title: 'Parfait', price: 4000 },
-  { id: uuidv4(), title: 'Yoghurt', price: 6000 },
-  { id: uuidv4(), title: 'Nestle Water', price: 400 },
-]);
+const [drinks, setDrinks] = useState<{ id: string; title: string; price: number; quantity: number }[]>([]);
+useEffect(() => {
+  axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/drinks`)
+    .then(res => {
+      if (res.data.status) {
+        // Ensure each drink has a quantity property (default to 0 if missing)
+        setDrinks(res.data.data.map((drink: any) => ({
+          ...drink,
+          quantity: typeof drink.quantity === 'number' ? drink.quantity : 0,
+        })));
+      } else {
+        throw new Error('Failed to load drinks');
+      }
+    })
+    .catch(err => {
+      console.error('Drink fetch error:', err);
+    });
+}, []);
 
-const handleAddDrink = (drink: { id: string; title: string; price: number }) => {
+const handleAddDrink = (drink: { id: string; title: string; price: number, quantity: number }) => {
   const cartItem = cartItems.find(item => item.id === drink.id && item.type === 'drink');
+  const availableStock = drink.quantity;
+  const currentQuantity = cartItem?.quantity || 0;
+
+  if (currentQuantity >= availableStock) {
+    alert(`Max stock reached for ${drink.title}. Cannot add more.`);
+    return;
+  }
+
+  if (availableStock - currentQuantity <= 2) {
+    alert(`Only ${availableStock - currentQuantity} unit(s) left for ${drink.title}.`);
+  }
+
   if (cartItem) {
-    updateCartItem(drink.id, cartItem.quantity + 1); // reuse updateCartItem logic
+    updateCartItem(drink.id, currentQuantity + 1);
   } else {
     addToCart({
       id: drink.id,
       title: drink.title,
       price: drink.price,
-      quantity: 1,
+      quantity: 1, // Default to 1 if quantity is not provided
       gameDuration: 0, // Drinks have no duration
       type: 'drink',
     });
   }
 };
 
-const handleAddNewDrink = () => {
+const handleAddNewDrink = async () => {
   if (!newDrinkTitle.trim() || newDrinkPrice <= 0) {
     alert('Please enter a valid drink name and price.');
     return;
   }
 
-  const newDrink = {
-    id: uuidv4(),
-    title: newDrinkTitle.trim(),
-    price: newDrinkPrice,
-  };
+  try {
+    const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/drinks`, {
+      title: newDrinkTitle,
+      price: newDrinkPrice,
+      quantity:newDrinkQuantity,
+    });
 
-  setDrinks((prev) => [...prev, newDrink]);
-  setNewDrinkTitle('');
-  setNewDrinkPrice(0);
-  setShowAddDrinkForm(false);
+    if (response.data.status) {
+      setDrinks(prev => [...prev, response.data.data]);
+      setNewDrinkTitle('');
+      setNewDrinkPrice(0);
+      setNewDrinkQuantity(0);
+      alert('Drink added successfully!');
+      setShowAddDrinkForm(false);
+    }
+  } catch (err) {
+    if (err instanceof Error) {
+      alert('Error adding drink: ' + err.message);
+    } else {
+      alert('Error adding drink: ' + String(err));
+    }
+  }
 };
+
 
 
 
@@ -268,6 +299,12 @@ const handleRemoveDrink = (drinkId: string) => {
       value={newDrinkPrice}
       onChange={(e) => setNewDrinkPrice(Number(e.target.value))}
     />
+    <input
+      type="number"
+      placeholder="Quantity"
+      value={newDrinkQuantity}
+      onChange={(e) => setNewDrinkQuantity(Number(e.target.value))}
+    />
     <button onClick={handleAddNewDrink}>Add Drink</button>
   </div>
 )}
@@ -277,7 +314,9 @@ const handleRemoveDrink = (drinkId: string) => {
                     <div key={drink.id} className={styles['drink-item']}>
                       <span>{drink.title} - ₦{drink.price}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <button onClick={() => handleAddDrink(drink)}><FaPlus /></button>
+  <button onClick={() => handleAddDrink({ ...drink, quantity: drink.quantity })}
+    disabled={qty >= drink.quantity || drink.quantity === 0}
+    style={{ opacity: drink.quantity === 0 ? 0.4 : 1 }}><FaPlus /></button>
                         <span style={{ minWidth: '24px', textAlign: 'center' }}>{qty}</span>
                         <button onClick={() => handleRemoveDrink(drink.id)} disabled={qty === 0}><FaMinus /></button>
                       </div>

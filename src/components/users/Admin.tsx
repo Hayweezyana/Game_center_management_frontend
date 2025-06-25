@@ -205,6 +205,10 @@ const Admin: React.FC = () => {
                 }
             });
     };
+    //link to the drink inventory page
+    const handleDrinkInventory = () => {
+        navigate('/DrinkInventory');
+    }
     
     //function to fetch roles
     useEffect(() => {
@@ -286,6 +290,7 @@ const Admin: React.FC = () => {
                     ))}
                 </tbody>
             </table>
+        <button onClick={handleDrinkInventory}>Drink Dashboard</button>
 
             {/* Game Management */}
             <h2>Edit Games</h2>

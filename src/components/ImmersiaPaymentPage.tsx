@@ -188,7 +188,7 @@ const pollTransactionStatus = (merchantReference: string) => {
   pollTimeout = setTimeout(() => {
     clearInterval(interval);
     setStatus('Payment timed out. Please try again.');
-  }, 90000);
+  }, 300000);
 };
 
 return (
@@ -268,7 +268,6 @@ onChange={(e) => {
       <style>{spinnerKeyframes}</style>
       <h1>Immersia Payment</h1>
       <h2>Pay with Moniepoint (Terminal 1)</h2>
-      {/* ... rest of your JSX */}
     <p>
   <strong>Total:</strong>{' '}
   {discountAmount > 0 ? (

@@ -30,6 +30,7 @@ import Admin from './components/users/Admin';
 import CreateAdminForm from './components/users/CreateAdminForm';
 import AdminPaymentPage from './components/users/AdminPaymentPage';
 import OperatorAuth from './components/users/OperatorAuth';
+import DrinkInventory from './components/users/DrinkInventory';
 
 const App: React.FC = () => {
   return (
@@ -58,6 +59,7 @@ const App: React.FC = () => {
           <Route path="/FunstationPaymentPage" element={<FunstationPaymentPage finalAmount={0} userDetails={{ username: '', phone: '' }} cartItems={[]} onPaymentSuccess={() => {}} />} />
           <Route path="/PaystackPaymentPage" element={<PaystackPaymentPage />}/>
           <Route path="/AIChatBox" element={<AIChatBox isAdmin={true} />} />
+          <Route path="/DrinkInventory" element={<DrinkInventory isAdmin={true} />} />
 
           
         </Routes>
