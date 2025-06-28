@@ -118,6 +118,7 @@ const handleAdminLogin = async () => {
 
 const pollTransactionStatus = (merchantReference: string) => {
   let pollTimeout: NodeJS.Timeout;
+  let failedAttempts = 0;
   const interval = setInterval(async () => {
     try {
       const res = await axios.get(
@@ -127,7 +128,7 @@ const pollTransactionStatus = (merchantReference: string) => {
 
       if (txStatus === 'PROCESSED') {
         clearInterval(interval);
-        if (pollTimeout) clearTimeout(pollTimeout);
+        clearTimeout(pollTimeout);
         setStatus('Payment successful!');
 
         try {
@@ -169,26 +170,27 @@ const pollTransactionStatus = (merchantReference: string) => {
           );
           setStatus('Payment succeeded but saving transaction failed');
         }
-      } else if (txStatus === 'CANCELLED') {
+      } else if (['CANCELLED', 'FAILED'].includes(txStatus)) {
+      failedAttempts++;
+      if (failedAttempts >= 5) {
         clearInterval(interval);
-        if (pollTimeout) clearTimeout(pollTimeout);
-        setStatus('Payment cancelled');
-      } else if (txStatus === 'FAILED') {
-        clearInterval(interval);
-        if (pollTimeout) clearTimeout(pollTimeout);
-        setStatus('Payment failed. Please try again.');
+        clearTimeout(pollTimeout);
+        setStatus('Payment failed or cancelled.');
       } else {
-        setStatus(`Awaiting payment... Current status: ${txStatus}`);
+        setStatus(`Temporary issue (${txStatus}). Retrying...`);
       }
-    } catch (error) {
-      console.error('Polling error:', error);
+    } else {
+      setStatus(`Awaiting payment... Current status: ${txStatus}`);
     }
-  }, 5000);
+  } catch (err) {
+    console.error('Polling error:', err);
+  }
+}, 5000);
 
   pollTimeout = setTimeout(() => {
     clearInterval(interval);
     setStatus('Payment timed out. Please try again.');
-  }, 300000);
+  }, 600000);
 };
 
 return (
