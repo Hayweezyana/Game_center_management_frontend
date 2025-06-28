@@ -172,7 +172,7 @@ const pollTransactionStatus = (merchantReference: string) => {
         }
       } else if (['CANCELLED', 'FAILED'].includes(txStatus)) {
       failedAttempts++;
-      if (failedAttempts >= 5) {
+      if (failedAttempts >= 2) {
         clearInterval(interval);
         clearTimeout(pollTimeout);
         setStatus('Payment failed or cancelled.');

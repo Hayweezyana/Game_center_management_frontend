@@ -34,6 +34,13 @@ interface TransactionPayment {
   amount: number;
 }
 
+interface TransactionDrinks {
+  drink_id: string;
+  drink_title: string;
+  drink_price: number;
+  drink_quantity: number;
+}
+
 interface CombinedRecord {
   id: string;
   username: string;
@@ -45,6 +52,10 @@ interface CombinedRecord {
   game_title: string;
   game_quantity: number;
   game_duration: number;
+  drink_price: number;
+  drink_id: string;
+  drink_title: string;
+  drink_quantity: number;
   payment_methods: string;
   amount: number;
   reference: string;
@@ -151,8 +162,10 @@ const Report: React.FC = () => {
     const endDateObj = parseDateWithoutTimezone(endDate);
     endDateObj.setDate(endDateObj.getDate() + 1);
 
-      const formattedStart = startDateObj.toISOString();
-    const formattedEnd = endDateObj.toISOString();
+      const formattedStart = new Date(`${startDate}T00:00:00+01:00`).toISOString();
+const formattedEnd = new Date(`${endDate}T23:59:59+01:00`).toISOString();
+
+
 
       console.log('Fetching with dates:', { 
       startDate, 
@@ -179,12 +192,16 @@ const Report: React.FC = () => {
           params: { startDate: formattedStart, endDate: formattedEnd },
         timeout: 30000 
         }),
+        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionDrinks`, { 
+          params: { startDate: formattedStart, endDate: formattedEnd },
+        timeout: 30000 
+        }),
         axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/games`),
       ];
 
       const responses = await Promise.allSettled(requests);
 
-      const [transactionsRes, itemsRes, paymentsRes, gamesRes] = responses.map(res => {
+      const [transactionsRes, itemsRes, paymentsRes, drinksRes, gamesRes] = responses.map(res => {
       if (res.status === 'rejected') {
         console.error('API request failed:', res.reason);
         return { data: { data: [] } }; // Return empty data structure
@@ -197,6 +214,9 @@ const Report: React.FC = () => {
       const transactions: Transaction[] = transactionsRes.data.data?.data || [];
       const transactionItems: TransactionItem[] = itemsRes.data.data?.data || [];
       const transactionPayments: TransactionPayment[] = paymentsRes.data.data?.data || [];
+      console.log("All payments:", transactionPayments);
+
+      const transactionDrinks: TransactionDrinks[] = drinksRes.data.data?.data || [];
       const games: { id: string; price: number }[] = gamesRes.data.data || [];
 
       const gamePriceMap = new Map<string, number>();
@@ -207,15 +227,28 @@ const Report: React.FC = () => {
       // Combine the data
       const combined: CombinedRecord[] = [];
       transactions.forEach((txn) => {
-        const items = transactionItems.filter((item) => item.transaction_id === txn.id);
+        const drinksItems = transactionDrinks.filter(drink => (drink as any).drinks_id === txn.id);
+        const gameItems = transactionItems.filter((item) => item.transaction_id === txn.id);
         const payments = transactionPayments.filter((p) => p.transaction_id === txn.id);
+
         const paymentMethods = payments.map((p) => p.payment_method).join(', ');
         const totalPayment = payments.reduce((sum, p) => sum + p.amount, 0);
 
-        let totalCost = 0;
+        console.log("Game Price Map:", gamePriceMap);
+        
+
+
+
+        let totalGameCost = 0;
         const itemCosts: { item: TransactionItem; cost: number }[] = [];
 
-        items.forEach((item) => {
+        gameItems.forEach((item) => {
+          console.log("Current item ID:", item.game_id);
+          console.log('Transaction:', txn.username, txn.id);
+          console.log('Payments:', payments);
+          console.log('Items:', gameItems);
+          console.log('Total Payment:', totalPayment);
+
           const price = gamePriceMap.get(item.game_id) || 0;
           let cost: number;
           if (item.game_title === '360 Video Booth') {
@@ -225,20 +258,13 @@ const Report: React.FC = () => {
           } else {
             cost = price * item.game_quantity;
           }
-          totalCost += cost;
+          totalGameCost += cost;
           itemCosts.push({ item, cost });
         });
 
-        // Distribute amounts proportionally
-        let allocatedAmount = 0;
-        itemCosts.forEach((itemCost, index) => {
-          let amount = 0;
-          if (index === itemCosts.length - 1) {
-            amount = totalPayment - allocatedAmount - txn.discount;
-          } else {
-            amount = (itemCost.cost / totalCost) * totalPayment;
-            allocatedAmount += amount;
-          }
+        itemCosts.forEach(({ item, cost }) => {
+    const shareRatio = cost / totalGameCost;
+  const amount = totalPayment * shareRatio;
 
           combined.push({
             id: txn.id,
@@ -247,10 +273,14 @@ const Report: React.FC = () => {
             email: txn.email,
             discount: txn.discount,
             discount_description: txn.discount_description,
-            game_id: itemCost.item.game_id,
-            game_title: itemCost.item.game_title,
-            game_quantity: itemCost.item.game_quantity,
-            game_duration: itemCost.item.game_duration,
+            game_id: item.game_id,
+            game_title: item.game_title,
+            game_quantity: item.game_quantity,
+            game_duration: item.game_duration,
+            drink_id: '',
+            drink_price: 0,
+            drink_quantity: 0,
+            drink_title: '',
             payment_methods: paymentMethods,
             amount: parseFloat(amount.toFixed(2)),
             reference: txn.reference,
@@ -258,7 +288,35 @@ const Report: React.FC = () => {
             created_at: txn.created_at,
           });
         });
-      });
+
+      drinksItems.forEach(drink => {
+         console.log('Transaction:', txn.username, txn.id);
+          console.log('Payments:', payments);
+          console.log('Items:', drinksItems);
+          console.log('Total Payment:', totalPayment);
+    combined.push({
+      id: txn.id,
+      username: txn.username,
+      phone: txn.phone,
+      email: txn.email,
+      discount: txn.discount,
+      discount_description: txn.discount_description,
+      game_id: '',
+      game_title: '',
+      game_quantity: 0,
+      game_duration: 0,
+      drink_id: drink.drink_id,
+      drink_price: drink.drink_price,
+      drink_quantity: drink.drink_quantity,
+      drink_title: drink.drink_title,
+      payment_methods: paymentMethods,
+      amount: parseFloat((drink.drink_price * drink.drink_quantity).toFixed(2)),
+      reference: txn.reference,
+      merchantReference: txn.merchantReference,
+      created_at: txn.created_at,
+    });
+  });
+});
 
       setRecords(combined);
       setEndOfDaySummary(combined);
