@@ -65,7 +65,6 @@ useEffect(() => {
         `${process.env.REACT_APP_BACKEND_URL}/v1/admin/consumed-game/consume`,
         {
           transactionItemId: item.id,
-          operator_name: localStorage.getItem('name') || 'Unknown Operator',
           unit_index: item.unit_index,
           game_title: item.game_title,
         },

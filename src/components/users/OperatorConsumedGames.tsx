@@ -4,6 +4,8 @@ import axios from 'axios';
 interface ConsumedGame {
   game_title: string;
   transaction_id: string;
+  operator_name: string;
+  username: string;
   unit_index: number;
   consumed_at: string;
 }
@@ -44,7 +46,7 @@ const OperatorConsumedGames = () => {
             <tr>
               <th>Game</th>
               <th>Unit</th>
-              <th>Transaction ID</th>
+              <th>Operator</th>
               <th>Consumed At</th>
             </tr>
           </thead>
@@ -53,7 +55,7 @@ const OperatorConsumedGames = () => {
               <tr key={idx}>
                 <td>{g.game_title}</td>
                 <td>Unit #{g.unit_index + 1}</td>
-                <td>{g.transaction_id}</td>
+                <td>{g.operator_name}</td>
                 <td>{new Date(g.consumed_at).toLocaleString()}</td>
               </tr>
             ))}
