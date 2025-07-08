@@ -8,6 +8,7 @@ interface CartItem {
   price: number;
   quantity: number;
   gameDuration: number; // Game duration in minutes
+  type: 'game' | 'drink'; // Type of item, can be 'game' or 'drink'
   //define ItemId as game_id
   
 }

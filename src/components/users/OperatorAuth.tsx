@@ -39,9 +39,15 @@ const OperatorAuth = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log('Sending register payload:', {
+  name: registerData.name,
+  email: registerData.email[0],
+  password: registerData.password
+});
+
       const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/operators/register`, {
         name: registerData.name,
-        email: registerData.email,
+        email: registerData.email[0],
         password: registerData.password
       });
 
@@ -72,7 +78,7 @@ const OperatorAuth = () => {
         password: loginData.password
       });
 
-      sessionStorage.setItem('operatorToken', res.data.token);
+      localStorage.setItem('operatorToken', res.data.token);
       navigate('/OperatorDashboard'); // Or your success route
     } catch (err) {
       setError('Invalid credentials');

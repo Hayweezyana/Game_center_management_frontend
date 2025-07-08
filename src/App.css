@@ -36,3 +36,48 @@
     transform: rotate(360deg);
   }
 }
+
+/* App.css */
+
+.markdown-container {
+  background: #f9f9f9;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: sans-serif;
+  line-height: 1.6;
+}
+
+.markdown-container h2,
+.markdown-container h3,
+.markdown-container h4 {
+  margin-top: 1rem;
+}
+
+.markdown-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.markdown-container th,
+.markdown-container td {
+  border: 1px solid #ddd;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.markdown-container blockquote {
+  border-left: 4px solid #ccc;
+  padding-left: 1rem;
+  color: #555;
+  margin: 1rem 0;
+}
+
+.chart-wrapper {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}

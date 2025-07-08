@@ -6,15 +6,18 @@ import io, { Socket } from 'socket.io-client';
 import { useCartContext } from './hooks/useCart';
 import styles from './GameSelection.module.css';
 import { UUID } from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import { FaPlus, FaMinus } from 'react-icons/fa';
+import { set } from 'lodash';
 
 // Define types for the cart items
 interface CartItem {
-  id: UUID;
+  id: string | UUID; // Accept both UUID and string ids
   title: string;
   price: number;
   quantity: number;
-  gameDuration: number; // Game duration in minutes
+  gameDuration?: number; // Game duration in minutes
+  type: 'game' | 'drink'; // Ensure every CartItem has a type
 }
 
 // Define types for the game data
@@ -42,6 +45,13 @@ const GameSelection: React.FC = () => {
   const socket: Socket = useMemo(() => io("ws:https://game-center-management.onrender.com", {
     transports: ["websocket"],
   }), []);
+
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [showAddDrinkForm, setShowAddDrinkForm] = useState(false);
+  const [newDrinkTitle, setNewDrinkTitle] = useState('');
+const [newDrinkPrice, setNewDrinkPrice] = useState<number>(0);
+const [newDrinkQuantity, setNewDrinkQuantity] = useState<number>(0);
+
 
   // Ref to store YouTube player instances
   const playerRefs = useRef<{ [key: string]: any }>({});
@@ -81,6 +91,11 @@ const GameSelection: React.FC = () => {
     const item = cartItems.find((item) => item.id === gameId.toString());
     return item ? item.quantity : 0;
   };
+  const getDrinkQuantity = (drinkId: string) => {
+  const drinkItem = cartItems.find(item => item.id === drinkId && item.type === 'drink');
+  return drinkItem ? drinkItem.quantity : 0;
+};
+
 
   const handleQuantityChange = (game: Game, quantity: number) => {
   if (quantity <= 0) {
@@ -97,10 +112,102 @@ const GameSelection: React.FC = () => {
         price: game.price,
         quantity, // Set initial quantity
         gameDuration: game.time_slot ? parseInt(game.time_slot) : 10,
+        type: 'game',
       });
     }
   }
 };
+
+const [drinks, setDrinks] = useState<{ id: string; title: string; price: number; quantity: number }[]>([]);
+useEffect(() => {
+  axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/drinks`)
+    .then(res => {
+      if (res.data.status) {
+        // Ensure each drink has a quantity property (default to 0 if missing)
+        setDrinks(res.data.data.map((drink: any) => ({
+          ...drink,
+          quantity: typeof drink.quantity === 'number' ? drink.quantity : 0,
+        })));
+      } else {
+        throw new Error('Failed to load drinks');
+      }
+    })
+    .catch(err => {
+      console.error('Drink fetch error:', err);
+    });
+}, []);
+
+const handleAddDrink = (drink: { id: string; title: string; price: number, quantity: number }) => {
+  const cartItem = cartItems.find(item => item.id === drink.id && item.type === 'drink');
+  const availableStock = drink.quantity;
+  const currentQuantity = cartItem?.quantity || 0;
+
+  if (currentQuantity >= availableStock) {
+    alert(`Max stock reached for ${drink.title}. Cannot add more.`);
+    return;
+  }
+
+  if (availableStock - currentQuantity <= 2) {
+    alert(`Only ${availableStock - currentQuantity} unit(s) left for ${drink.title}.`);
+  }
+
+  if (cartItem) {
+    updateCartItem(drink.id, currentQuantity + 1);
+  } else {
+    addToCart({
+      id: drink.id,
+      title: drink.title,
+      price: drink.price,
+      quantity: 1, // Default to 1 if quantity is not provided
+      gameDuration: 0, // Drinks have no duration
+      type: 'drink',
+    });
+  }
+};
+
+const handleAddNewDrink = async () => {
+  if (!newDrinkTitle.trim() || newDrinkPrice <= 0) {
+    alert('Please enter a valid drink name and price.');
+    return;
+  }
+
+  try {
+    const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/drinks`, {
+      title: newDrinkTitle,
+      price: newDrinkPrice,
+      quantity:newDrinkQuantity,
+    });
+
+    if (response.data.status) {
+      setDrinks(prev => [...prev, response.data.data]);
+      setNewDrinkTitle('');
+      setNewDrinkPrice(0);
+      setNewDrinkQuantity(0);
+      alert('Drink added successfully!');
+      setShowAddDrinkForm(false);
+    }
+  } catch (err) {
+    if (err instanceof Error) {
+      alert('Error adding drink: ' + err.message);
+    } else {
+      alert('Error adding drink: ' + String(err));
+    }
+  }
+};
+
+
+
+
+const handleRemoveDrink = (drinkId: string) => {
+  const existingItem = cartItems.find(item => item.id === drinkId && item.type === 'drink');
+  if (existingItem && existingItem.quantity > 1) {
+    updateCartItem(drinkId, existingItem.quantity - 1);
+  } else {
+    updateCartItem(drinkId, 0); // Remove
+  }
+};
+
+
 
 
   const handleCheckout = () => {
@@ -144,32 +251,85 @@ const GameSelection: React.FC = () => {
                 <h2 className={styles['game-title']}>{game.title}</h2>
                 <p className={styles['game-price']}>Price: ₦{game.price}</p>
                 <p className={styles['game-time_slot']}>Duration: {game.time_slot || '10 minutes'}</p>
-                <YouTube
-                  videoId={game.url}
-                  onReady={(event) => onPlayerReady(event, game.id)}
-                  onError={(event) => onPlayerError(event, game.id)}
-                />
+                <div onClick={() => setSelectedGameId(prev => (prev === game.id ? null : game.id))}>
+                  <YouTube
+                    videoId={game.url}
+                    onReady={(event) => onPlayerReady(event, game.id)}
+                    onError={(event) => onPlayerError(event, game.id)}
+                  />
+                </div>
 
                 <div className={styles['quantity-controls']}>
-        <button onClick={() => handleQuantityChange(game, currentQty - 1)} disabled={currentQty === 0}>
-          <FaMinus />
-        </button>
-        <input
-          type="number"
-          min="0"
-          value={currentQty}
-          onChange={(e) => handleQuantityChange(game, Number(e.target.value))}
-          className={styles['quantity-input']}
-        />
-        <button onClick={() => handleQuantityChange(game, currentQty + 1)}>
-          <FaPlus />
-        </button>
+                  <button onClick={() => handleQuantityChange(game, currentQty - 1)} disabled={currentQty === 0}>
+                    <FaMinus />
+                  </button>
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentQty}
+                    onChange={(e) => handleQuantityChange(game, Number(e.target.value))}
+                    className={styles['quantity-input']}
+                  />
+                  <button onClick={() => handleQuantityChange(game, currentQty + 1)}>
+                    <FaPlus />
+                  </button>
                 </div>
+
+            {selectedGameId === game.id && (
+              <div className={styles['drink-list']}>
+                <h4>Select a drink:</h4>
+                <button
+  onClick={() => setShowAddDrinkForm((prev) => !prev)}
+  className={styles['add-drink-toggle']}
+>
+  {showAddDrinkForm ? 'Cancel Add Drink' : 'Add a New Drink'}
+</button>
+{showAddDrinkForm && (
+  <div className={styles['add-drink-form']}>
+    <h4>Add New Drink</h4>
+    <input
+      type="text"
+      placeholder="Drink Name"
+      value={newDrinkTitle}
+      onChange={(e) => setNewDrinkTitle(e.target.value)}
+    />
+    <input
+      type="number"
+      placeholder="Price (₦)"
+      value={newDrinkPrice}
+      onChange={(e) => setNewDrinkPrice(Number(e.target.value))}
+    />
+    <input
+      type="number"
+      placeholder="Quantity"
+      value={newDrinkQuantity}
+      onChange={(e) => setNewDrinkQuantity(Number(e.target.value))}
+    />
+    <button onClick={handleAddNewDrink}>Add Drink</button>
+  </div>
+)}
+                {drinks.map(drink => {
+                  const qty = getDrinkQuantity(drink.id);
+                  return (
+                    <div key={drink.id} className={styles['drink-item']}>
+                      <span>{drink.title} - ₦{drink.price}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+  <button onClick={() => handleAddDrink({ ...drink, quantity: drink.quantity })}
+    disabled={qty >= drink.quantity || drink.quantity === 0}
+    style={{ opacity: drink.quantity === 0 ? 0.4 : 1 }}><FaPlus /></button>
+                        <span style={{ minWidth: '24px', textAlign: 'center' }}>{qty}</span>
+                        <button onClick={() => handleRemoveDrink(drink.id)} disabled={qty === 0}><FaMinus /></button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })}
+    </div>
+  )}
 
       <button
         className={styles['checkout-button']}

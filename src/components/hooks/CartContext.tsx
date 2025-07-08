@@ -3,11 +3,12 @@ import { UUID } from 'crypto';
 
 // Define the structure of a cart item
 export interface CartItem {
-  id: UUID;
+  id: string; // Accept both UUID and string ids
   title: string;
   price: number;
   quantity: number;
-  gameDuration: number;
+  gameDuration?: number;
+  type: 'game' | 'drink';
 }
 
 // Define what the context provides

@@ -1,6 +1,8 @@
 import { CartProvider } from './components/hooks/useCart';
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import './App.css';
+
 
 // Importing pages
 import WelcomePage from "./components/WelcomePage";
@@ -18,6 +20,8 @@ import OperatorDashboard from './components/OperatorDashboard';
 import ImmersiaPaymentPage from './components/ImmersiaPaymentPage';
 import FunstationPaymentPage from './components/FunstationPaymentPage';
 import PaystackPaymentPage from './components/PaystackPaymentPage';
+import AIChatBox from './components/AIChatBox';
+
 
 
 // Importing user-related pages
@@ -26,6 +30,8 @@ import Admin from './components/users/Admin';
 import CreateAdminForm from './components/users/CreateAdminForm';
 import AdminPaymentPage from './components/users/AdminPaymentPage';
 import OperatorAuth from './components/users/OperatorAuth';
+import DrinkInventory from './components/users/DrinkInventory';
+import OperatorConsumedGames from './components/users/OperatorConsumedGames';
 
 const App: React.FC = () => {
   return (
@@ -53,6 +59,9 @@ const App: React.FC = () => {
           <Route path="/ImmersiaPaymentPage" element={<ImmersiaPaymentPage finalAmount={0} userDetails={{ username: '', phone: '' }} cartItems={[]} onPaymentSuccess={() => {}} />} />
           <Route path="/FunstationPaymentPage" element={<FunstationPaymentPage finalAmount={0} userDetails={{ username: '', phone: '' }} cartItems={[]} onPaymentSuccess={() => {}} />} />
           <Route path="/PaystackPaymentPage" element={<PaystackPaymentPage />}/>
+          <Route path="/AIChatBox" element={<AIChatBox isAdmin={true} />} />
+          <Route path="/DrinkInventory" element={<DrinkInventory isAdmin={true} />} />
+          <Route path="/OperatorConsumedGames" element={<OperatorConsumedGames />} />
 
           
         </Routes>

@@ -7,6 +7,7 @@ interface CartItem {
   price: number;
   quantity: number;
   gameDuration: number;
+  type: 'game' | 'drink';
 }
 
 interface CartAndPaymentProps {
@@ -34,7 +35,7 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
 
   useEffect(() => {
   const newTotal = items.reduce((sum, item) => {
-    if (item.title === '360 Video Booth') {
+    if (item.type === 'game' && item.title === '360 Video Booth') {
       // First item at regular price, rest at ₦1000 each
       const extraQuantity = Math.max(0, item.quantity - 1);
       return sum + item.price + (extraQuantity * 1000);
@@ -48,10 +49,10 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
     setPaymentMethods([{ method: 'Moniepoint', amount: newTotal }]);
   }, [items, setPaymentMethods]);
 
-  const handleQuantityChange = (index: number, delta: number) => {
+  const handleQuantityChangeById = (id: string, delta: number) => {
     setItems((prev) => {
-    const updated = prev.map((item, i) =>
-      i === index ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
+    const updated = prev.map(item =>
+      item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
     );
     setCartItems(updated); // Update the global cart
     return updated;
@@ -70,22 +71,45 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
     }
   };
 
+  const renderCartItems = (type: 'game' | 'drink') => {
+    return items
+      .filter(item => item.type === type)
+      .map((item) => {
+        const itemTotal =
+          item.type === 'game' && item.title === '360 Video Booth'
+            ? item.price + (Math.max(0, item.quantity - 1) * 1000)
+            : item.price * item.quantity;
+
+  return (
+          <li key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ flex: 1 }}>
+            <strong>{type === 'drink' ? `Drink: ${item.title}` : item.title}</strong> – ₦{item.price} × {item.quantity} = ₦{itemTotal}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button onClick={() => handleQuantityChangeById(item.id, -1)} disabled={item.quantity === 1}>-</button>
+            <span style={{ minWidth: '24px', textAlign: 'center' }}>{item.quantity}</span>
+            <button onClick={() => handleQuantityChangeById(item.id, 1)}>+</button>
+          </div>
+        </li>
+        );
+      });
+  };
+
   return (
     <div>
-      <ul>
-        {items.map((item, index) => (
-          <li key={item.id}>
-            <strong>{item.title}</strong> - ₦{item.price} x {item.quantity} = ₦
-    {item.title === '360 Video Booth' 
-      ? (item.price + ((item.quantity - 1) * 1000))
-      : (item.price * item.quantity)}{' '}
-            <button onClick={() => handleQuantityChange(index, -1)} disabled={item.quantity === 1}>
-              -
-            </button>
-            <button onClick={() => handleQuantityChange(index, 1)}>+</button>
-          </li>
-        ))}
-      </ul>
+      {items.some(item => item.type === 'game') && (
+        <>
+          <h3>Games</h3>
+          <ul>{renderCartItems('game')}</ul>
+        </>
+      )}
+
+      {items.some(item => item.type === 'drink') && (
+        <>
+          <h3>Drinks</h3>
+          <ul>{renderCartItems('drink')}</ul>
+        </>
+      )}
 
       <h2>Total: ₦{total}</h2>
 

@@ -89,7 +89,7 @@ const handleAdminLogin = async () => {
     }
 
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepointImmersia/transactions`, {
-        amount: finalAmount,
+        amount: finalAmount *100,
         terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_IMMERSIA, // Different terminal serial for Immersia
         transactionType: 'PURCHASE',
         PaymentMethod: 'IMMERSIA_POS',
@@ -115,59 +115,86 @@ const handleAdminLogin = async () => {
 
     }
   };
-  
 
-  const pollTransactionStatus = (merchantReference: string) => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await axios.get(
-          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/Immersiamoniepoint/${merchantReference}`
-        );
-        const status = res.data?.processingStatus;
+const pollTransactionStatus = (merchantReference: string) => {
+  let pollTimeout: NodeJS.Timeout;
+  let failedAttempts = 0;
+  const interval = setInterval(async () => {
+    try {
+      const res = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/v1/admin/Immersiamoniepoint/${merchantReference}`
+      );
+      const txStatus = res.data?.processingStatus;
 
-        if (status === 'PROCESSED') {
-          clearInterval(interval);
-          setStatus('Payment successful!');
+      if (txStatus === 'PROCESSED') {
+        clearInterval(interval);
+        clearTimeout(pollTimeout);
+        setStatus('Payment successful!');
 
-          try {
-    const transactionPayload = {
-      ...userDetails,
-      reference: uuidv4(),
-      merchantReference,
-      discount: discountAmount,
-      discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
-      cartItems,
-      payment_methods: [{ method: 'Immersia_Moniepoint', amount: finalAmount, }],
-      game_time_slot: null, // set if applicable
-    };
+        try {
+          const transactionPayload = {
+            ...userDetails,
+            reference: uuidv4(),
+            merchantReference,
+            discount: discountAmount,
+            discount_description:
+              discountReason === 'Others' ? customDiscountReason : discountReason,
+            cartItems,
+            payment_methods: [
+              { method: 'Immersia_Moniepoint', amount: finalAmount },
+            ],
+            game_time_slot: null,
+          };
 
-    const txnRes = await axios.post(
-      `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
-      transactionPayload
-    );
+          const txnRes = await axios.post(
+            `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
+            transactionPayload
+          );
 
-    console.log("Transaction saved:", txnRes.data);
-  } catch (err: any) {
-    console.error("Failed to save transaction:", err.response?.data || err.message);
-    setStatus('Payment succeeded but saving transaction failed');
-  }
-  onPaymentSuccess();
-
- navigate('/ticket', { state: { finalAmount, userDetails, cartItems, merchantReference, dateTime: new Date().toISOString(), discount: discountAmount } });
-}
-
-else if (status === 'CANCELLED') {
-  clearInterval(interval);
-  setStatus('Payment cancelled');
-}
-      } catch (error) {
-        console.error('Polling error:', error);
+          console.log('Transaction saved:', txnRes.data);
+          onPaymentSuccess();
+          navigate('/ticket', {
+            state: {
+              finalAmount,
+              userDetails,
+              cartItems,
+              merchantReference,
+              dateTime: new Date().toISOString(),
+              discount: discountAmount,
+            },
+          });
+        } catch (err: any) {
+          console.error(
+            'Failed to save transaction:',
+            err.response?.data || err.message
+          );
+          setStatus('Payment succeeded but saving transaction failed');
+        }
+      } else if (['CANCELLED', 'FAILED'].includes(txStatus)) {
+      failedAttempts++;
+      if (failedAttempts >= 2) {
+        clearInterval(interval);
+        clearTimeout(pollTimeout);
+        setStatus('Payment failed or cancelled.');
+      } else {
+        setStatus(`Temporary issue (${txStatus}). Retrying...`);
       }
-    }, 5000);
-  };
+    } else {
+      setStatus(`Awaiting payment... Current status: ${txStatus}`);
+    }
+  } catch (err) {
+    console.error('Polling error:', err);
+  }
+}, 5000);
 
-  return (
-    <div>
+  pollTimeout = setTimeout(() => {
+    clearInterval(interval);
+    setStatus('Payment timed out. Please try again.');
+  }, 600000);
+};
+
+return (
+  <div>
       {!isAdminAuthenticated && (
         <div>
     <input
@@ -243,7 +270,6 @@ onChange={(e) => {
       <style>{spinnerKeyframes}</style>
       <h1>Immersia Payment</h1>
       <h2>Pay with Moniepoint (Terminal 1)</h2>
-      {/* ... rest of your JSX */}
     <p>
   <strong>Total:</strong>{' '}
   {discountAmount > 0 ? (

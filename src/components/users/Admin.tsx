@@ -205,6 +205,13 @@ const Admin: React.FC = () => {
                 }
             });
     };
+    //link to the drink inventory page
+    const handleDrinkInventory = () => {
+        navigate('/DrinkInventory');
+    }
+    const handleOperatorConsumedReport = () => {
+        navigate('/OperatorConsumedGames');
+    }
     
     //function to fetch roles
     useEffect(() => {
@@ -257,6 +264,10 @@ const Admin: React.FC = () => {
     <div className="admin-container">
         <h1>Welcome Admin!</h1>
         {/* User Management */}
+        {/* Report button */}
+    <button onClick={() => navigate('/report')}>View Reports</button>
+    <button onClick={handleDrinkInventory}>Drink Dashboard</button>
+        <button onClick={handleOperatorConsumedReport}>Operator Consumed Games Report</button>
         <h2>Manage Admins</h2>
         <section>
             <CreateAdminForm />
@@ -284,6 +295,7 @@ const Admin: React.FC = () => {
                     ))}
                 </tbody>
             </table>
+        
 
             {/* Game Management */}
             <h2>Edit Games</h2>
@@ -460,8 +472,6 @@ const Admin: React.FC = () => {
                     <button onClick={handleAddPC}>Add PC</button>
                 </div>
             </div>
-    {/* Report button */}
-    <button onClick={() => navigate('/report')}>View Reports</button>
     {/* View Moniepoint Transaction button */}
     <button onClick={() => navigate('/moniepointdashboard')}>View Moniepoint Transactions</button>
     {/* View Users button */}
