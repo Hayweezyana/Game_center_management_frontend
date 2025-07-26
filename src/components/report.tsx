@@ -109,7 +109,7 @@ const Report: React.FC = () => {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [selectedGame, setSelectedGame] = useState<string>('');
-  const [selectedMethod, setSelectedMethod] = useState<string>('');
+  const [selectedMethod, setSelectedMethod] = useState<string>('all');
   
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -127,6 +127,9 @@ const Report: React.FC = () => {
   const [salesTrend, setSalesTrend] = useState([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
 
+  const [totalSales, setTotalSales] = useState(0);
+
+
   // Format date for API queries
   const formatDateForQuery = (dateString: string, endOfDay = false) => {
     if (!dateString) return '';
@@ -140,7 +143,7 @@ const Report: React.FC = () => {
     } else {
       date.setHours(0, 0, 0, 0);
     }
-    return date.toISOString().replace('Z', '');
+    return date.toISOString();
   };
 
   const parseDateWithoutTimezone = (dateString: string) => {
@@ -152,54 +155,55 @@ const Report: React.FC = () => {
   );
 };
 
-  // Fetch all data with pagination
-  const fetchAllData = async () => {
-    if (!startDate || !endDate) return;
-    
-    setIsFetching(true);
-    try {
-      const startDateObj = parseDateWithoutTimezone(startDate);
-    const endDateObj = parseDateWithoutTimezone(endDate);
-    endDateObj.setDate(endDateObj.getDate() + 1);
+      const formattedStart = formatDateForQuery(startDate, false);
+const formattedEnd = formatDateForQuery(endDate, true);
 
-      const formattedStart = new Date(`${startDate}T00:00:00+01:00`).toISOString();
-const formattedEnd = new Date(`${endDate}T23:59:59+01:00`).toISOString();
+      const fetchAllData = async () => {
+  if (!startDate || !endDate) return;
 
+  setIsFetching(true);
+  try {
+    const formattedStart = formatDateForQuery(startDate, false);
+    const formattedEnd = formatDateForQuery(endDate, true);
 
-
-      console.log('Fetching with dates:', { 
-      startDate, 
+    console.log('Fetching with dates:', {
+      startDate,
       endDate,
       formattedStart,
-      formattedEnd 
+      formattedEnd,
+      payment_method: selectedMethod,
     });
-      
-      const requests = [
-        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions`, { 
-          params: { 
-            startDate: formattedStart, 
-            endDate: formattedEnd,
-            page: currentPage,
-            limit: itemsPerPage
-          },
-        timeout: 30000 
-        }),
-        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionItems`, { 
-          params: { startDate: formattedStart, endDate: formattedEnd },
-        timeout: 30000 
-        }),
-        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionPayments`, { 
-          params: { startDate: formattedStart, endDate: formattedEnd },
-        timeout: 30000 
-        }),
-        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionDrinks`, { 
-          params: { startDate: formattedStart, endDate: formattedEnd },
-        timeout: 30000 
-        }),
-        axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/games`),
-      ];
 
-      const responses = await Promise.allSettled(requests);
+    console.log("Selected Method (Frontend):", selectedMethod);
+
+
+    const requests = [
+      axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions`, {
+        params: {
+          startDate: formattedStart,
+          endDate: formattedEnd,
+          page: currentPage,
+          limit: itemsPerPage,
+          ...(selectedMethod !== 'all' && { payment_method: selectedMethod }),
+        },
+        timeout: 30000,
+      }),
+      axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionItems`, {
+        params: { startDate: formattedStart, endDate: formattedEnd },
+        timeout: 30000,
+      }),
+      axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionPayments`, {
+        params: { startDate: formattedStart, endDate: formattedEnd },
+        timeout: 30000,
+      }),
+      axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionDrinks`, {
+        params: { startDate: formattedStart, endDate: formattedEnd },
+        timeout: 30000,
+      }),
+      axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/games`),
+    ];
+
+    const responses = await Promise.allSettled(requests);
 
       const [transactionsRes, itemsRes, paymentsRes, drinksRes, gamesRes] = responses.map(res => {
       if (res.status === 'rejected') {
@@ -232,12 +236,14 @@ const formattedEnd = new Date(`${endDate}T23:59:59+01:00`).toISOString();
         const payments = transactionPayments.filter((p) => p.transaction_id === txn.id);
 
         const paymentMethods = payments.map((p) => p.payment_method).join(', ');
-        const totalPayment = payments.reduce((sum, p) => sum + p.amount, 0);
+        const rawTotalPayment = payments.reduce((sum, p) => sum + p.amount, 0);
+        const totalPayment = Math.max(0, rawTotalPayment - (txn.discount || 0));
+        const totalSalesFromCombined = combined.reduce((sum, record) => sum + record.amount, 0);setTotalSales(totalSalesFromCombined);
+
+
+
 
         console.log("Game Price Map:", gamePriceMap);
-        
-
-
 
         let totalGameCost = 0;
         const itemCosts: { item: TransactionItem; cost: number }[] = [];
@@ -338,6 +344,11 @@ const formattedEnd = new Date(`${endDate}T23:59:59+01:00`).toISOString();
       acc[record.game_title] = (acc[record.game_title] || 0) + record.game_quantity;
       return acc;
     }, {} as { [key: string]: number });
+
+    const chartData = Object.entries(gameSales).map(([title, quantity]) => ({
+  name: title,
+  quantity,
+}));
 
     const sortedGames = Object.entries(gameSales).sort((a, b) => b[1] - a[1]);
     setBestSellingGames(sortedGames.map(([title, qty]) => ({ game_title: title, game_quantity: qty })));
@@ -612,6 +623,52 @@ const formattedEnd = new Date(`${endDate}T23:59:59+01:00`).toISOString();
     return () => clearTimeout(fetchData);
   }, [startDate, endDate, currentPage, itemsPerPage]);
 
+useEffect(() => {
+  if (selectedMethod !== null) {
+    fetchAllData();
+  }
+}, [selectedMethod]);
+
+  const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    minimumFractionDigits: 0,
+  }).format(amount);
+
+const [salesPerMethod, setSalesPerMethod] = useState<Record<string, number>>({});
+
+useEffect(() => {
+  const salesByMethod = new Map<string, number>();
+  records.forEach((record) => {
+    const methods = record.payment_methods?.split(',') || ['Unknown'];
+    methods.forEach((method) => {
+      const key = method.trim() || 'Unknown';
+      const current = salesByMethod.get(key) || 0;
+      salesByMethod.set(key, current + record.amount);
+    });
+  });
+  setSalesPerMethod(Object.fromEntries(salesByMethod));
+}, [records]);
+useEffect(() => {
+  const totalSales = Object.values(salesPerMethod).reduce((sum, value) => sum + value, 0);
+  setTotalSales(totalSales);
+}, [salesPerMethod]);
+
+const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[] }) => (
+  <div style={{ width: '100%', height: 300 }}>
+    <ResponsiveContainer>
+      <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" height={100} />
+        <YAxis />
+        <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
+        <Bar dataKey="totalSales" fill="#82ca9d" />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+);
+
   return (
     <div className="p-4">
       <style>
@@ -651,15 +708,27 @@ const formattedEnd = new Date(`${endDate}T23:59:59+01:00`).toISOString();
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full p-2 border rounded"
-              />
+<input
+  type="date"
+  value={endDate}
+  onChange={(e) => {
+    setEndDate(e.target.value);
+    setCurrentPage(1);
+  }}
+  className="w-full p-2 border rounded"
+/>
+<select
+  value={selectedMethod}
+  onChange={(e) => setSelectedMethod(e.target.value)}
+  className="w-full p-2 border rounded mt-2"
+>
+  <option value="all">All</option>
+  <option value="Funstation_Moniepoint">Funstation_Moniepoint</option>
+  <option value="Paystack">Paystack</option>
+  <option value="Immersia_Moniepoint">Immersia_Moniepoint</option>
+  <option value="Immersia_CASH">Immersia_CASH</option>
+  <option value="Funstation_CASH">Funstation_CASH</option>
+</select>
             </div>
           </div>
         </div>
@@ -771,6 +840,19 @@ const formattedEnd = new Date(`${endDate}T23:59:59+01:00`).toISOString();
                 </button>
               </div>
             </div>
+
+            <p>Total Sales: {formatCurrency(totalSales)}</p>
+
+            <h4>Total Sales by Payment Method</h4>
+            <ul>
+              {Object.entries(salesPerMethod).map(([method, amount]) => (
+                <li key={method}>
+                  {method}: {formatCurrency(amount)}
+                  </li>
+                ))}
+                </ul>
+
+
             
             <div className="overflow-x-auto">
               <table className="min-w-full border">
@@ -826,23 +908,30 @@ const formattedEnd = new Date(`${endDate}T23:59:59+01:00`).toISOString();
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {bestSellingGames.length > 0 ? (
-                      bestSellingGames.map((game, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-2 whitespace-nowrap">{game.game_title}</td>
-                          <td className="px-4 py-2 whitespace-nowrap">{game.game_quantity}</td>
+                      {bestSellingGames.length > 0 ? (
+                        bestSellingGames.map((game, index) => (
+                          <tr key={index}>
+                            <td className="px-4 py-2 whitespace-nowrap">{game.game_title}</td>
+                            <td className="px-4 py-2 whitespace-nowrap">{game.game_quantity}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={2} className="px-4 py-4 text-center text-gray-500">
+                            No data available
+                          </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={2} className="px-4 py-4 text-center text-gray-500">
-                          No data available
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      )}
+                    </tbody>
+                  </table>
+                  {/* Chart for Best Selling Games */}
+                  <GameSalesChart
+                    data={bestSellingGames.map(game => ({
+                      name: game.game_title,
+                      totalSales: game.game_quantity,
+                    }))}
+                  />
+                </div>
             </div>
 
             {/* Least Selling Games */}
@@ -958,7 +1047,7 @@ const formattedEnd = new Date(`${endDate}T23:59:59+01:00`).toISOString();
                 <tbody className="bg-white divide-y divide-gray-200">
                   {records.length > 0 ? (
                     records.map((record) => (
-                      <tr key={record.id}>
+                      <tr key={`${record.id}-${record.game_id ?? ''}-${record.drink_id ?? ''}`}>
                         <td className="px-4 py-2 whitespace-nowrap">{record.username}</td>
                         <td className="px-4 py-2 whitespace-nowrap">{record.game_title}</td>
                         <td className="px-4 py-2 whitespace-nowrap">{(record.game_duration * record.game_quantity).toFixed(0)} mins</td>

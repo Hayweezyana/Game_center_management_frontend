@@ -1,92 +1,61 @@
-// PaymentPage2.tsx
+// Imports and component boilerplate
 import React, { useState } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-interface PaymentPageProps {
-  finalAmount: number;
-  userDetails: {
-        username: string;
-        phone: string;
-        email?: string;
-    };
-  cartItems: any[];
-  merchantReference?: string;
-  dateTime?: string;
-  onPaymentSuccess: () => void;
-}
-
-const spinnerKeyframes = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
-const FunstationPaymentPage: React.FC<PaymentPageProps> = ({ onPaymentSuccess }) => {
+const FunstationPaymentPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const styles = {
-    homeButton: {
-      margin: '10px',
-      padding: '8px 16px',
-      backgroundColor: '#f0f0f0',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
-      cursor: 'pointer'
-    }
-  };
-const { finalAmount: originalAmount, userDetails, cartItems } = location.state || {};
+
+  const { finalAmount: originalAmount, userDetails, cartItems } = location.state || {};
+
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [transactionId] = useState(uuidv4());
   const [merchantReference] = useState<string>('');
+
   const [adminPassword, setAdminPassword] = useState('');
   const [username, setUsername] = useState('');
-const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-const [discountWarning, setDiscountWarning] = useState('');
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
-const [discountAmount, setDiscountAmount] = useState(0);
-const finalAmount = Math.max(originalAmount - discountAmount, 0);
-const [discountReason, setDiscountReason] = useState('');
-const [customDiscountReason, setCustomDiscountReason] = useState('');
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [discountReason, setDiscountReason] = useState('');
+  const [customDiscountReason, setCustomDiscountReason] = useState('');
+  const [discountWarning, setDiscountWarning] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'POS' | 'Funstation_CASH'>('POS');
 
-const handleAdminLogin = async () => {
-  try {
-    const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/roles/login`, {
-      name: username,
-      password: adminPassword
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
+  const finalAmount = paymentMethod === 'Funstation_CASH' ? originalAmount : Math.max(originalAmount - discountAmount, 0);
+
+  const handleAdminLogin = async () => {
+    try {
+      const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/roles/login`, {
+        name: username,
+        password: adminPassword,
       });
-
-    const { token, role } = res.data;
-    sessionStorage.setItem('token', token);
-    sessionStorage.setItem('adminData', JSON.stringify(role));
-
-    if (res.status === 200) {
+      const { token, role } = res.data;
+      sessionStorage.setItem('token', token);
+      sessionStorage.setItem('adminData', JSON.stringify(role));
       setIsAdminAuthenticated(true);
       alert("Admin authenticated successfully.");
+    } catch (err: any) {
+      alert("Invalid admin password.");
+      console.error(err.response?.data || err.message);
     }
-  } catch (err: any) {
-    alert("Invalid admin password.");
-    console.error(err.response?.data || err.message);
-  }
-};
+  };
 
-
-  const handlePayment = async () => {
-    try {
-      setLoading(true);
-      setStatus('Initiating payment on Terminal 2...');
-
-      if (discountAmount > 0 && (!discountReason || (discountReason === 'Others' && customDiscountReason.trim() === ''))) {
+  const handlePOSPayment = async () => {
+    if (
+      discountAmount > 0 &&
+      (!discountReason || (discountReason === 'Others' && customDiscountReason.trim() === ''))
+    ) {
       alert("Please select or enter a valid discount reason");
       return;
     }
+
+    try {
+      setLoading(true);
+      setStatus('Initiating payment on Terminal 2...');
 
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
         amount: finalAmount * 100,
@@ -94,16 +63,16 @@ const handleAdminLogin = async () => {
         transactionType: 'PURCHASE',
         PaymentMethod: 'FUNSTATION_POS',
         merchantReference: merchantReference || transactionId,
-        provider_metadata: { 
-        username: userDetails.username,
-        phone: userDetails.phone,
-        email: userDetails.email
-        }
+        provider_metadata: {
+          username: userDetails.username,
+          phone: userDetails.phone,
+          email: userDetails.email,
+        },
       });
 
       if (response.status === 202) {
         setStatus('Awaiting payment on POS terminal 2...');
-        pollTransactionStatus(merchantReference || transactionId);  
+        pollTransactionStatus(merchantReference || transactionId);
       } else {
         setStatus('Payment initiation failed. Try again.');
       }
@@ -112,47 +81,73 @@ const handleAdminLogin = async () => {
       setStatus('Error initiating transaction on Terminal 2');
     } finally {
       setLoading(false);
-
     }
   };
 
- const pollTransactionStatus = (merchantReference: string) => {
-  let pollTimeout: NodeJS.Timeout;
-  let failedAttempts = 0;
-  const interval = setInterval(async () => {
+  const handleCashPayment = async () => {
     try {
-      const res = await axios.get(
-        `${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/${merchantReference}`
-      );
-      const txStatus = res.data?.processingStatus;
+      setLoading(true);
+      setStatus('Recording cash payment...');
 
-      if (txStatus === 'PROCESSED') {
-        clearInterval(interval);
-        clearTimeout(pollTimeout);
-        setStatus('Payment successful!');
+      const transactionPayload = {
+        ...userDetails,
+        reference: uuidv4(),
+        merchantReference: transactionId,
+        discount: 0,
+        discount_description: '',
+        cartItems,
+        payment_methods: [{ method: 'Funstation_CASH', amount: finalAmount }],
+        game_time_slot: null,
+      };
 
-        try {
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, transactionPayload);
+
+      navigate('/ticket', {
+        state: {
+          finalAmount,
+          userDetails,
+          cartItems,
+          merchantReference: transactionId,
+          dateTime: new Date().toISOString(),
+          discount: 0,
+        },
+      });
+    } catch (err: any) {
+      console.error('Cash transaction failed:', err.response?.data || err.message);
+      setStatus('Failed to record cash transaction.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pollTransactionStatus = (merchantReference: string) => {
+    let pollTimeout: NodeJS.Timeout;
+    let failedAttempts = 0;
+    const interval = setInterval(async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/${merchantReference}`
+        );
+        const txStatus = res.data?.processingStatus;
+
+        if (txStatus === 'PROCESSED') {
+          clearInterval(interval);
+          clearTimeout(pollTimeout);
+          setStatus('Payment successful!');
+
           const transactionPayload = {
             ...userDetails,
             reference: uuidv4(),
             merchantReference,
             discount: discountAmount,
-            discount_description:
-              discountReason === 'Others' ? customDiscountReason : discountReason,
+            discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
             cartItems,
-            payment_methods: [
-              { method: 'Funstation_Moniepoint', amount: finalAmount },
-            ],
+            payment_methods: [{ method: 'Funstation_Moniepoint', amount: finalAmount }],
             game_time_slot: null,
           };
 
-          const txnRes = await axios.post(
-            `${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`,
-            transactionPayload
-          );
+          await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, transactionPayload);
 
-          console.log('Transaction saved:', txnRes.data);
-          onPaymentSuccess();
           navigate('/ticket', {
             state: {
               finalAmount,
@@ -163,150 +158,159 @@ const handleAdminLogin = async () => {
               discount: discountAmount,
             },
           });
-        } catch (err: any) {
-          console.error(
-            'Failed to save transaction:',
-            err.response?.data || err.message
-          );
-          setStatus('Payment succeeded but saving transaction failed');
+        } else if (['CANCELLED', 'FAILED'].includes(txStatus)) {
+          failedAttempts++;
+          if (failedAttempts >= 2) {
+            clearInterval(interval);
+            clearTimeout(pollTimeout);
+            setStatus('Payment failed or cancelled.');
+          } else {
+            setStatus(`Temporary issue (${txStatus}). Retrying...`);
+          }
+        } else {
+          setStatus(`Awaiting payment... Current status: ${txStatus}`);
         }
-      } else if (['CANCELLED', 'FAILED'].includes(txStatus)) {
-      failedAttempts++;
-      if (failedAttempts >= 2) {
-        clearInterval(interval);
-        clearTimeout(pollTimeout);
-        setStatus('Payment failed or cancelled.');
-      } else {
-        setStatus(`Temporary issue (${txStatus}). Retrying...`);
+      } catch (err) {
+        console.error('Polling error:', err);
       }
-    } else {
-      setStatus(`Awaiting payment... Current status: ${txStatus}`);
-    }
-  } catch (err) {
-    console.error('Polling error:', err);
-  }
-}, 5000);
+    }, 5000);
 
-  pollTimeout = setTimeout(() => {
-    clearInterval(interval);
-    setStatus('Payment timed out. Please try again.');
-  }, 600000);
-};
+    pollTimeout = setTimeout(() => {
+      clearInterval(interval);
+      setStatus('Payment timed out. Please try again.');
+    }, 600000);
+  };
+
+  const spinnerStyle = {
+    width: '16px',
+    height: '16px',
+    border: '2px solid #f3f3f3',
+    borderTop: '2px solid #3498db',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    display: 'inline-block',
+    marginRight: '8px',
+  };
 
   return (
     <div>
-      {!isAdminAuthenticated && (
-        <div>
-    <input
-    type="name"
-    placeholder="username"
-    value={username}
-    onChange={(e) => setUsername(e.target.value)}
-    />
-    <input
-      type="password"
-      placeholder="Enter admin password"
-      value={adminPassword}
-      onChange={(e) => setAdminPassword(e.target.value)}
-    />
-    <button onClick={handleAdminLogin}>Login as Admin</button>
-  </div>
-)}
+      <h1>Funstation Payment</h1>
 
-{isAdminAuthenticated && (
-  <div>
-    <h3>Apply Discount</h3>
-    <input
-      type="number"
-      placeholder="Discount amount (₦)"
-      value={discountAmount}
-      onChange={(e) => {
-          const value = parseInt(e.target.value, 10) || 0;
-      setDiscountAmount(value);
-      if (value > 0 && discountReason.trim() === '') {
-        setDiscountWarning('Please select or enter a discount reason.');
-      } else {
-        setDiscountWarning('');
-      }
-    }}
-  />
-    <select
-      value={discountReason}
-      onChange={(e) => {
-        setDiscountReason(e.target.value);
-      if (discountAmount > 0 && e.target.value.trim() === '') {
-        setDiscountWarning('Please select or enter a discount reason.');
-      } else {
-        setDiscountWarning('');
-      }
-    }}
-    >
-      <option value="">Select Discount Reason</option>
-      <option value="Promo">Promo</option>
-      <option value="Customer Request">Customer Request</option>
-      <option value="Others">Others</option>
-    </select>
-        {discountReason === 'Others' && (
+      {/* Payment Method Toggle */}
+      <div>
+        <label>
+          <input
+            type="radio"
+            value="POS"
+            checked={paymentMethod === 'POS'}
+            onChange={() => setPaymentMethod('POS')}
+          />
+          Pay via POS
+        </label>
+        <label style={{ marginLeft: '20px' }}>
+          <input
+            type="radio"
+            value="Funstation_CASH"
+            checked={paymentMethod === 'Funstation_CASH'}
+            onChange={() => setPaymentMethod('Funstation_CASH')}
+          />
+          Pay with Cash
+        </label>
+
+        {paymentMethod === 'Funstation_CASH' && (
+    <span style={{ marginLeft: '10px', color: 'red' }}>
+      (No Discounts for Cash Payments)
+    </span>
+  )}
+      </div>
+
+      {/* Admin & Discount Section */}
+      {paymentMethod === 'POS' && !isAdminAuthenticated && (
+        <div>
           <input
             type="text"
-            placeholder="Enter custom discount reason"
-            value={customDiscountReason}
-            onChange={(e) => {
-              
-  setCustomDiscountReason(e.target.value);
-  if (discountReason === 'Others' && discountAmount > 0 && e.target.value.trim() === '') {
-    setDiscountWarning('Please enter a custom discount reason.');
-  } else {
-    setDiscountWarning('');
-  }
-}}
-      />
-    )}
-    {discountWarning && (
-      <p style={{ color: 'red', fontWeight: 'bold' }}>{discountWarning}</p>
-        )}
-      </div>
-    )}
-    <div>
-          <style>{spinnerKeyframes}</style>
-      <h1>Funstation Payment</h1>
-      <h2>Pay with Moniepoint (Terminal 2)</h2>
-      {/* ... rest of your JSX */}
-    <p>
-  <strong>Total:</strong>{' '}
-  {discountAmount > 0 ? (
-    <>
-      <span style={{ textDecoration: 'line-through', color: 'gray' }}>
-        ₦{originalAmount.toLocaleString()}
-      </span>{' '}
-      <span style={{ color: 'green' }}>
-        ₦{finalAmount.toLocaleString()}
-      </span>
-    </>
-  ) : (
-    <>₦{originalAmount.toLocaleString()}</>
-  )}
-</p>
+            placeholder="Admin username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Admin password"
+            value={adminPassword}
+            onChange={(e) => setAdminPassword(e.target.value)}
+          />
+          <button onClick={handleAdminLogin}>Login as Admin</button>
+        </div>
+      )}
 
-      <button onClick={handlePayment} disabled={loading || status?.includes('Awaiting') || (discountAmount > 0 && discountReason.trim() === '')}>
-  {(loading || status?.includes('Awaiting')) && (
-    <span style={spinnerStyle}></span>
-  )}
-         {loading ? 'Processing...' : status?.includes('Awaiting') ? 'Awaiting POS...' : 'Pay Now via POS'}
-</button>
-      <button style={styles.homeButton} onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, finalAmount } })}>
-      Edit cart
+      {paymentMethod === 'POS' && isAdminAuthenticated && (
+        <div>
+          <h3>Apply Discount</h3>
+          <input
+            type="number"
+            placeholder="Discount amount (₦)"
+            value={discountAmount}
+            onChange={(e) => setDiscountAmount(parseInt(e.target.value, 10) || 0)}
+          />
+          <select value={discountReason} onChange={(e) => setDiscountReason(e.target.value)}>
+            <option value="">Select Discount Reason</option>
+            <option value="Promo">Promo</option>
+            <option value="Staff Discount">Staff Discount</option>
+            <option value="Regular Customer">Regular Customer</option>
+            <option value="Cash Payment">Cash Payment</option>
+            <option value="Others">Others</option>
+          </select>
+          {discountReason === 'Others' && (
+            <input
+              type="text"
+              placeholder="Custom reason"
+              value={customDiscountReason}
+              onChange={(e) => setCustomDiscountReason(e.target.value)}
+            />
+          )}
+          {discountWarning && <p style={{ color: 'red' }}>{discountWarning}</p>}
+        </div>
+      )}
+
+      {/* Price Summary */}
+      <p>
+        <strong>Total:</strong>{' '}
+        {discountAmount > 0 && paymentMethod === 'POS' ? (
+          <>
+            <span style={{ textDecoration: 'line-through', color: 'gray' }}>
+              ₦{originalAmount.toLocaleString()}
+            </span>{' '}
+            <span style={{ color: 'green' }}>₦{finalAmount.toLocaleString()}</span>
+          </>
+        ) : (
+          <>₦{originalAmount.toLocaleString()}</>
+        )}
+      </p>
+
+      {/* Action Buttons */}
+      {paymentMethod === 'POS' ? (
+        <button
+          onClick={handlePOSPayment}
+          disabled={loading || status?.includes('Awaiting')}
+        >
+          {(loading || status?.includes('Awaiting')) && <span style={spinnerStyle}></span>}
+          {loading ? 'Processing...' : 'Pay Now via POS'}
+        </button>
+      ) : (
+        <button onClick={handleCashPayment} disabled={loading}>
+          {loading && <span style={spinnerStyle}></span>}
+          Confirm Cash Payment
+        </button>
+      )}
+
+      {/* Edit Cart & Status */}
+      <button onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, finalAmount } })}>
+        Edit Cart
       </button>
+
       {status && <p>{status}</p>}
-    </div>
     </div>
   );
 };
 
 export default FunstationPaymentPage;
-
-const spinnerStyle = {
-    width: '16px',
-    height: '16px',
-};
-

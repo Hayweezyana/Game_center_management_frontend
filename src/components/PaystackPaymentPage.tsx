@@ -101,6 +101,45 @@ const onSuccess = async (reference: any) => {
 
     console.log('Submitting transaction:', response.data);
     navigate('/ticket', { state: { finalAmount, userDetails, cartItems, reference: config.reference, dateTime: config.dateTime, discount: discountAmount } });
+  try {
+  interface QueueItem {
+    game_id: number;
+    user_id: number;
+    username: string;
+    game_duration: number;
+    quantity: number;
+    game_title: string;
+  }
+
+  interface CartItem {
+    id: number;
+    gameDuration: number;
+    quantity: number;
+    title: string;
+  }
+
+  interface UserDetails {
+    id: number;
+    username: string;
+  }
+
+  await Promise.all<void>(
+    cartItems.map((item: CartItem) =>
+      axios.post<void>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/queue/add`, {
+        game_id: item.id,
+        user_id: userDetails.id,
+        username: userDetails.username,
+        game_duration: item.gameDuration,
+        quantity: item.quantity,
+        game_title: item.title,
+      } as QueueItem)
+    )
+  );
+  console.log('Games and User successfully queued.');
+  alert('Games queued successfully. You can now proceed to the assigned station.');
+} catch (queueError) {
+  console.error('Failed to queue games:', queueError);
+}
   } catch (error) {
     console.error('Transaction error:', error);
   }
