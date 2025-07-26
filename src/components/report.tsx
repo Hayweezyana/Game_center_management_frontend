@@ -708,27 +708,15 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-<input
-  type="date"
-  value={endDate}
-  onChange={(e) => {
-    setEndDate(e.target.value);
-    setCurrentPage(1);
-  }}
-  className="w-full p-2 border rounded"
-/>
-<select
-  value={selectedMethod}
-  onChange={(e) => setSelectedMethod(e.target.value)}
-  className="w-full p-2 border rounded mt-2"
->
-  <option value="all">All</option>
-  <option value="Funstation_Moniepoint">Funstation_Moniepoint</option>
-  <option value="Paystack">Paystack</option>
-  <option value="Immersia_Moniepoint">Immersia_Moniepoint</option>
-  <option value="Immersia_CASH">Immersia_CASH</option>
-  <option value="Funstation_CASH">Funstation_CASH</option>
-</select>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full p-2 border rounded"
+              />
             </div>
           </div>
         </div>
