@@ -662,7 +662,7 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" height={100} />
         <YAxis />
-        <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
+        <Tooltip formatter={(value: number) => `${value.toLocaleString()}Units`} />
         <Bar dataKey="totalSales" fill="#82ca9d" />
       </BarChart>
     </ResponsiveContainer>
