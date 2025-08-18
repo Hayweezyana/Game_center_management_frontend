@@ -32,6 +32,8 @@ import AdminPaymentPage from './components/users/AdminPaymentPage';
 import OperatorAuth from './components/users/OperatorAuth';
 import DrinkInventory from './components/users/DrinkInventory';
 import OperatorConsumedGames from './components/users/OperatorConsumedGames';
+import AdminDashboard from './components/users/AdminDashboard';
+import PCLockDashboard from './components/users/PCLockDashboard';
 
 const App: React.FC = () => {
   return (
@@ -62,6 +64,8 @@ const App: React.FC = () => {
           <Route path="/AIChatBox" element={<AIChatBox isAdmin={true} />} />
           <Route path="/DrinkInventory" element={<DrinkInventory isAdmin={true} />} />
           <Route path="/OperatorConsumedGames" element={<OperatorConsumedGames />} />
+          <Route path="/AdminDashboard" element={<AdminDashboard />} />
+          <Route path="/PCLockDashboard" element={<PCLockDashboard />} />
 
           
         </Routes>

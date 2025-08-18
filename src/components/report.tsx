@@ -237,7 +237,7 @@ const formattedEnd = formatDateForQuery(endDate, true);
 
         const paymentMethods = payments.map((p) => p.payment_method).join(', ');
         const rawTotalPayment = payments.reduce((sum, p) => sum + p.amount, 0);
-        const totalPayment = Math.max(0, rawTotalPayment - (txn.discount || 0));
+        const totalPayment = rawTotalPayment;
         const totalSalesFromCombined = combined.reduce((sum, record) => sum + record.amount, 0);setTotalSales(totalSalesFromCombined);
 
 

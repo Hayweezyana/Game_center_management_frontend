@@ -265,6 +265,7 @@ const Admin: React.FC = () => {
         <h1>Welcome Admin!</h1>
         {/* User Management */}
         {/* Report button */}
+        <button onClick={() => navigate('/PCLockDashboard')}>PC Lock Dashboard</button>
     <button onClick={() => navigate('/report')}>View Reports</button>
     <button onClick={handleDrinkInventory}>Drink Dashboard</button>
         <button onClick={handleOperatorConsumedReport}>Operator Consumed Games Report</button>

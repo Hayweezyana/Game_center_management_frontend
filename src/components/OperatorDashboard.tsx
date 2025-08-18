@@ -5,11 +5,13 @@ import './OperatorDashboard.css'
 interface GameItem {
   id: string; // transaction_item ID
   game_title: string;
+  game_duration?: number; // in minutes, optional
   username: string;
   game_quantity: number;
   transaction_created_at: string;
   transaction_time: string; // ISO date string
   transaction: {
+    game_duration?: number | null;
   };
   unit_index: number;
 
@@ -18,6 +20,10 @@ interface GameItem {
 const OperatorDashboard = () => {
   const [unconsumedGames, setUnconsumedGames] = useState<GameItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<GameItem | null>(null);
+const [availablePCs, setAvailablePCs] = useState<any[]>([]);
+const [selectedPC, setSelectedPC] = useState('');
+
 
 
 useEffect(() => {
@@ -76,10 +82,22 @@ useEffect(() => {
       setUnconsumedGames(prev =>
   prev.filter(g => !(g.id === item.id && g.unit_index === item.unit_index))
 );
-    } catch (err) {
-      console.error('Error consuming game:', err);
-    }
-  };
+  setSelectedItem(item);
+  try {
+    const res = await axios.get<{ pcs: any[] }>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/available-pcs`, {
+      params: { game_title: item.game_title },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = res.data;
+    console.log("API raw data:", data);
+    setAvailablePCs(Array.isArray(data) ? data : []);
+  } catch (err) {
+    console.error('Failed to fetch available PCs:', err);
+  }
+  } catch (err) {
+    console.error('Error consuming game:', err);
+  }
+}
 
 
 
@@ -124,9 +142,53 @@ return (
 
       </table>
     )}
-</div>
+  {selectedItem && (
+    <div className="pc-select-modal">
+      <h3>Select PC for {selectedItem.game_title}</h3>
+      <select value={selectedPC} onChange={(e) => setSelectedPC(e.target.value)}>
+        <option value="">-- Select PC --</option>
+        {availablePCs && Array.isArray(availablePCs) && availablePCs.map(pc => (
+  <option key={pc.id} value={pc.title}>
+    {pc.title}
+  </option>
+))}
+      </select>
+      <br />
+      <button
+        disabled={!selectedPC}
+        onClick={async () => {
+          const token = localStorage.getItem('operatorToken');
+          const gameDuration = selectedItem.transaction?.game_duration ?? selectedItem.game_duration ?? 6;
+          const totalDuration = gameDuration + 3;
+          try {
+            await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/unlock`, {
+              pc_id: availablePCs.find(pc => pc.title === selectedPC)?.id,
+              pc_name: selectedPC,
+              duration_minutes: totalDuration,
+              transactionItemId: selectedItem.id,
+              unit_index: selectedItem.unit_index
+            }, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+
+            setUnconsumedGames(prev =>
+              prev.filter(g => !(g.id === selectedItem.id && g.unit_index === selectedItem.unit_index))
+            );
+            setSelectedItem(null);
+            setSelectedPC('');
+          } catch (err) {
+            console.error('Failed to unlock PC:', err);
+          }
+        }}>
+        Open PC
+      </button>
+      <button onClick={() => { setSelectedItem(null); setSelectedPC(''); }}>Cancel</button>
     </div>
-  );
+  )}
+  
+  </div>
+</div>
+    );
 };
 
 export default OperatorDashboard;

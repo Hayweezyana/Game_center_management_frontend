@@ -54,7 +54,7 @@ const PC: React.FC<PCProps> = ({ cart }) => {
     const fetchPCs = async () => {
       try {
         console.log('[API Call] Fetching PC data...');
-        const response = await axios.get<{ status: boolean; data: PC[] }>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/pcs`);
+        const response = await axios.get<{ status: boolean; data: PC[] }>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/pc`);
         if (response.data && Array.isArray(response.data.data)) {
           console.log('[API Response] PC Data:', response.data.data);
           setPCData(response.data.data);
