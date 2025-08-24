@@ -34,6 +34,7 @@ import DrinkInventory from './components/users/DrinkInventory';
 import OperatorConsumedGames from './components/users/OperatorConsumedGames';
 import AdminDashboard from './components/users/AdminDashboard';
 import PCLockDashboard from './components/users/PCLockDashboard';
+import AdminTransaction from './components/users/Admintransaction';
 
 const App: React.FC = () => {
   return (
@@ -66,6 +67,7 @@ const App: React.FC = () => {
           <Route path="/OperatorConsumedGames" element={<OperatorConsumedGames />} />
           <Route path="/AdminDashboard" element={<AdminDashboard />} />
           <Route path="/PCLockDashboard" element={<PCLockDashboard />} />
+          <Route path="/AdminTransaction" element={<AdminTransaction />} />
 
           
         </Routes>
