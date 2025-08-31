@@ -187,7 +187,7 @@ const ImmersiaPaymentPage: React.FC = () => {
             game_time_slot: null,
           };
 
-          await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction/moniepoint`, transactionPayload);
+          await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, transactionPayload);
 
           navigate('/ticket', {
             state: {
