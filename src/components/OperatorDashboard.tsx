@@ -194,15 +194,16 @@ const OperatorDashboard: React.FC = () => {
 
   // --- WebSocket (native) for live PC updates -----------------------------
 
-  useEffect(() => {
+  // --- WebSocket (native) for live PC updates -----------------------------
+// --- WebSocket (native) for live PC updates -----------------------------
+useEffect(() => {
   if (!BACKEND) return;
 
-  // Derive ws(s) URL
   let wsUrl: string;
   try {
     const u = new URL(BACKEND);
     u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
-    wsUrl = u.origin; // only domain, no /path
+    wsUrl = u.origin;
   } catch {
     wsUrl = "ws://127.0.0.1:2024";
   }
@@ -218,16 +219,51 @@ const OperatorDashboard: React.FC = () => {
   ws.onmessage = (ev) => {
     try {
       const msg = JSON.parse(ev.data);
-      if (msg?.type === "pc_update") {
-        // Merge updated PC status into state
+
+      // 📥 Full state snapshot
+      if (msg?.type === "init_state" && Array.isArray(msg.pcs)) {
+        console.log("📥 Init PC state:", msg.pcs);
+        setAvailablePCs(
+          msg.pcs.map((pc: any) => ({
+            id: String(pc.id),
+            title: String(pc.title),
+            isLocked: pc.status === "locked",
+            isOnline: true, // assume online if sending status
+            lastUnlockedAt: pc.busyUntil ? new Date(pc.busyUntil).toISOString() : null,
+          }))
+        );
+      }
+
+      // 🔄 Live updates
+      if (msg?.type === "pc_update" && msg.pc) {
+        console.log("🔄 PC update:", msg.pc);
         setAvailablePCs((prev) => {
           const exists = prev.find((p) => p.id === msg.pc.id);
-          if (!exists) return prev;
-          return prev.map((p) => (p.id === msg.pc.id ? { ...p, ...msg.pc } : p));
+          if (!exists) {
+            // New PC registered after init
+            return [...prev, {
+              id: msg.pc.id,
+              title: msg.pc.title,
+              isLocked: msg.pc.status === "locked",
+              isOnline: true,
+              lastUnlockedAt: msg.pc.busyUntil ? new Date(msg.pc.busyUntil).toISOString() : null,
+            }];
+          }
+          // Merge into existing PC row
+          return prev.map((p) =>
+            p.id === msg.pc.id
+              ? {
+                  ...p,
+                  title: msg.pc.title,
+                  isLocked: msg.pc.status === "locked",
+                  lastUnlockedAt: msg.pc.busyUntil ? new Date(msg.pc.busyUntil).toISOString() : null,
+                }
+              : p
+          );
         });
       }
-    } catch {
-      /* ignore non-JSON */
+    } catch (err) {
+      console.warn("⚠️ Non-JSON WS message:", ev.data);
     }
   };
 
@@ -238,8 +274,6 @@ const OperatorDashboard: React.FC = () => {
     wsRef.current = null;
   };
 }, [BACKEND]);
-
-
   // --- Row color ----------------------------------------------------------
 
   const getRowColor = (item: GameItem) => {
