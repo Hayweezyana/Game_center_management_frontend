@@ -19,7 +19,7 @@ const OperatorAuth = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [message, setMessage] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const socket: Socket = io('ws://127.0.0.1:2024', { transports: ['websocket'] });
+  const socket = io('http://127.0.0.1:2024');
 
   // Form states
   const [registerData, setRegisterData] = useState({

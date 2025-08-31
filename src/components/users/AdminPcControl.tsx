@@ -16,14 +16,28 @@ const AdminPcControl: React.FC = () => {
   }, []);
 
   const fetchPcs = async () => {
-    const res = await axios.get("/v1/admin/pc"); // Adjust to your route
-    setPcs(res.data?.data || []);
+    try {
+      // Your legacy route for listing all PCs
+      const res = await axios.get("/v1/admin/available-pcs");
+      setPcs(res.data?.data || []);
+    } catch (err) {
+      console.error("Failed to fetch PCs:", err);
+    }
   };
 
-  const toggleLock = async (pcId: string, locked: boolean) => {
-    const endpoint = locked ? "unlock" : "lock";
-    await axios.patch(`/v1/admin/pc/${pcId}/${endpoint}`);
-    fetchPcs();
+  const toggleLock = async (pcId: string, currentlyLocked: boolean) => {
+    try {
+      if (currentlyLocked) {
+        // unlock
+        await axios.post(`/v1/admin/pcs/${pcId}/unlock`);
+      } else {
+        // lock
+        await axios.post(`/v1/admin/pcs/${pcId}/lock`);
+      }
+      await fetchPcs();
+    } catch (err) {
+      console.error("Failed to toggle lock:", err);
+    }
   };
 
   return (

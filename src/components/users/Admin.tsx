@@ -35,7 +35,7 @@ const Admin: React.FC = () => {
     const [newUser, setNewUser] = useState({ name: '', description: '', hashed_password: '', permissions: [] as UUID[], slug: '' });
     const [newGame, setNewGame] = useState<Game>({ id: '', title: '', price: 0, url: '', time_slot: 0 });
     const [users, setUsers] = useState<{ id: string; name: string; password_hash: string; description: string; slug: string }[]>([]);
-    const socket: Socket = io('ws://127.0.0.1:2024', { transports: ['websocket'] });
+    const socket = io('http://127.0.0.1:2024');
 
     useEffect(() => {
         // Fetch games

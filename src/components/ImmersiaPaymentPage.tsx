@@ -25,7 +25,36 @@ const ImmersiaPaymentPage: React.FC = () => {
   const [discountWarning, setDiscountWarning] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'POS' | 'Immersia_CASH'>('POS');
 
+  const [selectedMarketer, setSelectedMarketer] = useState('');
+
   const finalAmount = paymentMethod === 'Immersia_CASH' ? originalAmount : Math.max(originalAmount - discountAmount, 0);
+
+  const marketers = [
+    'In House',
+    'E. Success',
+    'E. Precious',
+    'O. Chinedu',
+    'K. Ese',
+    'A. Godsaint',
+    'O. Timileyin',
+    'A. Damilola',
+    'A. Precious',
+    'O. Judith',
+  ];
+
+  const savePaymentRecord = async (amount: number, method: string) => {
+    try {
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/marketer_payments`, {
+        amount: Number(amount),
+        marketer: selectedMarketer,
+        station: "immersia",
+        payment_method: method, 
+      });
+      console.log("Payment record saved.");
+    } catch (err: any) {
+      console.error("Failed to save payment record:", err.response?.data || err.message);
+    }
+  };
 
   const handleAdminLogin = async () => {
     try {
@@ -45,6 +74,10 @@ const ImmersiaPaymentPage: React.FC = () => {
   };
 
   const handlePOSPayment = async () => {
+    if (!selectedMarketer) {
+      alert("Please select a staff before proceeding");
+      return;
+    }
     if (
       discountAmount > 0 &&
       (!discountReason || (discountReason === 'Others' && customDiscountReason.trim() === ''))
@@ -85,6 +118,10 @@ const ImmersiaPaymentPage: React.FC = () => {
   };
 
   const handleCashPayment = async () => {
+    if (!selectedMarketer) {
+      alert("Please select a staff before proceeding");
+      return;
+    }
     try {
       setLoading(true);
       setStatus('Recording cash payment...');
@@ -101,6 +138,8 @@ const ImmersiaPaymentPage: React.FC = () => {
       };
 
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, transactionPayload);
+
+      await savePaymentRecord(finalAmount, "Cash");
 
       navigate('/ticket', {
         state: {
@@ -131,6 +170,7 @@ const ImmersiaPaymentPage: React.FC = () => {
         const txStatus = res.data?.processingStatus;
 
         if (txStatus === 'PROCESSED') {
+          await savePaymentRecord(finalAmount, "POS");
           clearInterval(interval);
           clearTimeout(pollTimeout);
           setStatus('Payment successful!');
@@ -143,10 +183,11 @@ const ImmersiaPaymentPage: React.FC = () => {
             discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
             cartItems,
             payment_methods: [{ method: 'Immersia_Moniepoint', amount: finalAmount }],
+            provider_metadata: res.data,
             game_time_slot: null,
           };
 
-          await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, transactionPayload);
+          await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction/moniepoint`, transactionPayload);
 
           navigate('/ticket', {
             state: {
@@ -195,6 +236,20 @@ const ImmersiaPaymentPage: React.FC = () => {
   return (
     <div>
       <h1>Immersia Payment</h1>
+
+      {/* ✅ Marketer selection */}
+      <div>
+        <label>Select Staff: </label>
+        <select 
+          value={selectedMarketer} 
+          onChange={(e) => setSelectedMarketer(e.target.value)}
+        >
+          <option value="">-- Select Staff --</option>
+          {marketers.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Payment Method Toggle */}
       <div>
