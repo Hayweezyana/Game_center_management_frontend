@@ -71,7 +71,7 @@ const OperatorDashboard: React.FC = () => {
     setErrorMsg(null);
     // Try new route first: /admin/available-pcs (no /v1)
     try {
-      const data = await getJson<any>(`${BACKEND}/admin/available-pcs`, gameTitle ? { game_title: gameTitle } : undefined);
+      const data = await getJson<any>(`${BACKEND}/v1/admin/available-pcs`, gameTitle ? { game_title: gameTitle } : undefined);
       setAvailablePCs(normalizePcList(data));
       return;
     } catch (err) {
