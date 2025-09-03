@@ -55,17 +55,16 @@ const OperatorDashboard: React.FC = () => {
   };
 
   const normalizePcList = (data: any): PcRow[] => {
-    // Accept both [] and { pcs: [] }
-    const arr = Array.isArray(data) ? data : Array.isArray(data?.pcs) ? data.pcs : [];
-    return (arr as any[]).map((pc) => ({
-      id: String(pc.id),
-      title: String(pc.title ?? pc.name ?? pc.pc_name ?? pc.id),
-      isLocked: typeof pc.isLocked === "boolean" ? pc.isLocked : typeof pc.locked === "boolean" ? pc.locked : undefined,
-      isOnline: typeof pc.isOnline === "boolean" ? pc.isOnline : undefined,
-      currentGame: pc.currentGame ?? null,
-      lastUnlockedAt: pc.last_unlocked_at ?? pc.lastUnlockedAt ?? null,
-    }));
-  };
+  const arr = Array.isArray(data) ? data : Array.isArray(data?.pcs) ? data.pcs : [];
+  return arr.map((pc: any) => ({
+    id: String(pc.id),
+    title: String(pc.title ?? pc.pc_name ?? pc.id),
+    isLocked: pc.isLocked ?? pc.locked ?? undefined,
+    isOnline: pc.isOnline ?? false,
+    currentGame: pc.gameTitle ?? pc.currentGame ?? null,
+    lastUnlockedAt: pc.lastUnlockedAt ?? pc.last_unlocked_at ?? null,
+  }));
+};
 
   const fetchAvailablePCs = async (gameTitle?: string) => {
     setErrorMsg(null);
