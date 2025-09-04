@@ -159,8 +159,8 @@ const OperatorDashboard: React.FC = () => {
 
     // Prefer new route: /admin/pcs/:id/unlock
     try {
-      await postJson(`${BACKEND}v1/admin/pcs/${encodeURIComponent(selectedPCId)}/unlock`, {
-        // optional body, your server ignores it currently
+      console.log("Sending unlock with duration:", totalDuration);
+      await postJson(`${BACKEND}/v1/admin/pcs/${encodeURIComponent(selectedPCId)}/unlock`, {
         transactionItemId: selectedItem.id,
         unit_index: selectedItem.unit_index,
         duration_minutes: totalDuration,
@@ -173,6 +173,7 @@ const OperatorDashboard: React.FC = () => {
     } catch (err1) {
       // Fallback to legacy: /v1/admin/unlock
       try {
+        console.log("Sending unlock with duration:", totalDuration);
         await postJson(`${BACKEND}/v1/admin/pcs/${selectedPCId}/unlock`, {
           pc_id: selectedPCId,
           pc_name: (availablePCs.find((p) => p.id === selectedPCId)?.title) || selectedPCId,
