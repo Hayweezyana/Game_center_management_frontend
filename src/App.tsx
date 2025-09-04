@@ -36,6 +36,7 @@ import AdminDashboard from './components/users/AdminDashboard';
 import PCLockDashboard from './components/users/PCLockDashboard';
 import AdminTransaction from './components/users/Admintransaction';
 import MarketersReportPage from './components/MarketersReportPage';
+import AdminPcControl from './components/users/AdminPcControl';
 
 const App: React.FC = () => {
   return (
@@ -70,6 +71,7 @@ const App: React.FC = () => {
           <Route path="/PCLockDashboard" element={<PCLockDashboard />} />
           <Route path="/AdminTransaction" element={<AdminTransaction />} />
           <Route path="/MarketersReportPage" element={<MarketersReportPage />} />
+          <Route path="/AdminPcControl" element={<AdminPcControl />} />
 
           
         </Routes>

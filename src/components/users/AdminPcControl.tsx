@@ -8,6 +8,8 @@ interface Pc {
   locked: boolean;
 }
 
+const BACKEND = process.env.REACT_APP_BACKEND_URL?.replace(/\/+$/, "") || "http://127.0.0.1:2024";
+
 const AdminPcControl: React.FC = () => {
   const [pcs, setPcs] = useState<Pc[]>([]);
 
@@ -18,7 +20,7 @@ const AdminPcControl: React.FC = () => {
   const fetchPcs = async () => {
     try {
       // Your legacy route for listing all PCs
-      const res = await axios.get("/v1/admin/available-pcs");
+      const res = await axios.get(`${BACKEND}/v1/admin/available-pcs`);
       setPcs(res.data?.data || []);
     } catch (err) {
       console.error("Failed to fetch PCs:", err);
@@ -29,10 +31,10 @@ const AdminPcControl: React.FC = () => {
     try {
       if (currentlyLocked) {
         // unlock
-        await axios.post(`/v1/admin/pcs/${pcId}/unlock`);
+        await axios.post(`${BACKEND}/v1/admin/pcs/${pcId}/unlock`);
       } else {
         // lock
-        await axios.post(`/v1/admin/pcs/${pcId}/lock`);
+        await axios.post(`${BACKEND}/v1/admin/pcs/${pcId}/lock`);
       }
       await fetchPcs();
     } catch (err) {
