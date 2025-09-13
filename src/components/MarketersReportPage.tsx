@@ -29,6 +29,7 @@ const MarketersReportPage = () => {
         <option value="O. Chinedu">O. Chinedu</option>
         <option value="K. Ese">K. Ese</option>
         <option value="A. Godsaint">A. Godsaint</option>
+        <option value="Savior">Savior</option>
         <option value="O. Timileyin">O. Timileyin</option>
         <option value="A. Damilola">A. Damilola</option>
         <option value="A. Precious">A. Precious</option>

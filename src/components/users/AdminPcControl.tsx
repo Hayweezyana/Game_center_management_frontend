@@ -36,9 +36,11 @@ const AdminPcControl: React.FC = () => {
               pc.id === msg.pc.id
                 ? {
                     ...pc,
-                    locked: msg.pc.isLocked,
+                    isLocked: msg.pc.isLocked,
                     inUse: msg.pc.busyUntil ? msg.pc.busyUntil > Date.now() : false,
                     isOnline: msg.pc.isOnline,
+                    busyUntil: msg.pc.busyUntil ?? null,
+                    lastSeenAt: msg.pc.lastSeenAt ?? pc.lastSeenAt,
                   }
                 : pc
             )
@@ -50,10 +52,12 @@ const AdminPcControl: React.FC = () => {
           const mapped = msg.pcs.map((pc: any) => ({
             id: pc.id,
             title: pc.title,
-            locked: pc.isLocked,
+            isLocked: pc.isLocked,
             inUse: pc.busyUntil ? pc.busyUntil > Date.now() : false,
             isOnline: pc.isOnline,
-          }));
+            busyUntil: pc.busyUntil ?? null,
+            lastSeenAt: pc.lastSeenAt ?? Date.now(),
+          } as Pc));
           setPcs(mapped);
         }
       } catch (e) {
@@ -71,11 +75,11 @@ const AdminPcControl: React.FC = () => {
   const fetchPcs = async () => {
     try {
       const { data } = await axios.get<Pc[]>(`${BACKEND}/v1/admin/available-pcs`);
-  setPcs(data);
+      setPcs(data);
       // const mapped = raw.map((pc: any) => ({
       //   id: pc.id,
       //   title: pc.title,
-      //   locked: pc.isLocked,
+      //   isLocked: pc.isLocked,
       //   inUse: pc.busyUntil ? pc.busyUntil > Date.now() : false,
       //   isOnline: pc.isOnline,
       // }));
