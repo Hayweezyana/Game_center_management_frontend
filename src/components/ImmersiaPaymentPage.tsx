@@ -35,6 +35,7 @@ const ImmersiaPaymentPage: React.FC = () => {
     'E. Precious',
     'O. Chinedu',
     'K. Ese',
+    'Savior',
     'A. Godsaint',
     'O. Timileyin',
     'A. Damilola',
