@@ -52,7 +52,7 @@ const PCLockDashboard: React.FC = () => {
         body: JSON.stringify({
           pc_id,
           password,
-          minutes: parseInt(minutes, 10),
+          minutes: parseInt(minutes, 12),
         }),
       });
       fetchPCs();
