@@ -20,6 +20,7 @@ import OperatorDashboard from './components/OperatorDashboard';
 import ImmersiaPaymentPage from './components/ImmersiaPaymentPage';
 import FunstationPaymentPage from './components/FunstationPaymentPage';
 import PaystackPaymentPage from './components/PaystackPaymentPage';
+import GKGPaymentPage from './components/GKGPaymentPage';
 import AIChatBox from './components/AIChatBox';
 
 
@@ -64,6 +65,7 @@ const App: React.FC = () => {
           <Route path="/ImmersiaPaymentPage" element={<ImmersiaPaymentPage />} />
           <Route path="/FunstationPaymentPage" element={<FunstationPaymentPage />} />
           <Route path="/PaystackPaymentPage" element={<PaystackPaymentPage />}/>
+          <Route path="/GKGPaymentPage" element={<GKGPaymentPage />}/>
           <Route path="/AIChatBox" element={<AIChatBox isAdmin={true} />} />
           <Route path="/DrinkInventory" element={<DrinkInventory isAdmin={true} />} />
           <Route path="/OperatorConsumedGames" element={<OperatorConsumedGames />} />

@@ -172,7 +172,7 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
   return (
     <div>
       <h2>User Details</h2>
-      {isExistingUser && <p style={{ color: 'green' }}>Welcome back! Updating your existing profile.</p>}
+      {isExistingUser && <p style={{ color: 'green' }}>Welcome back {userDetails.username}! Updating your existing profile.</p>}
       <div>
         <label>Phone:</label>
         <input

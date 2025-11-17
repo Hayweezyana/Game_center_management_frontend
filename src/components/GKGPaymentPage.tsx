@@ -4,12 +4,13 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-const FunstationPaymentPage: React.FC = () => {
+const GKGPaymentPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
   const { finalAmount: originalAmount, userDetails, cartItems } = location.state || {};
 
+  
   const [hasSavedPaymentRecord, setHasSavedPaymentRecord] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -24,16 +25,16 @@ const FunstationPaymentPage: React.FC = () => {
   const [discountReason, setDiscountReason] = useState('');
   const [customDiscountReason, setCustomDiscountReason] = useState('');
   const [discountWarning, setDiscountWarning] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'POS' | 'Funstation_CASH'>('POS');
-  
+  const [paymentMethod, setPaymentMethod] = useState<'POS' | 'GKG_CASH'>('POS');
+
   const [selectedMarketer, setSelectedMarketer] = useState('');
 
-  const finalAmount = paymentMethod === 'Funstation_CASH' ? originalAmount : Math.max(originalAmount - discountAmount, 0);
-
+  const finalAmount = paymentMethod === 'GKG_CASH' ? originalAmount : Math.max(originalAmount - discountAmount, 0);
   const marketers = [
     'In House',
-    'E. Success',
-    'K. Ese', 
+    'Damilola',
+    'Saviour',
+    'Precious'
   ];
 
   const savePaymentRecord = async (amount: number, method: string, merchantRef: string) => {
@@ -45,11 +46,12 @@ const FunstationPaymentPage: React.FC = () => {
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/marketer_payments`, {
         amount: Number(amount),
         marketer: selectedMarketer,
-        station: "funstation",
+        station: "GKG",
         payment_method: method,
         merchant_reference: merchantRef,
       });
       console.log("Payment record saved.");
+      setHasSavedPaymentRecord(true);
     } catch (err: any) {
       console.error("Failed to save payment record:", err.response?.data || err.message);
     }
@@ -87,13 +89,13 @@ const FunstationPaymentPage: React.FC = () => {
 
     try {
       setLoading(true);
-      setStatus('Initiating payment on Terminal 2...');
+      setStatus('Initiating payment on Terminal 3...');
 
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
         amount: finalAmount * 100,
-        terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_FUNSTATION,
+        terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_GKG,
         transactionType: 'PURCHASE',
-        PaymentMethod: 'FUNSTATION_POS',
+        PaymentMethod: 'GKG_POS',
         merchantReference: merchantReference || transactionId,
         provider_metadata: {
           username: userDetails.username,
@@ -103,14 +105,14 @@ const FunstationPaymentPage: React.FC = () => {
       });
 
       if (response.status === 202) {
-        setStatus('Awaiting payment on POS terminal 2...');
+        setStatus('Awaiting payment on POS terminal 3...');
         pollTransactionStatus(merchantReference || transactionId);
       } else {
         setStatus('Payment initiation failed. Try again.');
       }
     } catch (error: any) {
       console.error('Error initiating payment:', error.response?.data || error.message);
-      setStatus('Error initiating transaction on Terminal 2');
+      setStatus('Error initiating transaction on Terminal 3');
     } finally {
       setLoading(false);
     }
@@ -121,7 +123,6 @@ const FunstationPaymentPage: React.FC = () => {
       alert("Please select a staff before proceeding");
       return;
     }
-
     try {
       setLoading(true);
       setStatus('Recording cash payment...');
@@ -133,7 +134,7 @@ const FunstationPaymentPage: React.FC = () => {
         discount: 0,
         discount_description: '',
         cartItems,
-        payment_methods: [{ method: 'Funstation_CASH', amount: finalAmount }],
+        payment_methods: [{ method: 'GKG_CASH', amount: finalAmount }],
         game_time_slot: null,
       };
 
@@ -182,10 +183,11 @@ const FunstationPaymentPage: React.FC = () => {
             discount: discountAmount,
             discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
             cartItems,
-            payment_methods: [{ method: 'Funstation_Moniepoint', amount: finalAmount }],
+            payment_methods: [{ method: 'GKG_Moniepoint', amount: finalAmount }],
+            provider_metadata: res.data,
             game_time_slot: null,
           };
- 
+
           await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, transactionPayload);
 
           navigate('/ticket', {
@@ -234,7 +236,7 @@ const FunstationPaymentPage: React.FC = () => {
 
   return (
     <div>
-      <h1>Funstation Payment</h1>
+      <h1>GKG Payment</h1>
 
       {/* ✅ Marketer selection */}
       <div>
@@ -264,14 +266,14 @@ const FunstationPaymentPage: React.FC = () => {
         <label style={{ marginLeft: '20px' }}>
           <input
             type="radio"
-            value="Funstation_CASH"
-            checked={paymentMethod === 'Funstation_CASH'}
-            onChange={() => setPaymentMethod('Funstation_CASH')}
+            value="GKG_CASH"
+            checked={paymentMethod === 'GKG_CASH'}
+            onChange={() => setPaymentMethod('GKG_CASH')}
           />
           Pay with Cash
         </label>
 
-        {paymentMethod === 'Funstation_CASH' && (
+        {paymentMethod === 'GKG_CASH' && (
     <span style={{ marginLeft: '10px', color: 'red' }}>
       (No Discounts for Cash Payments)
     </span>
@@ -367,4 +369,4 @@ const FunstationPaymentPage: React.FC = () => {
   );
 };
 
-export default FunstationPaymentPage;
+export default GKGPaymentPage;

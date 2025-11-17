@@ -44,7 +44,7 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
 
   const discountedAmount = cartTotal - (discount || 0);
 
-  const handleSelectPayment = (terminal: 'immersia' | 'funstation' | 'paystack') => {
+  const handleSelectPayment = (terminal: 'immersia' | 'funstation' | 'paystack' | 'gkg') => {
     console.log(`Selected ${terminal} terminal`);
     navigate(`/${terminal}paymentpage`, {
       state: {
@@ -97,6 +97,11 @@ const handlePayment = (funstationResponse: FunstationResponse): void => {
           <div className="terminal-icon funstation-icon"></div>
           <h3>Funstation Terminal</h3>
           <p>Physical terminal at Funstation</p>
+        </button>
+        <button className="payment-option" onClick={() => handleSelectPayment('gkg')}>
+          <div className="terminal-icon gkg-icon"></div>
+          <h3>GKG Terminal</h3>
+          <p>Physical terminal at Go Kart Galaxy</p>
         </button>
         <button className="payment-option" onClick={() => handleSelectPayment('paystack')}>
           <div className="terminal-icon paystack-icon"></div>

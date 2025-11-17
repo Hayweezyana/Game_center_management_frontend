@@ -10,6 +10,8 @@ const ImmersiaPaymentPage: React.FC = () => {
 
   const { finalAmount: originalAmount, userDetails, cartItems } = location.state || {};
 
+  
+  const [hasSavedPaymentRecord, setHasSavedPaymentRecord] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [transactionId] = useState(uuidv4());
@@ -31,27 +33,25 @@ const ImmersiaPaymentPage: React.FC = () => {
 
   const marketers = [
     'In House',
-    'E. Success',
-    'E. Precious',
-    'O. Chinedu',
-    'K. Ese',
-    'Savior',
-    'A. Godsaint',
     'O. Timileyin',
-    'A. Damilola',
-    'A. Precious',
     'O. Judith',
   ];
 
-  const savePaymentRecord = async (amount: number, method: string) => {
+  const savePaymentRecord = async (amount: number, method: string, merchantRef: string) => {
+    if (hasSavedPaymentRecord) {
+    console.log("Payment record already saved for this transaction, skipping.");
+    return;
+  }
     try {
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/marketer_payments`, {
         amount: Number(amount),
         marketer: selectedMarketer,
         station: "immersia",
-        payment_method: method, 
+        payment_method: method,
+        merchant_reference: merchantRef,
       });
       console.log("Payment record saved.");
+      setHasSavedPaymentRecord(true);
     } catch (err: any) {
       console.error("Failed to save payment record:", err.response?.data || err.message);
     }
@@ -140,7 +140,7 @@ const ImmersiaPaymentPage: React.FC = () => {
 
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, transactionPayload);
 
-      await savePaymentRecord(finalAmount, "Cash");
+      await savePaymentRecord(finalAmount, "Cash", transactionId);
 
       navigate('/ticket', {
         state: {
@@ -171,7 +171,7 @@ const ImmersiaPaymentPage: React.FC = () => {
         const txStatus = res.data?.processingStatus;
 
         if (txStatus === 'PROCESSED') {
-          await savePaymentRecord(finalAmount, "POS");
+          await savePaymentRecord(finalAmount, "POS", merchantReference);
           clearInterval(interval);
           clearTimeout(pollTimeout);
           setStatus('Payment successful!');
