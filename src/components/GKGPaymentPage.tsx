@@ -109,6 +109,7 @@ const GKGPaymentPage: React.FC = () => {
         pollTransactionStatus(merchantReference || transactionId);
       } else {
         setStatus('Payment initiation failed. Try again.');
+        
       }
     } catch (error: any) {
       console.error('Error initiating payment:', error.response?.data || error.message);
