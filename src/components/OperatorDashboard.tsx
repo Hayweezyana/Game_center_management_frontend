@@ -44,6 +44,26 @@ const OperatorDashboard: React.FC = () => {
     [token]
   );
 
+  // --- Grouping & Sorting Logic ---
+  const groupedGames = useMemo(() => {
+    // 1. Sort all games by time (Latest first)
+    const sortedGames = [...unconsumedGames].sort((a, b) => 
+      new Date(b.transaction_time).getTime() - new Date(a.transaction_time).getTime()
+    );
+
+    // 2. Group by Username
+    const groups = sortedGames.reduce((acc, item) => {
+      if (!acc[item.username]) acc[item.username] = [];
+      acc[item.username].push(item);
+      return acc;
+    }, {} as Record<string, GameItem[]>);
+
+    // 3. Convert to array of groups, ensuring the latest customer is first
+    return Object.entries(groups).sort(([, gamesA], [, gamesB]) => {
+      return new Date(gamesB[0].transaction_time).getTime() - new Date(gamesA[0].transaction_time).getTime();
+    });
+  }, [unconsumedGames]);
+
   const getJson = async <T,>(url: string, params?: Record<string, any>) => {
     const res = await axios.get<T>(url, { params, headers: authHeaders });
     return res.data;
@@ -103,8 +123,8 @@ const OperatorDashboard: React.FC = () => {
         const now = new Date();
         const filtered = (res.data as GameItem[]).filter((item) => {
           const createdAt = new Date(item.transaction_time);
-          const hours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-          return hours <= 24;
+          const hours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 7);
+          return hours <= 168; // within 7 days
         });
         setUnconsumedGames(filtered);
       } catch (err) {
@@ -284,48 +304,77 @@ useEffect(() => {
   // --- Render -------------------------------------------------------------
 
   return (
-    <div>
-      <div style={{ padding: "1rem" }}>
+    <div className="dashboard-container" style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2>Operator Dashboard</h2>
+        <span className="status-badge">Live Updates Active</span>
+      </header>
 
-        {errorMsg && (
-          <div className="error-banner" style={{ marginBottom: 12, color: "#b00020" }}>
-            {errorMsg}
-          </div>
-        )}
+      {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
-        {loading ? (
-          <div className="spinner">Loading...</div>
-        ) : unconsumedGames.length === 0 ? (
-          <p>No games to consume at the moment.</p>
-        ) : (
-          <table border={1} cellPadding={10} style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Game</th>
-                <th>Transaction Time</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {unconsumedGames.map((item) => (
-                <tr key={`${item.id}-${item.unit_index}`} style={{ backgroundColor: getRowColor(item) }}>
-                  <td>{item.username}</td>
-                  <td>
-                    {item.game_title} (Unit #{item.unit_index + 1})
-                  </td>
-                  <td>{new Date(item.transaction_time).toLocaleString()}</td>
-                  <td>
-                    <button onClick={() => handleConsume(item)} disabled={loading}>
-                      Mark as Attended
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      {loading ? (
+        <div className="spinner">Loading Queue...</div>
+      ) : groupedGames.length === 0 ? (
+        <p className="no-data">No active games in the last 24 hours.</p>
+      ) : (
+        <div className="customer-list">
+          {groupedGames.map(([username, games]) => (
+            <div key={username} className="customer-card" style={{
+              background: "#fff",
+              borderRadius: "12px",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+              marginBottom: "20px",
+              overflow: "hidden",
+              border: "1px solid #eee"
+            }}>
+              <div className="card-header" style={{
+                background: "#f8f9fa",
+                padding: "12px 20px",
+                borderBottom: "1px solid #eee",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}>
+                <strong style={{ fontSize: "1.1rem", color: "#333" }}>👤 {username}</strong>
+                <span style={{ fontSize: "0.85rem", color: "#666" }}>
+                  Last Order: {new Date(games[0].transaction_time).toLocaleTimeString()}
+                </span>
+              </div>
+              
+              <div className="card-body" style={{ padding: "0" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <tbody className="game-rows">
+                    {games.map((item) => (
+                      <tr key={`${item.id}-${item.unit_index}`} style={{ borderBottom: "1px solid #f1f1f1" }}>
+                        <td style={{ padding: "12px 20px" }}>
+                          <strong>{item.game_title}</strong>
+                          <div style={{ fontSize: "0.8rem", color: "#888" }}>Unit #{item.unit_index + 1}</div>
+                        </td>
+                        <td style={{ padding: "12px 20px", textAlign: "right" }}>
+                          <button 
+                            className="btn-consume"
+                            onClick={() => handleConsume(item)}
+                            style={{
+                              background: item.unit_index < item.game_quantity - 1 ? "#28a745" : "#007bff",
+                              color: "white",
+                              border: "none",
+                              padding: "8px 16px",
+                              borderRadius: "6px",
+                              cursor: "pointer"
+                            }}
+                          >
+                            Assign PC
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
         {selectedItem && (
           <div className="pc-select-modal">
@@ -400,7 +449,6 @@ useEffect(() => {
           </div>
         )}
       </div>
-    </div>
   );
 };
 
