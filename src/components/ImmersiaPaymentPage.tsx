@@ -1,5 +1,5 @@
 // Imports and component boilerplate
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -28,6 +28,7 @@ const ImmersiaPaymentPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'POS' | 'Immersia_CASH'>('POS');
 
   const [selectedMarketer, setSelectedMarketer] = useState('');
+  const isProcessing = useRef(false);
 
   const finalAmount = paymentMethod === 'Immersia_CASH' ? originalAmount : Math.max(originalAmount - discountAmount, 0);
 
@@ -35,20 +36,27 @@ const ImmersiaPaymentPage: React.FC = () => {
     'In House',
     'O. Timileyin',
     'O. Judith',
+    'Damilola',
+    'Saviour',
+    'E. Success',
+    'K. Ese',
+
   ];
 
-  const savePaymentRecord = async (amount: number, method: string, merchantRef: string) => {
+  const savePaymentRecord = async (amount: number, method: string, merchantReference: string) => {
     if (hasSavedPaymentRecord) {
     console.log("Payment record already saved for this transaction, skipping.");
     return;
   }
+  if (isProcessing.current) return;
+    isProcessing.current = true;
     try {
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/marketer_payments`, {
         amount: Number(amount),
         marketer: selectedMarketer,
         station: "immersia",
         payment_method: method,
-        merchant_reference: merchantRef,
+        merchantReference: merchantReference || transactionId,
       });
       console.log("Payment record saved.");
       setHasSavedPaymentRecord(true);

@@ -1,5 +1,5 @@
 // Imports and component boilerplate
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -28,13 +28,17 @@ const GKGPaymentPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'POS' | 'GKG_CASH'>('POS');
 
   const [selectedMarketer, setSelectedMarketer] = useState('');
+  const isProcessing = useRef(false);
 
   const finalAmount = paymentMethod === 'GKG_CASH' ? originalAmount : Math.max(originalAmount - discountAmount, 0);
   const marketers = [
     'In House',
     'Damilola',
     'Saviour',
-    'Precious'
+    'E. Success',
+    'K. Ese',
+    'O. Timileyin',
+    'O. Judith',
   ];
 
   const savePaymentRecord = async (amount: number, method: string, merchantRef: string) => {
@@ -42,13 +46,15 @@ const GKGPaymentPage: React.FC = () => {
     console.log("Payment record already saved for this transaction, skipping.");
     return;
   }
+  if (isProcessing.current) return;
+    isProcessing.current = true;
     try {
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/marketer_payments`, {
         amount: Number(amount),
         marketer: selectedMarketer,
         station: "GKG",
         payment_method: method,
-        merchant_reference: merchantRef,
+        merchantReference: merchantReference || transactionId,
       });
       console.log("Payment record saved.");
       setHasSavedPaymentRecord(true);

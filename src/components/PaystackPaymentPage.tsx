@@ -1,278 +1,202 @@
-import React, {useState} from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePaystackPayment } from 'react-paystack';
 import axios from 'axios';
 
+// --- Types & Interfaces ---
+interface CartItem {
+  id: number;
+  gameDuration: number;
+  quantity: number;
+  title: string;
+}
+
+interface UserDetails {
+  id: number;
+  username: string;
+  phone: string;
+  email?: string;
+}
+
 const styles = {
-  homeButton: {
-    marginLeft: '10px',
-    padding: '8px 16px',
-    cursor: 'pointer'
-  }
+  homeButton: { marginLeft: '10px', padding: '8px 16px', cursor: 'pointer' }
 };
 
 const PaystackPaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { finalAmount: originalAmount, userDetails, cartItems } = location.state || {};
-  
-    const [adminPassword, setAdminPassword] = useState('');
-    const [username, setUsername] = useState('');
+  const { finalAmount: originalAmount, userDetails, cartItems } = (location.state as any) || {};
+
+  // State
+  const [adminPassword, setAdminPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [discountWarning, setDiscountWarning] = useState('');
-  
   const [discountAmount, setDiscountAmount] = useState(0);
-  const finalAmount = Math.max(originalAmount - discountAmount, 0);
   const [discountReason, setDiscountReason] = useState('');
   const [customDiscountReason, setCustomDiscountReason] = useState('');
+  const [selectedMarketer, setSelectedMarketer] = useState('');
+  const [hasSavedPaymentRecord, setHasSavedPaymentRecord] = useState(false);
+
+  const isProcessing = useRef(false);
+
+  const finalAmount = Math.max(originalAmount - discountAmount, 0);
+
+  const marketers = ['In House', 'O. Timileyin', 'O. Judith', 'Damilola', 'Saviour', 'E. Success', 'K. Ese'];
+
+  // Save payment to marketer table
+  const savePaymentRecord = async (amount: number, method: string, merchantRef: string) => {
+    if (hasSavedPaymentRecord) return;
+    try {
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/marketer_payments`, {
+        amount: Number(amount),
+        marketer: selectedMarketer || "In House",
+        station: "online",
+        payment_method: method,
+        merchantReference: merchantRef
+      });
+      setHasSavedPaymentRecord(true);
+    } catch (err: any) {
+      console.error("Marketer record error:", err.response?.data || err.message);
+    }
+  };
 
   const handleAdminLogin = async () => {
-  try {
-    const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/roles/login`, {
-      name: username,
-      password: adminPassword
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
+    try {
+      const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/roles/login`, {
+        name: username,
+        password: adminPassword
       });
-
-    const { token, role } = res.data;
-    sessionStorage.setItem('token', token);
-    sessionStorage.setItem('adminData', JSON.stringify(role));
-
-    if (res.status === 200) {
-      setIsAdminAuthenticated(true);
-      alert("Admin authenticated successfully.");
+      if (res.status === 200) {
+        setIsAdminAuthenticated(true);
+        alert("Admin authenticated.");
+      }
+    } catch (err: any) {
+      alert("Invalid admin credentials.");
     }
-  } catch (err: any) {
-    alert("Invalid admin password.");
-    console.error(err.response?.data || err.message);
-  }
-};
-  
+  };
 
   const config = {
     reference: new Date().getTime().toString(),
-    dateTime: new Date().toISOString(),
-    email: userDetails.email || 'immersiavr@immersiavr.com',
-    amount: finalAmount * 100, // Paystack expects amount in kobo
+    email: userDetails?.email || 'customer@example.com',
+    amount: finalAmount * 100,
     publicKey: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY!,
     currency: 'NGN',
-
     metadata: {
       custom_fields: [
-        {
-          display_name: "Username",
-          variable_name: "username",
-          value: userDetails.username
-        },
-        {
-          display_name: "Phone",
-          variable_name: "phone",
-          value: userDetails.phone
-        },
-        {
-          display_name: "Transaction ID",
-          variable_name: "transactionId",
-          value: new Date().getTime().toString()
-        }
+        { display_name: "Username", variable_name: "username", value: userDetails?.username },
+        { display_name: "Phone", variable_name: "phone", value: userDetails?.phone }
       ]
     },
   };
 
-  console.log("reference:", config.reference);
-
   const initializePayment = usePaystackPayment(config);
 
-const onSuccess = async (reference: any) => {
-  console.log("Paystack payment successful!", reference)
-  try {
-    const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, {
-      ...userDetails,
-      reference: reference.reference, // from Paystack
-      merchantReference: reference.reference, // optional, if using
-      payment_methods: [{ method: 'Paystack', amount: finalAmount }],
-      cartItems,
-      discount: discountAmount,
-      discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
-       
-    });
+  const onSuccess = async (reference: any) => {
+    if (isProcessing.current) return;
+    isProcessing.current = true;
+    try {
+      // 1. Save Transaction record
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, {
+        ...userDetails,
+        reference: reference.reference,
+        payment_methods: [{ method: 'Paystack', amount: finalAmount }],
+        cartItems,
+        discount: discountAmount,
+        discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
+      });
 
-    console.log('Submitting transaction:', response.data);
-    navigate('/ticket', { state: { finalAmount, userDetails, cartItems, reference: config.reference, dateTime: config.dateTime, discount: discountAmount } });
-  try {
-  interface QueueItem {
-    game_id: number;
-    user_id: number;
-    username: string;
-    game_duration: number;
-    quantity: number;
-    game_title: string;
-  }
+      // 2. Save Marketer record
+      await savePaymentRecord(finalAmount, 'Paystack', reference.reference);
 
-  interface CartItem {
-    id: number;
-    gameDuration: number;
-    quantity: number;
-    title: string;
-  }
+      // 3. Add games to Queue
+      await Promise.all(
+        cartItems.map((item: CartItem) =>
+          axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/queue/add`, {
+            game_id: item.id,
+            user_id: userDetails.id,
+            username: userDetails.username,
+            game_duration: item.gameDuration,
+            quantity: item.quantity,
+            game_title: item.title,
+          })
+        )
+      );
 
-  interface UserDetails {
-    id: number;
-    username: string;
-  }
+      // 4. Navigate only AFTER all async tasks finish
+      navigate('/ticket', { 
+        state: { finalAmount, userDetails, cartItems, reference: reference.reference, discount: discountAmount } 
+      });
 
-  await Promise.all<void>(
-    cartItems.map((item: CartItem) =>
-      axios.post<void>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/queue/add`, {
-        game_id: item.id,
-        user_id: userDetails.id,
-        username: userDetails.username,
-        game_duration: item.gameDuration,
-        quantity: item.quantity,
-        game_title: item.title,
-      } as QueueItem)
-    )
-  );
-  console.log('Games and User successfully queued.');
-  alert('Games queued successfully. You can now proceed to the assigned station.');
-} catch (queueError) {
-  console.error('Failed to queue games:', queueError);
-}
-  } catch (error) {
-    console.error('Transaction error:', error);
-  }
-};
-
-  const onClose = () => {
-    console.log('Payment window closed');
+    } catch (error) {
+      console.error('Finalization error:', error);
+      alert("Payment successful, but failed to update records. Please contact admin.");
+    }
   };
 
   const handlePayment = () => {
+    // if (!selectedMarketer) return alert("Please select a staff member.");
+    if (finalAmount <= 0) return alert("Amount must be greater than 0.");
+    if (discountAmount > 0 && !discountReason) return alert("Reason required for discount.");
     
-    if (!finalAmount || finalAmount <= 0) {
-      alert("Invalid cart total. Please go back and try again.");
-      return;
-    }
-    if (discountAmount > 0 && (!discountReason || (discountReason === 'Others' && customDiscountReason.trim() === ''))) {
-      alert("Please select or enter a valid discount reason");
-      return;
-    }
-    if (!userDetails) {
-      alert("Missing user details. Please go back and try again.");
-      return;
-    }
-    if (!process.env.REACT_APP_PAYSTACK_PUBLIC_KEY) {
-      alert("Missing Paystack public key in .env.");
-      return;
-    }
-    initializePayment({ onSuccess, onClose }); // Trigger Paystack
+    initializePayment({ onSuccess, onClose: () => console.log('Closed') });
   };
 
   return (
     <div>
-      <div>
-      {!isAdminAuthenticated && (
-        <div>
-    <input
-    type="name"
-    placeholder="username"
-    value={username}
-    onChange={(e) => setUsername(e.target.value)}
-    />
-    <input
-      type="password"
-      placeholder="Enter admin password"
-      value={adminPassword}
-      onChange={(e) => setAdminPassword(e.target.value)}
-    />
-    <button onClick={handleAdminLogin}>Login as Admin</button>
-  </div>
-)}
-
-{isAdminAuthenticated && (
-  <div>
-    <h3>Apply Discount</h3>
-    <input
-      type="number"
-      placeholder="Discount amount (₦)"
-      value={discountAmount}
-      onChange={(e) => {
-        const value = parseInt(e.target.value, 10) || 0;
-      setDiscountAmount(value);
-      if (value > 0 && discountReason.trim() === '') {
-        setDiscountWarning('Please select or enter a discount reason.');
-      } else {
-        setDiscountWarning('');
-      }
-    }}
-    />
-    <select
-      value={discountReason}
-      onChange={(e) => {
-        setDiscountReason(e.target.value);
-      if (discountAmount > 0 && e.target.value.trim() === '') {
-        setDiscountWarning('Please select or enter a discount reason.');
-      } else {
-        setDiscountWarning('');
-      }
-    }}
-    >
-      <option value="">Select Discount Reason</option>
-      <option value="Promo">Promo</option>
-      <option value="Customer Request">Customer Request</option>
-      <option value="Others">Others</option>
-    </select>
-        {discountReason === 'Others' && (
-          <input
-            type="text"
-            placeholder="Enter custom discount reason"
-            value={customDiscountReason}
-            onChange={(e) => {
-              setCustomDiscountReason(e.target.value);
-  if (discountReason === 'Others' && discountAmount > 0 && e.target.value.trim() === '') {
-    setDiscountWarning('Please enter a custom discount reason.');
-  } else {
-    setDiscountWarning('');
-  }
-}}
-          />
-          )}
-    {discountWarning && (
-      <p style={{ color: 'red', fontWeight: 'bold' }}>{discountWarning}</p>
-        )}
+      {/* Marketer selection remains optional */}
+      <div style={{ marginBottom: '15px' }}>
+        <label>Staff: </label>
+        <select value={selectedMarketer} onChange={(e) => setSelectedMarketer(e.target.value)}>
+          <option value="">-- In House --</option>
+          {marketers.map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
       </div>
-    )}
-    <div>
-      <h2>Payment</h2>
-      <p>
-  <strong>Total:</strong>{' '}
-  {discountAmount > 0 ? (
-    <>
-      <span style={{ textDecoration: 'line-through', color: 'gray' }}>
-        ₦{originalAmount.toLocaleString()}
-      </span>{' '}
-      <span style={{ color: 'green' }}>
-        ₦{finalAmount.toLocaleString()}
-      </span>
-    </>
-  ) : (
-    <>₦{originalAmount.toLocaleString()}</>
-  )}
-</p>
-      <p>Username: {userDetails?.username}</p>
-      <p>Phone: {userDetails?.phone}</p>
-      {userDetails?.email && <p>Email: {userDetails.email}</p>}
-    <button 
-      onClick={handlePayment}
-      disabled={discountAmount > 0 && discountReason.trim() === ''}
-    >
-      Pay Now
-    </button>
-      <button>Edit Cart</button>
-    </div>
-    </div>
+
+      {/* Admin Discount Section */}
+      {!isAdminAuthenticated ? (
+        <fieldset>
+          <legend>Admin Authorization (for discounts)</legend>
+          <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <input type="password" placeholder="Password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} />
+          <button onClick={handleAdminLogin}>Unlock Discount</button>
+        </fieldset>
+      ) : (
+        <div style={{ background: '#f0f0f0', padding: '10px', borderRadius: '5px' }}>
+          <h3>Apply Discount</h3>
+          <input 
+            type="number" 
+            placeholder="Amount ₦" 
+            onChange={(e) => setDiscountAmount(Number(e.target.value))} 
+          />
+          <select value={discountReason} onChange={(e) => setDiscountReason(e.target.value)}>
+            <option value="">Reason...</option>
+            <option value="Promo">Promo</option>
+            <option value="Others">Others</option>
+          </select>
+          {discountReason === 'Others' && (
+            <input placeholder="Describe reason" onChange={(e) => setCustomDiscountReason(e.target.value)} />
+          )}
+        </div>
+      )}
+
+      {/* Payment Summary */}
+      <div style={{ marginTop: '20px', borderTop: '1px solid #ccc' }}>
+        <h2>Order Summary</h2>
+        <p>User: {userDetails?.username} ({userDetails?.phone})</p>
+        <p>Total Payable: 
+           <strong style={{ color: 'green', fontSize: '1.2em', marginLeft: '10px' }}>
+             ₦{finalAmount.toLocaleString()}
+           </strong>
+        </p>
+        
+        <button 
+          onClick={handlePayment} 
+          style={{ padding: '10px 20px', background: 'blue', color: 'white', border: 'none', cursor: 'pointer' }}
+        >
+          Pay with Paystack
+        </button>
+      </div>
     </div>
   );
 };
