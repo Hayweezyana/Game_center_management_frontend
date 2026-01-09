@@ -189,11 +189,11 @@ const OperatorAuth = () => {
               {users.map(user => (
                 <li key={user.id}>
                   {user.name} - {Array.isArray(user.email) ? user.email.join(', ') : user.email}
-                  {/* <button 
+                  <button 
                     type="button"
                     onClick={() => handleDeleteUser(user.id)}
                     className="delete-btn"
-                  >Delete</button> */}
+                  >Delete</button>
                 </li>
               ))}
             </ul>
