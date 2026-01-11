@@ -728,6 +728,8 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
   <option value="Immersia_Moniepoint">Immersia_Moniepoint</option>
   <option value="Immersia_CASH">Immersia_CASH</option>
   <option value="Funstation_CASH">Funstation_CASH</option>
+  <option value="GKG_Moniepoint">GKG_Moniepoint</option>
+  <option value="GKG_CASH">GKG_CASH</option>
 </select>
             </div>
           </div>
