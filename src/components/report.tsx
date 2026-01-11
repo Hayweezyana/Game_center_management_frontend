@@ -260,7 +260,7 @@ const formattedEnd = formatDateForQuery(endDate, true);
           if (item.game_title === '360 Video Booth') {
             const regularPrice = price;
             const extraQty = Math.max(0, item.game_quantity - 1);
-            cost = regularPrice + extraQty * 1000;
+            cost = regularPrice + extraQty * 2500;
           } else {
             cost = price * item.game_quantity;
           }

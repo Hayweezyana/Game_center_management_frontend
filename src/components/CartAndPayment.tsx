@@ -36,9 +36,9 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   useEffect(() => {
   const newTotal = items.reduce((sum, item) => {
     if (item.type === 'game' && item.title === '360 Video Booth') {
-      // First item at regular price, rest at ₦1000 each
+      // First item at regular price, rest at ₦2500 each
       const extraQuantity = Math.max(0, item.quantity - 1);
-      return sum + item.price + (extraQuantity * 1000);
+      return sum + item.price + (extraQuantity * 2500);
     } else {
       return sum + item.price * item.quantity;
     }
@@ -77,7 +77,7 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
       .map((item) => {
         const itemTotal =
           item.type === 'game' && item.title === '360 Video Booth'
-            ? item.price + (Math.max(0, item.quantity - 1) * 1000)
+            ? item.price + (Math.max(0, item.quantity - 1) * 2500)
             : item.price * item.quantity;
 
   return (

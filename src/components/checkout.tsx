@@ -21,7 +21,7 @@ const Checkout: React.FC = () => {
   const computedCartTotal = cartItems.reduce((sum, item) => {
     if (item.type === 'game' && item.title === '360 Video Booth') {
       const extraQuantity = Math.max(0, item.quantity - 1);
-      return sum + item.price + (extraQuantity * 1000);
+      return sum + item.price + (extraQuantity * 2500);
     } else {
       return sum + item.price * item.quantity;
     }
