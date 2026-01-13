@@ -127,7 +127,26 @@ const Report: React.FC = () => {
   const [salesTrend, setSalesTrend] = useState([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
 
-  const [totalSales, setTotalSales] = useState(0);
+  const [selectedGames, setSelectedGames] = useState<string[]>([]);
+
+const filteredRecords = useMemo(() => {
+  return records.filter(r => {
+    if (selectedGames.length && !selectedGames.includes(r.game_title)) return false;
+    return true;
+  });
+}, [records, selectedGames]);
+
+  const totalSales = useMemo(() => {
+  const txMap = new Map<string, number>();
+
+  filteredRecords.forEach(r => {
+    const prev = txMap.get(r.id) || 0;
+    txMap.set(r.id, Math.max(prev, r.amount));
+  });
+
+  return Array.from(txMap.values()).reduce((a, b) => a + b, 0);
+}, [filteredRecords]);
+
 
 
   // Format date for API queries
@@ -176,14 +195,15 @@ const formattedEnd = formatDateForQuery(endDate, true);
 
     console.log("Selected Method (Frontend):", selectedMethod);
 
+    const shouldPaginate = !selectedGame;
 
     const requests = [
       axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions`, {
         params: {
           startDate: formattedStart,
           endDate: formattedEnd,
-          page: currentPage,
-          limit: itemsPerPage,
+          page: shouldPaginate ? currentPage : 1,
+    limit: shouldPaginate ? itemsPerPage : 100000,
           ...(selectedMethod !== 'all' && { payment_method: selectedMethod }),
         },
         timeout: 30000,
@@ -228,6 +248,7 @@ const formattedEnd = formatDateForQuery(endDate, true);
         gamePriceMap.set(game.id, game.price);
       });
 
+
       // Combine the data
       const combined: CombinedRecord[] = [];
       transactions.forEach((txn) => {
@@ -238,7 +259,6 @@ const formattedEnd = formatDateForQuery(endDate, true);
         const paymentMethods = payments.map((p) => p.payment_method).join(', ');
         const rawTotalPayment = payments.reduce((sum, p) => sum + p.amount, 0);
         const totalPayment = rawTotalPayment;
-        const totalSalesFromCombined = combined.reduce((sum, record) => sum + record.amount, 0);setTotalSales(totalSalesFromCombined);
 
 
 
@@ -337,10 +357,30 @@ const formattedEnd = formatDateForQuery(endDate, true);
     }
   };
 
+  const itemSales = useMemo(() => {
+  const map = new Map<string, { quantity: number; revenue: number }>();
+
+  filteredRecords.forEach(r => {
+    if (!r.game_title) return;
+
+    const prev = map.get(r.game_title) || { quantity: 0, revenue: 0 };
+    map.set(r.game_title, {
+      quantity: prev.quantity + r.game_quantity,
+      revenue: prev.revenue + r.amount
+    });
+  });
+
+  return Array.from(map.entries()).map(([game, data]) => ({
+    game,
+    ...data
+  }));
+}, [filteredRecords]);
+
+
   // Calculate metrics from records
-  const calculateMetrics = (records: CombinedRecord[]) => {
+  const calculateMetrics = (filteredRecords: CombinedRecord[]) => {
     // Best/Least Selling Games
-    const gameSales = records.reduce((acc, record) => {
+    const gameSales = filteredRecords.reduce((acc, record) => {
       acc[record.game_title] = (acc[record.game_title] || 0) + record.game_quantity;
       return acc;
     }, {} as { [key: string]: number });
@@ -355,7 +395,7 @@ const formattedEnd = formatDateForQuery(endDate, true);
     setLeastSellingGames([...sortedGames].reverse().map(([title, qty]) => ({ game_title: title, game_quantity: qty })));
 
     // Highest Paying Customers
-    const customerPayments = records.reduce((acc, record) => {
+    const customerPayments = filteredRecords.reduce((acc, record) => {
       const total = Number(record.amount)
       acc[record.username] = (acc[record.username] || 0) + total;
       return acc;
@@ -367,7 +407,7 @@ const formattedEnd = formatDateForQuery(endDate, true);
     setHighestPayingCustomers(sortedCustomers);
 
     // Game Duration Stats
-    const gameDurations = records.reduce((acc, record) => {
+    const gameDurations = filteredRecords.reduce((acc, record) => {
       acc[record.game_title] = (acc[record.game_title] || 0) + record.game_duration * record.game_quantity;
       return acc;
     }, {} as { [key: string]: number });
@@ -406,7 +446,7 @@ const formattedEnd = formatDateForQuery(endDate, true);
 
   // Export to Excel
   const exportToExcel = () => {
-    const worksheetData = records.map((r) => ({
+    const worksheetData = filteredRecords.map((r) => ({
       'Username': r.username,
       'Phone': r.phone,
       'Email': r.email || 'N/A',
@@ -430,6 +470,26 @@ const formattedEnd = formatDateForQuery(endDate, true);
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, `Report_${startDate}_to_${endDate}.xlsx`);
   };
+
+  const exportItemSalesToExcel = () => {
+  const worksheet = XLSX.utils.json_to_sheet(
+    itemSales.map(i => ({
+      Game: i.game,
+      Quantity: i.quantity,
+      Revenue: i.revenue,
+    }))
+  );
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, worksheet, 'Item Sales');
+
+  const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  saveAs(
+    new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    `Item_Sales_${startDate}_to_${endDate}.xlsx`
+  );
+};
+
 
   // Handle print
   const handlePrint = () => {
@@ -561,6 +621,46 @@ const formattedEnd = formatDateForQuery(endDate, true);
     );
   };
 
+  const SalesByItemTable = () => (
+    <div className="bg-white p-4 rounded shadow mt-6">
+      <h2 className="text-xl font-semibold mb-3">
+        Sales by Item (Selected Period)
+      </h2>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full border">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-2 text-left">Game</th>
+              <th className="px-4 py-2 text-right">Quantity Sold</th>
+              <th className="px-4 py-2 text-right">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {itemSales.length > 0 ? (
+              itemSales.map(item => (
+                <tr key={item.game}>
+                  <td className="px-4 py-2">{item.game}</td>
+                  <td className="px-4 py-2 text-right">{item.quantity}</td>
+                  <td className="px-4 py-2 text-right">
+                    ₦{item.revenue.toLocaleString()}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={3} className="px-4 py-4 text-center text-gray-500">
+                  No data for selected period
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+
   // Insight card component
   const InsightCard: React.FC<InsightCardProps> = ({ title, data }) => {
     if (!data) return null;
@@ -640,7 +740,7 @@ const [salesPerMethod, setSalesPerMethod] = useState<Record<string, number>>({})
 
 useEffect(() => {
   const salesByMethod = new Map<string, number>();
-  records.forEach((record) => {
+  filteredRecords.forEach((record) => {
     const methods = record.payment_methods?.split(',') || ['Unknown'];
     methods.forEach((method) => {
       const key = method.trim() || 'Unknown';
@@ -649,11 +749,7 @@ useEffect(() => {
     });
   });
   setSalesPerMethod(Object.fromEntries(salesByMethod));
-}, [records]);
-useEffect(() => {
-  const totalSales = Object.values(salesPerMethod).reduce((sum, value) => sum + value, 0);
-  setTotalSales(totalSales);
-}, [salesPerMethod]);
+}, [filteredRecords]);
 
 const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[] }) => (
   <div style={{ width: '100%', height: 300 }}>
@@ -732,6 +828,19 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
   <option value="GKG_CASH">GKG_CASH</option>
 </select>
             </div>
+            <select
+  value={selectedGame}
+  onChange={(e) => setSelectedGame(e.target.value)}
+  className="w-full p-2 border rounded mt-2"
+>
+  <option value="">All Games</option>
+  {Array.from(new Set(filteredRecords.map(r => r.game_title)))
+    .filter(Boolean)
+    .map(game => (
+      <option key={game} value={game}>{game}</option>
+  ))}
+</select>
+
           </div>
         </div>
 
@@ -835,13 +944,19 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
                   Export to Excel
                 </button>
                 <button 
+                  onClick={exportItemSalesToExcel}
+                  className="px-3 py-1 bg-green-100 text-green-800 rounded hover:bg-green-200"
+                >
+                  Export Item Sales
+                </button>
+                <button 
                   onClick={handlePrint}
                   className="px-3 py-1 bg-purple-100 text-purple-800 rounded hover:bg-purple-200"
                 >
                   Print Report
                 </button>
-              </div>
             </div>
+          </div>
 
             <p>Total Sales: {formatCurrency(totalSales)}</p>
 
@@ -928,9 +1043,9 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
                   </table>
                   {/* Chart for Best Selling Games */}
                   <GameSalesChart
-                    data={bestSellingGames.map(game => ({
-                      name: game.game_title,
-                      totalSales: game.game_quantity,
+                    data={itemSales.map(item => ({
+    name: item.game,
+    totalSales: item.quantity,
                     }))}
                   />
                 </div>
@@ -1047,8 +1162,8 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {records.length > 0 ? (
-                    records.map((record) => (
+                  {filteredRecords.length > 0 ? (
+                    filteredRecords.map((record) => (
                       <tr key={`${record.id}-${record.game_id ?? ''}-${record.drink_id ?? ''}`}>
                         <td className="px-4 py-2 whitespace-nowrap">{record.username}</td>
                         <td className="px-4 py-2 whitespace-nowrap">{record.game_title}</td>
@@ -1070,8 +1185,9 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
               </table>
             </div>
             
+            
             {/* Pagination Controls */}
-            {records.length > 0 && <PaginationControls />}
+            {filteredRecords.length > 0 && <PaginationControls />}
           </div>
         </div>
       </div>

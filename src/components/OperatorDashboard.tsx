@@ -296,10 +296,10 @@ useEffect(() => {
 }, [BACKEND]);
   // --- Row color ----------------------------------------------------------
 
-  const getRowColor = (item: GameItem) => {
-    const isPartial = item.unit_index < item.game_quantity - 1;
-    return isPartial ? "#d4edda" : "#cce5ff"; // green for partial, blue for untouched
-  };
+  // const getRowColor = (item: GameItem) => {
+  //   const isPartial = item.unit_index < item.game_quantity - 1;
+  //   return isPartial ? "#d4edda" : "#cce5ff"; // green for partial, blue for untouched
+  // };
 
   // --- Render -------------------------------------------------------------
 
@@ -363,7 +363,7 @@ useEffect(() => {
                               cursor: "pointer"
                             }}
                           >
-                            Assign PC
+                            verify payment
                           </button>
                         </td>
                       </tr>
