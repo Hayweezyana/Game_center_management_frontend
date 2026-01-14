@@ -315,7 +315,7 @@ useEffect(() => {
       {loading ? (
         <div className="spinner">Loading Queue...</div>
       ) : groupedGames.length === 0 ? (
-        <p className="no-data">No active games in the last 24 hours.</p>
+        <p className="no-data">No active games in the last 1 week.</p>
       ) : (
         <div className="customer-list">
           {groupedGames.map(([username, games]) => (
@@ -337,10 +337,14 @@ useEffect(() => {
               }}>
                 <strong style={{ fontSize: "1.1rem", color: "#333" }}>👤 {username}</strong>
                 <span style={{ fontSize: "0.85rem", color: "#666" }}>
-                  Last Order: {new Date(games[0].transaction_time).toLocaleTimeString()}
-                </span>
+                  Last Order: {new Date(games[0].transaction_time).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })}
+</span>
               </div>
-              
               <div className="card-body" style={{ padding: "0" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <tbody className="game-rows">
@@ -375,7 +379,6 @@ useEffect(() => {
           ))}
         </div>
       )}
-
         {selectedItem && (
           <div className="pc-select-modal">
             <h3>Select PC for {selectedItem.game_title}</h3>
