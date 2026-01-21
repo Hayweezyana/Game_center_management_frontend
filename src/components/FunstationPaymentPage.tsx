@@ -33,12 +33,9 @@ const FunstationPaymentPage: React.FC = () => {
 
   const marketers = [
     'In House',
-    'O. Timileyin',
-    'O. Judith',
-    'Damilola',
-    'Saviour',
-    'E. Success',
     'K. Ese',
+    'Bolu',
+    'O. Judith',
     
   ];
 
