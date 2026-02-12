@@ -8,6 +8,9 @@ import styles from './GameSelection.module.css';
 import { UUID } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { FaPlus, FaMinus } from 'react-icons/fa';
+import { trackAddToCart } from '../utils/metaPixel';
+import { trackInitiateCheckout } from '../utils/metaPixel';
+
 import { set } from 'lodash';
 
 // Define types for the cart items
@@ -115,6 +118,12 @@ const [newDrinkQuantity, setNewDrinkQuantity] = useState<number>(0);
         gameDuration: game.time_slot ? parseInt(game.time_slot) : 10,
         type: 'game',
       });
+      trackAddToCart({
+  id: game.id,
+  title: game.title,
+  price: game.price,
+  quantity
+});
     }
   }
 };
@@ -163,6 +172,12 @@ const handleAddDrink = (drink: { id: string; title: string; price: number, quant
       gameDuration: 0, // Drinks have no duration
       type: 'drink',
     });
+    trackAddToCart({
+  id: drink.id,
+  title: drink.title,
+  price: drink.price,
+  quantity: currentQuantity + 1
+});
   }
 };
 
@@ -216,6 +231,12 @@ const handleRemoveDrink = (drinkId: string) => {
       alert('No games selected for checkout!');
       return;
     }
+    const total = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+
+  trackInitiateCheckout(total, cartItems);
     navigate('/checkout');
   };
 

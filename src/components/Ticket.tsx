@@ -3,7 +3,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logo from './logo/immersia.png';
 import { useParams as useRouterParams } from 'react-router-dom';
+import { trackPurchase } from '../utils/metaPixel';
 import  {useCartContext}  from './hooks/useCart'; // Adjust the import based on your project structure
+
+declare global {
+  interface Window {
+    fbq?: any;
+  }
+}
+
 
 interface CartItem {
   id: string;
@@ -45,6 +53,36 @@ const Ticket: React.FC = () => {
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const { setCart } = useCartContext(); // Adjust based on your hook/contexts
+
+  // 🔥 META PURCHASE TRACKING
+useEffect(() => {
+  if (!finalAmount || finalAmount <= 0) return;
+
+  if (window.fbq) {
+    window.fbq('track', 'Purchase', {
+      value: finalAmount,
+      currency: 'NGN',
+      content_type: 'product',
+      transaction_id: reference || undefined,
+      contents: cartItems.map(item => ({
+        id: item.id,
+        quantity: item.quantity
+      })),
+      num_items: cartItems.reduce((acc, item) => acc + item.quantity, 0)
+    });
+
+    console.log('✅ Meta Purchase Fired:', finalAmount);
+  } else {
+    console.warn('⚠️ fbq not available');
+  }
+}, [finalAmount]);
+
+useEffect(() => {
+  if (!finalAmount || !cartItems.length) return;
+
+  trackPurchase(finalAmount, cartItems, reference || undefined);
+
+}, [finalAmount]);
 
   useEffect(() => {
     const state = location.state as LocationState | null;
