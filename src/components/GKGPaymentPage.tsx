@@ -33,8 +33,7 @@ const GKGPaymentPage: React.FC = () => {
   const finalAmount = paymentMethod === 'GKG_CASH' ? originalAmount : Math.max(originalAmount - discountAmount, 0);
   const marketers = [
     'In House',
-    'K. Ese',
-    'Bolu',
+    'Kayode',
     'O. Judith',
   ];
 

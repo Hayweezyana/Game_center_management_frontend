@@ -34,8 +34,7 @@ const ImmersiaPaymentPage: React.FC = () => {
 
   const marketers = [
     'In House',
-    'K. Ese',
-    'Bolu',
+    'Kayode',
     'O. Judith',
 
   ];
