@@ -25,6 +25,7 @@
   padding: 18px;
   background: linear-gradient(130deg, rgba(12, 42, 65, 0.8), rgba(6, 23, 39, 0.82));
   box-shadow: 0 24px 40px rgba(0, 0, 0, 0.26);
+  animation: gsFadeUp 460ms ease-out both;
 }
 
 .title {
@@ -69,6 +70,8 @@
 .toolbar {
   max-width: 1300px;
   margin: 0 auto 10px;
+  animation: gsFadeUp 500ms ease-out both;
+  animation-delay: 80ms;
 }
 
 .searchBar {
@@ -115,6 +118,10 @@
   padding: 14px;
   background: var(--gs-panel);
   box-shadow: 0 18px 30px rgba(0, 0, 0, 0.24);
+  opacity: 0;
+  transform: translateY(14px) scale(0.985);
+  animation: gsCardIn 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--stagger, 0ms);
 }
 
 .cardHeader {
@@ -162,12 +169,24 @@
   background: #000;
   box-shadow: 0 20px 34px rgba(0, 0, 0, 0.42);
   cursor: pointer;
+  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
 }
 
 .videoFrame :global(iframe) {
   width: 100%;
   aspect-ratio: 16 / 9;
   display: block;
+  transition: transform 240ms ease;
+}
+
+.videoCard:hover .videoFrame {
+  border-color: rgba(36, 214, 255, 0.74);
+  box-shadow: 0 24px 36px rgba(5, 218, 255, 0.18);
+  transform: translateY(-2px);
+}
+
+.videoCard:hover .videoFrame :global(iframe) {
+  transform: scale(1.035);
 }
 
 .quantityControls {
@@ -297,6 +316,12 @@
   background: linear-gradient(135deg, var(--gs-accent), #99f0ff);
   box-shadow: 0 20px 32px rgba(14, 197, 241, 0.32);
   cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.checkoutButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 34px rgba(14, 197, 241, 0.42);
 }
 
 .checkoutButton:disabled {
@@ -320,5 +345,40 @@
 
   .addDrinkForm {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .headerPanel,
+  .toolbar,
+  .videoCard,
+  .videoFrame,
+  .videoFrame :global(iframe),
+  .checkoutButton {
+    animation: none;
+    transition: none;
+    transform: none;
+  }
+}
+
+@keyframes gsFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gsCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import YouTube from 'react-youtube';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -285,12 +285,13 @@ const GameSelection: React.FC = () => {
         <p className={styles.errorText}>{error}</p>
       ) : (
         <div className={styles.videoGrid}>
-          {filteredGames.map((game) => {
+          {filteredGames.map((game, index) => {
             const currentQty = getCartQuantity(game.id);
             const isOpen = selectedGameId === game.id;
+            const cardStyle = { ['--stagger' as any]: `${index * 55}ms` } as CSSProperties;
 
             return (
-              <article key={game.id} className={styles.videoCard}>
+              <article key={game.id} className={styles.videoCard} style={cardStyle}>
                 <div className={styles.cardHeader}>
                   <h2 className={styles.gameTitle}>{game.title}</h2>
                   <div className={styles.metaRow}>
