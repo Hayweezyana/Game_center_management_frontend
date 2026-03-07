@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import ReactMarkdown from 'react-markdown';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
+import './ReportPage.css';
 
 interface Transaction {
   id: string;
@@ -818,7 +819,7 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
 );
 
   return (
-    <div className="p-4">
+    <div className="report-page p-4">
       <style>
         {`@media print {
             body * {
@@ -835,13 +836,34 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
           }`}
       </style>
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-4">Sales Reports</h1>
+      <div className="report-shell mb-6">
+        <div className="report-hero mb-6">
+          <h1 className="text-2xl font-bold mb-2">Sales Reports</h1>
+          <p>Track performance, customer behavior, and payment-channel trends across your selected date range.</p>
+          <div className="report-hero-stats">
+            <div className="hero-stat">
+              <span>Total Sales</span>
+              <strong>{formatCurrency(totalSales)}</strong>
+            </div>
+            <div className="hero-stat">
+              <span>Records</span>
+              <strong>{totalFilteredRecords}</strong>
+            </div>
+            <div className="hero-stat">
+              <span>Payment Filter</span>
+              <strong>{selectedMethod === 'all' ? 'All Methods' : selectedMethod}</strong>
+            </div>
+            <div className="hero-stat">
+              <span>Game Filter</span>
+              <strong>{selectedGame || 'All Games'}</strong>
+            </div>
+          </div>
+        </div>
         
         {/* Date Range Selector */}
-        <div className="bg-white p-4 rounded shadow mb-6">
+        <div className="report-card report-filter-card bg-white p-4 rounded shadow mb-6">
           <h2 className="text-xl font-semibold mb-3">Select Date Range</h2>
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="report-filter-grid flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
               <input
@@ -851,7 +873,7 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
                   setStartDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full p-2 border rounded"
+                className="report-input w-full p-2 border rounded"
               />
             </div>
             <div className="flex-1">
@@ -863,12 +885,12 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
     setEndDate(e.target.value);
     setCurrentPage(1);
   }}
-  className="w-full p-2 border rounded"
+  className="report-input w-full p-2 border rounded"
 />
 <select
   value={selectedMethod}
   onChange={(e) => setSelectedMethod(e.target.value)}
-  className="w-full p-2 border rounded mt-2"
+  className="report-input w-full p-2 border rounded mt-2"
 >
   <option value="all">All</option>
   <option value="Funstation_Moniepoint">Funstation_Moniepoint</option>
@@ -880,10 +902,10 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
   <option value="GKG_CASH">GKG_CASH</option>
 </select>
             </div>
-            <select
+<select
   value={selectedGame}
   onChange={(e) => setSelectedGame(e.target.value)}
-  className="w-full p-2 border rounded mt-2"
+  className="report-input w-full p-2 border rounded mt-2"
 >
   <option value="">All Games</option>
   {Array.from(new Set(filteredRecords.map(r => r.game_title)))
@@ -897,7 +919,7 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
         </div>
 
         {/* AI Assistant Section */}
-        <div className="p-6 mb-6 bg-white shadow rounded">
+        <div className="report-card p-6 mb-6 bg-white shadow rounded">
           <h2 className="text-xl font-bold mb-2">AI Assistant</h2>
           <AIChatBox isAdmin={true} />
         </div>
@@ -905,35 +927,35 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
         {/* AI Insights Section */}
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-3">Fetch AI Insights</h2>
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="report-action-row flex flex-wrap gap-2 mb-4">
             <button 
               onClick={() => fetchAIInsights('daily')}
-              className="px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+              className="report-btn report-btn-secondary px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
             >
               Get Daily Insights
             </button>
             <button 
               onClick={() => fetchAIInsights('weekly')}
-              className="px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+              className="report-btn report-btn-secondary px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
             >
               Get Weekly Insights
             </button>
             <button 
               onClick={() => fetchAIInsights('monthly')}
-              className="px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+              className="report-btn report-btn-secondary px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
             >
               Get Monthly Insights
             </button>
             <button 
               onClick={() => fetchAIInsights('yearly')}
-              className="px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+              className="report-btn report-btn-secondary px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
             >
               Get Yearly Insights
             </button>
             <button 
               onClick={() => fetchAIInsights('custom', startDate, endDate)}
               disabled={!startDate || !endDate}
-              className="px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 disabled:opacity-50"
+              className="report-btn report-btn-secondary px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 disabled:opacity-50"
             >
               Get Custom Insights
             </button>
@@ -985,25 +1007,25 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
         {/* Reports Section */}
         <div id="print-area" className="space-y-6">
           {/* End of Day Summary */}
-          <div className="bg-white p-4 rounded shadow">
+          <div className="report-card bg-white p-4 rounded shadow">
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-xl font-semibold">End of Day Sales Summary</h2>
-              <div className="flex gap-2">
+              <div className="report-action-row flex gap-2">
                 <button 
                   onClick={exportToExcel}
-                  className="px-3 py-1 bg-green-100 text-green-800 rounded hover:bg-green-200"
+                  className="report-btn report-btn-success px-3 py-1 bg-green-100 text-green-800 rounded hover:bg-green-200"
                 >
                   Export to Excel
                 </button>
                 <button 
                   onClick={exportItemSalesToExcel}
-                  className="px-3 py-1 bg-green-100 text-green-800 rounded hover:bg-green-200"
+                  className="report-btn report-btn-success px-3 py-1 bg-green-100 text-green-800 rounded hover:bg-green-200"
                 >
                   Export Item Sales
                 </button>
                 <button 
                   onClick={handlePrint}
-                  className="px-3 py-1 bg-purple-100 text-purple-800 rounded hover:bg-purple-200"
+                  className="report-btn report-btn-accent px-3 py-1 bg-purple-100 text-purple-800 rounded hover:bg-purple-200"
                 >
                   Print Report
                 </button>
@@ -1024,7 +1046,7 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
 
             
             <div className="overflow-x-auto">
-              <table className="min-w-full border">
+              <table className="report-table min-w-full border">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
@@ -1066,10 +1088,10 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
           {/* Metrics Sections */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Best Selling Games */}
-            <div className="bg-white p-4 rounded shadow">
+            <div className="report-card bg-white p-4 rounded shadow">
               <h2 className="text-xl font-semibold mb-3">Best Selling Games</h2>
               <div className="overflow-x-auto">
-                <table className="min-w-full border">
+                <table className="report-table min-w-full border">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Game Title</th>
@@ -1104,10 +1126,10 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
             </div>
 
             {/* Least Selling Games */}
-            <div className="bg-white p-4 rounded shadow">
+            <div className="report-card bg-white p-4 rounded shadow">
               <h2 className="text-xl font-semibold mb-3">Least Selling Games</h2>
               <div className="overflow-x-auto">
-                <table className="min-w-full border">
+                <table className="report-table min-w-full border">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Game Title</th>
@@ -1135,10 +1157,10 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
             </div>
 
             {/* Highest Paying Customers */}
-            <div className="bg-white p-4 rounded shadow">
+            <div className="report-card bg-white p-4 rounded shadow">
               <h2 className="text-xl font-semibold mb-3">Highest Paying Customers</h2>
               <div className="overflow-x-auto">
-                <table className="min-w-full border">
+                <table className="report-table min-w-full border">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
@@ -1166,10 +1188,10 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
             </div>
 
             {/* Game Duration Stats */}
-            <div className="bg-white p-4 rounded shadow">
+            <div className="report-card bg-white p-4 rounded shadow">
               <h2 className="text-xl font-semibold mb-3">Game Duration Stats</h2>
               <div className="overflow-x-auto">
-                <table className="min-w-full border">
+                <table className="report-table min-w-full border">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Game Title</th>
@@ -1198,10 +1220,10 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
           </div>
 
           {/* Detailed Transaction Records */}
-          <div className="bg-white p-4 rounded shadow">
+          <div className="report-card bg-white p-4 rounded shadow">
             <h2 className="text-xl font-semibold mb-3">Detailed Transaction Records</h2>
             <div className="overflow-x-auto">
-              <table id="report-table" className="min-w-full border">
+              <table id="report-table" className="report-table min-w-full border">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
