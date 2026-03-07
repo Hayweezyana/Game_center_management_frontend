@@ -1,206 +1,324 @@
-.game-selection-container {
-    padding: 20px;
-    background-color: #f4f4f4;
-    text-align: center;
-  }
-
-  .searchBar {
-    width: 90%;
-    max-width: 400px;
-    padding: 10px;
-    font-size: 16px;
-    margin: 10px auto 20px auto;
-    display: block;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-  }
-  .searchBar::placeholder {
-    color: #999;
-  }  
-  
-  .title {
-    font-size: 24px;
-    font-weight: bold;
-    color: #2a9d8f;
-    margin-bottom: 20px;
-  }
-  
-  /* Video Grid */
-.video-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr); /* Two videos per row */
-  gap: 20px; /* Space between grid items */
-  width: 90%;
-  max-width: 1200px;
-  margin: 20px auto; /* Center the grid on the page */
-  padding: 10px;
+.page {
+  --gs-bg-a: #021021;
+  --gs-bg-b: #073451;
+  --gs-panel: rgba(6, 26, 42, 0.84);
+  --gs-line: rgba(123, 188, 220, 0.3);
+  --gs-text: #e8f6ff;
+  --gs-muted: #9cbad0;
+  --gs-accent: #24d6ff;
+  --gs-accent-soft: #8be9ff;
+  --gs-warm: #ffbf59;
+  min-height: 100vh;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(36, 214, 255, 0.2), transparent 38%),
+    radial-gradient(circle at 90% 10%, rgba(255, 191, 89, 0.16), transparent 30%),
+    linear-gradient(160deg, var(--gs-bg-a), var(--gs-bg-b));
+  color: var(--gs-text);
 }
 
-.video-container iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
+.headerPanel {
+  max-width: 1300px;
+  margin: 0 auto 16px;
+  border: 1px solid var(--gs-line);
+  border-radius: 18px;
+  padding: 18px;
+  background: linear-gradient(130deg, rgba(12, 42, 65, 0.8), rgba(6, 23, 39, 0.82));
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.26);
 }
 
-.video-container p {
-  margin-top: 10px;
+.title {
+  margin: 0;
+  font-size: clamp(1.55rem, 4vw, 2.2rem);
+  letter-spacing: 0.4px;
+}
+
+.subtitle {
+  margin: 8px 0 0;
+  color: var(--gs-muted);
   font-size: 1rem;
-  color: #d0c6c6;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Responsive Design: Single-column layout on smaller screens */
-@media (max-width: 768px) {
-  .video-grid {
-    grid-template-columns: 1fr; /* One video per row */
-  }
+.summaryGrid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
-  
-  .game-item {
-    width: 200px;
-    background-color: #020202;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 10px;
-    text-align: center;
-  }
-  
-  .game-title {
-    font-size: 18px;
-    font-weight: bold;
-    color: #333;
-  }
-  
-  .game-price {
-    font-size: 16px;
-    color: #333;
-  }
-  
-  .game-time_slot {
-    font-size: 14px;
-    color: #333;
-  }
-  
-  .quantity-input {
-    width: 100%;
-    max-width: 80px;
-    padding: 8px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: 1px solid #b9abab;
-    text-align: center;
-    margin-top: 10px;
-  }
-  /* Mobile responsiveness */
-  @media (max-width: 768px) {
-  .quantity-input {
-    max-width: 100%;
-    font-size: 18px;
-  }
+.summaryCard {
+  border: 1px solid var(--gs-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(0, 16, 27, 0.48);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
-  
-  .checkout-button {
-    width: 100%;
-    max-width: 200px;
-    background-color: #2a9d8f;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-size: 18px;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-    .checkout-button:hover {
-      background-color: #218838;
-    }
+.summaryCard span {
+  color: var(--gs-muted);
+  font-size: 0.85rem;
+}
 
-    .quantity-controls {
+.summaryCard strong {
+  font-size: 1.2rem;
+  color: var(--gs-accent-soft);
+}
+
+.toolbar {
+  max-width: 1300px;
+  margin: 0 auto 10px;
+}
+
+.searchBar {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--gs-line);
+  background: rgba(1, 12, 23, 0.74);
+  color: var(--gs-text);
+  padding: 12px 14px;
+  outline: none;
+  font-size: 0.98rem;
+}
+
+.searchBar::placeholder {
+  color: #83a6bc;
+}
+
+.searchBar:focus {
+  border-color: rgba(36, 214, 255, 0.8);
+  box-shadow: 0 0 0 2px rgba(36, 214, 255, 0.2);
+}
+
+.stateText {
+  text-align: center;
+  color: var(--gs-muted);
+}
+
+.errorText {
+  text-align: center;
+  color: #ffc2c2;
+}
+
+.videoGrid {
+  max-width: 1300px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 14px;
+}
+
+.videoCard {
+  border: 1px solid var(--gs-line);
+  border-radius: 16px;
+  padding: 14px;
+  background: var(--gs-panel);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.24);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gameTitle {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.metaRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.priceTag,
+.durationTag {
+  border: 1px solid var(--gs-line);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  background: rgba(0, 15, 28, 0.66);
+}
+
+.priceTag {
+  color: var(--gs-warm);
+}
+
+.durationTag {
+  color: var(--gs-accent-soft);
+}
+
+.videoFrame {
+  margin-top: 10px;
+  width: 100%;
+  border: 1px solid rgba(70, 163, 206, 0.45);
+  border-radius: 14px;
+  overflow: hidden;
+  padding: 0;
+  background: #000;
+  box-shadow: 0 20px 34px rgba(0, 0, 0, 0.42);
+  cursor: pointer;
+}
+
+.videoFrame :global(iframe) {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+}
+
+.quantityControls {
+  margin-top: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 0.5rem;
+  gap: 10px;
 }
 
-.quantity-button {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 0.3rem 0.6rem;
-  margin: 0 0.5rem;
-  font-size: 1.2rem;
-  border-radius: 4px;
+.qtyButton {
+  border: 1px solid var(--gs-line);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(3, 23, 37, 0.84);
+  color: var(--gs-text);
   cursor: pointer;
 }
 
-.quantity-display {
-  font-size: 1.2rem;
-  min-width: 2rem;
+.qtyButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.quantityInput {
+  width: 66px;
+  border-radius: 10px;
+  border: 1px solid var(--gs-line);
+  background: rgba(0, 17, 30, 0.7);
+  color: var(--gs-text);
+  padding: 8px;
   text-align: center;
 }
 
-.add-drink-toggle {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
+.drinkList {
+  margin-top: 12px;
+  border-top: 1px solid rgba(123, 188, 220, 0.24);
+  padding-top: 10px;
+}
+
+.drinkHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.drinkHead h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.addDrinkToggle {
+  border: 1px solid rgba(36, 214, 255, 0.5);
+  background: rgba(11, 56, 86, 0.75);
+  color: var(--gs-text);
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
   cursor: pointer;
 }
 
-.add-drink-form {
-  margin-top: 1rem;
+.addDrinkForm {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.addDrinkForm input,
+.addDrinkForm button {
+  border-radius: 10px;
+  border: 1px solid var(--gs-line);
+  padding: 8px 10px;
+  background: rgba(0, 17, 30, 0.72);
+  color: var(--gs-text);
+}
+
+.addDrinkForm button {
+  background: linear-gradient(135deg, var(--gs-accent), #7ae8ff);
+  color: #022238;
+  font-weight: 700;
+}
+
+.drinkItem {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(115, 170, 198, 0.25);
+  border-radius: 11px;
+  padding: 8px 10px;
+  background: rgba(4, 22, 35, 0.7);
+  margin-top: 8px;
 }
 
-.add-drink-form input {
-  padding: 0.4rem;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+.drinkName {
+  font-size: 0.9rem;
+  color: #d9efff;
 }
 
-.add-drink-form button {
-  background-color: #28a745;
-  color: white;
-  padding: 0.4rem;
+.drinkControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drinkQty {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.checkoutButton {
+  position: sticky;
+  bottom: 14px;
+  display: block;
+  margin: 20px auto 8px;
   border: none;
-  border-radius: 4px;
-}
-
-.add-drink-toggle {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
+  border-radius: 14px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #02243b;
+  background: linear-gradient(135deg, var(--gs-accent), #99f0ff);
+  box-shadow: 0 20px 32px rgba(14, 197, 241, 0.32);
   cursor: pointer;
 }
 
-.add-drink-form {
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.checkoutButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.add-drink-form input {
-  padding: 0.4rem;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-.add-drink-form button {
-  background-color: #28a745;
-  color: white;
-  padding: 0.4rem;
-  border: none;
-  border-radius: 4px;
-}
+@media (max-width: 860px) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
   }
-  
+
+  .videoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .addDrinkForm {
+    grid-template-columns: 1fr;
+  }
+}
