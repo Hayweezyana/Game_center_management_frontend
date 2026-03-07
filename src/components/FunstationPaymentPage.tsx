@@ -12,6 +12,13 @@ import './CheckoutExperience.css';
 import { useCartContext } from './hooks/useCart';
 
 const formatNaira = (amount: number) => `N${amount.toLocaleString()}`;
+const isValidEmail = (email?: string) => Boolean(email && /\S+@\S+\.\S+/.test(email));
+const getApiErrorMessage = (error: any) =>
+  error?.response?.data?.error ||
+  error?.response?.data?.message ||
+  (typeof error?.response?.data?.details === 'string' ? error.response.data.details : '') ||
+  error?.message ||
+  'Request failed';
 
 const FunstationPaymentPage: React.FC = () => {
   const location = useLocation();
@@ -75,6 +82,7 @@ const FunstationPaymentPage: React.FC = () => {
 
   const handlePOSPayment = async () => {
     if (!selectedMarketer) return alert('Please select a staff before proceeding');
+    if (finalAmount <= 0) return alert('Amount must be greater than zero.');
     if (discountAmount > 0 && (!discountReason || (discountReason === 'Others' && customDiscountReason.trim() === ''))) {
       return alert('Please select or enter a valid discount reason');
     }
@@ -84,21 +92,30 @@ const FunstationPaymentPage: React.FC = () => {
       setStatus('Initiating payment on Funstation terminal...');
       const merchantRef = merchantReference || transactionId;
       const posAmountKobo = Math.round(finalAmount * 100);
+      const terminalSerial = process.env.REACT_APP_TERMINAL_SERIAL_FUNSTATION;
+      if (!terminalSerial) {
+        throw new Error('Funstation terminal serial is not configured.');
+      }
+      const sanitizedUserDetails = {
+        username: userDetails.username,
+        phone: userDetails.phone,
+        ...(isValidEmail(userDetails.email) ? { email: userDetails.email } : {}),
+      };
 
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
         amount: posAmountKobo,
         cartAmountKobo: posAmountKobo,
-        terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_FUNSTATION,
+        terminalSerial,
         transactionType: 'PURCHASE',
         PaymentMethod: 'FUNSTATION_POS',
         merchantReference: merchantRef,
         provider_metadata: {
           username: userDetails.username,
           phone: userDetails.phone,
-          email: userDetails.email,
+          ...(isValidEmail(userDetails.email) ? { email: userDetails.email } : {}),
         },
         checkoutPayload: {
-          userDetails,
+          userDetails: sanitizedUserDetails,
           cartItems,
           discount: discountAmount,
           discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
@@ -113,8 +130,9 @@ const FunstationPaymentPage: React.FC = () => {
         setStatus('Payment initiation failed. Try again.');
       }
     } catch (error: any) {
+      const msg = getApiErrorMessage(error);
       console.error('Error initiating payment:', error.response?.data || error.message);
-      setStatus('Error initiating transaction on terminal.');
+      setStatus(`Error initiating transaction on terminal: ${msg}`);
     } finally {
       setLoading(false);
     }
