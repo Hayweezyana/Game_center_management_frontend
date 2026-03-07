@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCartContext } from './hooks/useCart';
 import axios from 'axios';
 import './checkout.css';
+import './CheckoutExperience.css';
 import CartAndPayment from './CartAndPayment';
 import UserDetails from './UserDetails';
 import PaymentSelection from './PaymentSelection';
@@ -99,14 +100,18 @@ const Checkout: React.FC = () => {
   };
 
   return (
-    <div className="checkout-container">
-      <h1>Checkout</h1>
-
+    <div className="checkout-shell">
+      <div className="checkout-glass">
+        <div className="checkout-hero">
+          <h1>Checkout Arena</h1>
+          <p>Review your cart, confirm player details, then choose a payment terminal.</p>
+        </div>
+        <div className="checkout-content">
       <div className="checkout-steps">
         {steps.map((label, index) => (
-          <div key={label} className={`step ${index <= stepIndex ? 'active' : ''}`}>
-            <div className="step-number">{index + 1}</div>
-            <div className="step-label">{label}</div>
+          <div key={label} className={`checkout-step ${index <= stepIndex ? 'active' : ''}`}>
+            <div className="checkout-step-number">{index + 1}</div>
+            <div className="checkout-step-label">{label}</div>
           </div>
         ))}
       </div>
@@ -142,10 +147,12 @@ const Checkout: React.FC = () => {
       )}
 
       {currentStep !== 'cart' && (
-        <div className="navigation-buttons">
-          <button className="back-button" onClick={handleBack}>Back</button>
+        <div className="checkout-actions">
+          <button className="checkout-btn checkout-btn-secondary" onClick={handleBack}>Back</button>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 };

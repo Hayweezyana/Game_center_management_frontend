@@ -1,152 +1,160 @@
-/* Admin.css */
-
-/* General Styles */
-body {
-    font-family: 'Arial', sans-serif;
-    background-color: #f4f4f9;
-    color: #333;
-    margin: 0;
-    padding: 0;
-}
-
 .admin-container {
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #fff;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
+  --bg: #f4f7fb;
+  --panel: #ffffff;
+  --line: #dbe3f0;
+  --text: #13233f;
+  --muted: #5f7498;
+  --primary: #1d6ef2;
+  --primary-strong: #1357c4;
+  --danger: #c13a4b;
+
+  max-width: 1240px;
+  margin: 18px auto;
+  padding: 20px;
+  background: var(--bg);
+  border-radius: 16px;
+  color: var(--text);
 }
 
-h1, h2, h3 {
-    color: #2c3e50;
+.admin-hero {
+  background: linear-gradient(130deg, #0e2b57, #1b4a8b);
+  color: #f4f8ff;
+  padding: 22px;
+  border-radius: 14px;
+  margin-bottom: 16px;
 }
 
-h1 {
-    text-align: center;
-    margin-bottom: 20px;
+.admin-hero h1 {
+  margin: 0 0 8px;
 }
 
-h2 {
-    margin-top: 30px;
-    margin-bottom: 15px;
-    border-bottom: 2px solid #3498db;
-    padding-bottom: 5px;
+.admin-hero p {
+  margin: 0;
+  color: #d6e5ff;
 }
 
-h3 {
-    margin-top: 20px;
-    margin-bottom: 10px;
+.admin-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0 18px;
 }
 
-/* Form Styles */
-.create-user-form, .add-game-form, .pc-management {
-    margin-bottom: 30px;
+.admin-container h2 {
+  margin-top: 22px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #bfd0eb;
 }
 
-input, select, button {
-    padding: 10px;
-    margin: 5px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
+.admin-container section,
+.add-game-form,
+.pc-management {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 18px;
 }
 
-input:focus, select:focus {
-    border-color: #3498db;
-    outline: none;
+.admin-container input,
+.admin-container select,
+.admin-container button {
+  border-radius: 9px;
+  border: 1px solid #c8d6ea;
+  padding: 9px 11px;
+  font-size: 14px;
+  margin: 4px;
 }
 
-button {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+.admin-container input,
+.admin-container select {
+  background: #fff;
 }
 
-button:hover {
-    background-color: #2980b9;
+.admin-container input:focus,
+.admin-container select:focus {
+  outline: none;
+  border-color: #66a2ff;
+  box-shadow: 0 0 0 2px rgba(29, 110, 242, 0.14);
 }
 
-/* Table Styles */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
+.admin-container button {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
 }
 
-table th, table td {
+.admin-container button:hover {
+  background: var(--primary-strong);
+  border-color: var(--primary-strong);
+}
+
+.admin-container .danger-btn {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.admin-container .danger-btn:hover {
+  background: #a92f3f;
+  border-color: #a92f3f;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid #e3ebf7;
+  padding: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-table th {
+  background: #edf3ff;
+  color: #24426f;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-table tr:hover {
+  background: #f8fbff;
+}
+
+.admin-table td {
+  color: #1d2d48;
+}
+
+.admin-table input {
+  width: calc(100% - 12px);
+  min-width: 120px;
+}
+
+@media (max-width: 900px) {
+  .admin-container {
+    margin: 0;
+    border-radius: 0;
     padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-}
+  }
 
-table th {
-    background-color: #3498db;
-    color: white;
-}
+  .admin-action-row button {
+    flex: 1 1 180px;
+  }
 
-table tr:hover {
-    background-color: #f1f1f1;
-}
-
-/* Reports Section */
-.reports-section {
-    margin-top: 30px;
-}
-
-.reports-section label {
-    margin-right: 10px;
-    font-weight: bold;
-}
-
-.reports-section input[type="date"] {
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .admin-container {
-        padding: 10px;
-    }
-
-    input, select, button {
-        width: 100%;
-        margin: 5px 0;
-    }
-
-    table, thead, tbody, th, td, tr {
-        display: block;
-    }
-
-    table th {
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
-    }
-
-    table tr {
-        border: 1px solid #ccc;
-        margin-bottom: 10px;
-    }
-
-    table td {
-        border: none;
-        position: relative;
-        padding-left: 50%;
-    }
-
-    table td:before {
-        position: absolute;
-        top: 6px;
-        left: 6px;
-        width: 45%;
-        padding-right: 10px;
-        white-space: nowrap;
-        content: attr(data-label);
-        font-weight: bold;
-    }
+  .admin-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
 }

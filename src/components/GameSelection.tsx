@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { FaPlus, FaMinus } from 'react-icons/fa';
 import { trackAddToCart } from '../utils/metaPixel';
 import { trackInitiateCheckout } from '../utils/metaPixel';
+import { getRoutePrefetchProps } from '../utils/routePrefetch';
 
 import { set } from 'lodash';
 
@@ -357,6 +358,7 @@ const handleRemoveDrink = (drinkId: string) => {
         className={styles['checkout-button']}
         onClick={handleCheckout}
         disabled={loading || !!error || cartItems.length === 0}
+        {...getRoutePrefetchProps('/checkout')}
       >
         Checkout
       </button>

@@ -5,6 +5,7 @@ import './Admin.css';
 import { io, Socket } from 'socket.io-client';
 import { UUID } from "crypto";
 import CreateAdminForm from './CreateAdminForm';
+import { getRoutePrefetchProps } from '../../utils/routePrefetch';
 
 interface PC {
     id: string;
@@ -262,18 +263,23 @@ const Admin: React.FC = () => {
 
     return (
     <div className="admin-container">
-        <h1>Welcome Admin!</h1>
+        <div className="admin-hero">
+            <h1>Immersia Admin Console</h1>
+            <p>Control games, PCs, operators, reports, and platform activity from one board.</p>
+        </div>
         {/* User Management */}
         {/* Report button */}
-        <button onClick={() => navigate('/PCLockDashboard')}>PC Lock Dashboard</button>
-    <button onClick={() => navigate('/report')}>View Reports</button>
-    <button onClick={handleDrinkInventory}>Drink Dashboard</button>
-        <button onClick={handleOperatorConsumedReport}>Operator Consumed Games Report</button>
+        <div className="admin-action-row">
+            <button onClick={() => navigate('/PCLockDashboard')}>PC Lock Dashboard</button>
+            <button onClick={() => navigate('/report')} {...getRoutePrefetchProps('/report')}>View Reports</button>
+            <button onClick={handleDrinkInventory}>Drink Dashboard</button>
+            <button onClick={handleOperatorConsumedReport}>Operator Consumed Games Report</button>
+        </div>
         <h2>Manage Admins</h2>
         <section>
             <CreateAdminForm />
         </section>
-        <table>
+        <table className="admin-table">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -300,11 +306,12 @@ const Admin: React.FC = () => {
 
             {/* Game Management */}
             <h2>Edit Games</h2>
-            <table>
+            <table className="admin-table">
                 <thead>
                     <tr>
-                    <th>ID</th><th>New Duration</th>
+                        <th>ID</th>
                         <th>Current Duration (Minutes)</th>
+                        <th>New Duration</th>
                         <th>Title</th>
                         <th>URL</th>
                         <th>Price</th>
@@ -315,17 +322,8 @@ const Admin: React.FC = () => {
                     {games.map((game) => (
                         <tr key={game.id}>
                             <td>{game.id}</td>
+                            <td>{game.time_slot}</td>
                             <td>
-                                <input
-                                    type="number"
-                                    value={updatedGameFields[game.id]?.time_slot || ''}
-                                    onChange={(e) =>
-                                        handleFieldChange(game.id, 'time_slot', parseInt(e.target.value, 10)
-                                    )
-                                    
-                                    }
-                                />
-                            </td>
                                 <input
                                     type="number"
                                     placeholder={game.time_slot.toString()}
@@ -335,41 +333,42 @@ const Admin: React.FC = () => {
                                     )
                                     
                                     }
-                                    />
-                                    <td>
-                                    <input
-                                        type="text"
-                                        placeholder={game.title}
-                                        value={updatedGameFields[game.id]?.title || ''}
-                                        onChange={(e) =>
-                                            handleFieldChange(game.id, 'title', e.target.value)
-                                        }
-                                    />
-                                </td>
-                                <td>
-                                    <input
-                                        type="text"
-                                        placeholder={game.url}
-                                        value={updatedGameFields[game.id]?.url || ''}
-                                        onChange={(e) =>
-                                            handleFieldChange(game.id, 'url', e.target.value)
-                                        }
-                                    />
-                                </td>
-                                <td>
-                                    <input
-                                        type="number"
-                                        placeholder={game.price.toString()}
-                                        value={updatedGameFields[game.id]?.price || ''}
-                                        onChange={(e) =>
-                                            handleFieldChange(
-                                                game.id,
-                                                'price',
-                                                parseFloat(e.target.value)
-                                            )
-                                        }
-                                    />
-                                </td>
+                                />
+                            </td>
+                            <td>
+                                <input
+                                    type="text"
+                                    placeholder={game.title}
+                                    value={updatedGameFields[game.id]?.title || ''}
+                                    onChange={(e) =>
+                                        handleFieldChange(game.id, 'title', e.target.value)
+                                    }
+                                />
+                            </td>
+                            <td>
+                                <input
+                                    type="text"
+                                    placeholder={game.url}
+                                    value={updatedGameFields[game.id]?.url || ''}
+                                    onChange={(e) =>
+                                        handleFieldChange(game.id, 'url', e.target.value)
+                                    }
+                                />
+                            </td>
+                            <td>
+                                <input
+                                    type="number"
+                                    placeholder={game.price.toString()}
+                                    value={updatedGameFields[game.id]?.price || ''}
+                                    onChange={(e) =>
+                                        handleFieldChange(
+                                            game.id,
+                                            'price',
+                                            parseFloat(e.target.value)
+                                        )
+                                    }
+                                />
+                            </td>
                             <td>
                                 <button onClick={() => handleUpdateGame(game.id)}>Update</button>
                             </td>
@@ -413,7 +412,7 @@ const Admin: React.FC = () => {
             {/* PC Management Section */}
             <div className="pc-management">
                 <h2>Manage PCs</h2>
-                <table>
+                <table className="admin-table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -477,7 +476,7 @@ const Admin: React.FC = () => {
     <button onClick={() => navigate('/moniepointdashboard')}>View Moniepoint Transactions</button>
     {/* View Users button */}
     {/* Logout button */}
-    <button onClick={handleLogout}>Logout</button>
+    <button className="danger-btn" onClick={handleLogout}>Logout</button>
 </div>
         
     );

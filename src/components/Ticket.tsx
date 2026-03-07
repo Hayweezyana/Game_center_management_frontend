@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logo from './logo/immersia.png';
-import { useParams as useRouterParams } from 'react-router-dom';
 import { trackPurchase } from '../utils/metaPixel';
 import  {useCartContext}  from './hooks/useCart'; // Adjust the import based on your project structure
 
@@ -93,7 +92,7 @@ useEffect(() => {
       setReference(ref);
       setCartItems(state.cartItems || []);
       setTotalAmount(state.finalAmount || 0);
-      setDateTime(state.dateTime || '');
+      setDateTime(state.dateTime || new Date().toISOString());
       setAdminName(state.adminName || '');
       setDiscount(state.discount || 0);
       setUserDetails(state.userDetails || null);
@@ -152,10 +151,12 @@ useEffect(() => {
     );
   }
 
-  const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr);
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-};
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return 'N/A';
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
 
   
 
@@ -180,7 +181,7 @@ useEffect(() => {
             <strong>Username:</strong> {userDetails?.username || 'N/A'}
           </p>
           <p>
-            <strong>Date & Time:</strong> {formatDate(dateTime) || 'N/A'}
+            <strong>Date & Time:</strong> {formatDate(dateTime)}
           </p>
         </div>
 
@@ -345,7 +346,3 @@ const styles = {
     cursor: 'pointer'
   }
 };
-
-function useParams<T extends string | Record<string, string | undefined>>() {
-  return useRouterParams<T>();
-}

@@ -35,10 +35,12 @@ interface TransactionPayment {
 }
 
 interface TransactionDrinks {
+  transaction_id?: string;
   drink_id: string;
   drink_title: string;
   drink_price: number;
   drink_quantity: number;
+  total_price?: number;
 }
 
 interface CombinedRecord {
@@ -114,7 +116,7 @@ const Report: React.FC = () => {
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [totalRecords, setTotalRecords] = useState(0);
+  const [transactionPaymentsRaw, setTransactionPaymentsRaw] = useState<TransactionPayment[]>([]);
   
   // State for loading and AI
   const [loading, setLoading] = useState<boolean>(false);
@@ -127,25 +129,52 @@ const Report: React.FC = () => {
   const [salesTrend, setSalesTrend] = useState([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
 
-  const [selectedGames, setSelectedGames] = useState<string[]>([]);
-
 const filteredRecords = useMemo(() => {
-  return records.filter(r => {
-    if (selectedGames.length && !selectedGames.includes(r.game_title)) return false;
+  return records.filter((record) => {
+    if (selectedGame && record.game_title !== selectedGame) return false;
     return true;
   });
-}, [records, selectedGames]);
+}, [records, selectedGame]);
 
-  const totalSales = useMemo(() => {
-  const txMap = new Map<string, number>();
+const totalFilteredRecords = filteredRecords.length;
+const totalPages = Math.max(1, Math.ceil(totalFilteredRecords / itemsPerPage));
 
-  filteredRecords.forEach(r => {
-    const prev = txMap.get(r.id) || 0;
-    txMap.set(r.id, Math.max(prev, r.amount));
+const paginatedRecords = useMemo(() => {
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  return filteredRecords.slice(startIndex, startIndex + itemsPerPage);
+}, [filteredRecords, currentPage, itemsPerPage]);
+
+const filteredAmountByTransaction = useMemo(() => {
+  const map = new Map<string, number>();
+  filteredRecords.forEach((record) => {
+    map.set(record.id, (map.get(record.id) || 0) + Number(record.amount || 0));
   });
-
-  return Array.from(txMap.values()).reduce((a, b) => a + b, 0);
+  return map;
 }, [filteredRecords]);
+
+const visibleTransactionIds = useMemo(() => {
+  return new Set(filteredRecords.map((record) => record.id));
+}, [filteredRecords]);
+
+const paymentTotalsByTransaction = useMemo(() => {
+  const map = new Map<string, number>();
+  transactionPaymentsRaw.forEach((payment) => {
+    map.set(
+      payment.transaction_id,
+      (map.get(payment.transaction_id) || 0) + Number(payment.amount || 0)
+    );
+  });
+  return map;
+}, [transactionPaymentsRaw]);
+
+const totalSales = useMemo(() => {
+  if (!selectedGame) {
+    return Array.from(visibleTransactionIds).reduce((sum, txId) => {
+      return sum + (paymentTotalsByTransaction.get(txId) || 0);
+    }, 0);
+  }
+  return Array.from(filteredAmountByTransaction.values()).reduce((sum, amount) => sum + amount, 0);
+}, [selectedGame, visibleTransactionIds, paymentTotalsByTransaction, filteredAmountByTransaction]);
 
 
 
@@ -165,18 +194,6 @@ const filteredRecords = useMemo(() => {
     return date.toISOString();
   };
 
-  const parseDateWithoutTimezone = (dateString: string) => {
-  const parts = dateString.split('-');
-  return new Date(
-    parseInt(parts[0]), // year
-    parseInt(parts[1]) - 1, // month (0-indexed)
-    parseInt(parts[2]) // day
-  );
-};
-
-      const formattedStart = formatDateForQuery(startDate, false);
-const formattedEnd = formatDateForQuery(endDate, true);
-
       const fetchAllData = async () => {
   if (!startDate || !endDate) return;
 
@@ -195,15 +212,13 @@ const formattedEnd = formatDateForQuery(endDate, true);
 
     console.log("Selected Method (Frontend):", selectedMethod);
 
-    const shouldPaginate = !selectedGame;
-
     const requests = [
       axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactions`, {
         params: {
           startDate: formattedStart,
           endDate: formattedEnd,
-          page: shouldPaginate ? currentPage : 1,
-    limit: shouldPaginate ? itemsPerPage : 100000,
+          page: 1,
+          limit: 100000,
           ...(selectedMethod !== 'all' && { payment_method: selectedMethod }),
         },
         timeout: 30000,
@@ -233,11 +248,10 @@ const formattedEnd = formatDateForQuery(endDate, true);
       return res.value;
     });
 
-      setTotalRecords(transactionsRes.data.pagination?.total || 0);
-
       const transactions: Transaction[] = transactionsRes.data.data?.data || [];
       const transactionItems: TransactionItem[] = itemsRes.data.data?.data || [];
       const transactionPayments: TransactionPayment[] = paymentsRes.data.data?.data || [];
+      setTransactionPaymentsRaw(transactionPayments);
       console.log("All payments:", transactionPayments);
 
       const transactionDrinks: TransactionDrinks[] = drinksRes.data.data?.data || [];
@@ -252,7 +266,13 @@ const formattedEnd = formatDateForQuery(endDate, true);
       // Combine the data
       const combined: CombinedRecord[] = [];
       transactions.forEach((txn) => {
-        const drinksItems = transactionDrinks.filter(drink => (drink as any).drinks_id === txn.id);
+        const drinksItems = transactionDrinks.filter((drink) => {
+          const drinkTxnId =
+            (drink as any).transaction_id ||
+            (drink as any).transactionId ||
+            (drink as any).drinks_id;
+          return drinkTxnId === txn.id;
+        });
         const gameItems = transactionItems.filter((item) => item.transaction_id === txn.id);
         const payments = transactionPayments.filter((p) => p.transaction_id === txn.id);
 
@@ -260,38 +280,53 @@ const formattedEnd = formatDateForQuery(endDate, true);
         const rawTotalPayment = payments.reduce((sum, p) => sum + p.amount, 0);
         const totalPayment = rawTotalPayment;
 
-
-
-
-        console.log("Game Price Map:", gamePriceMap);
-
-        let totalGameCost = 0;
-        const itemCosts: { item: TransactionItem; cost: number }[] = [];
-
-        gameItems.forEach((item) => {
-          console.log("Current item ID:", item.game_id);
-          console.log('Transaction:', txn.username, txn.id);
-          console.log('Payments:', payments);
-          console.log('Items:', gameItems);
-          console.log('Total Payment:', totalPayment);
-
-          const price = gamePriceMap.get(item.game_id) || 0;
-          let cost: number;
+        const gameEntries = gameItems.map((item) => {
+          const unitPrice = gamePriceMap.get(item.game_id) || 0;
+          let cost = unitPrice * item.game_quantity;
           if (item.game_title === '360 Video Booth') {
-            const regularPrice = price;
             const extraQty = Math.max(0, item.game_quantity - 1);
-            cost = regularPrice + extraQty * 2500;
-          } else {
-            cost = price * item.game_quantity;
+            cost = unitPrice + extraQty * 2500;
           }
-          totalGameCost += cost;
-          itemCosts.push({ item, cost });
+          return { item, cost: Math.max(0, cost) };
         });
 
-        itemCosts.forEach(({ item, cost }) => {
-    const shareRatio = cost / totalGameCost;
-  const amount = totalPayment * shareRatio;
+        const drinkEntries = drinksItems.map((drink) => {
+          const fallbackTotal = Number(drink.drink_price || 0) * Number(drink.drink_quantity || 0);
+          const total = Number((drink as any).total_price ?? fallbackTotal);
+          return { drink, cost: Math.max(0, total) };
+        });
 
+        const totalBasketCost =
+          gameEntries.reduce((sum, entry) => sum + entry.cost, 0) +
+          drinkEntries.reduce((sum, entry) => sum + entry.cost, 0);
+
+        if (totalBasketCost <= 0) {
+          combined.push({
+            id: txn.id,
+            username: txn.username,
+            phone: txn.phone,
+            email: txn.email,
+            discount: txn.discount,
+            discount_description: txn.discount_description,
+            game_id: '',
+            game_title: '',
+            game_quantity: 0,
+            game_duration: 0,
+            drink_id: '',
+            drink_price: 0,
+            drink_quantity: 0,
+            drink_title: '',
+            payment_methods: paymentMethods,
+            amount: totalPayment,
+            reference: txn.reference,
+            merchantReference: txn.merchantReference,
+            created_at: txn.created_at,
+          });
+          return;
+        }
+
+        gameEntries.forEach(({ item, cost }) => {
+          const amount = totalPayment * (cost / totalBasketCost);
           combined.push({
             id: txn.id,
             username: txn.username,
@@ -308,41 +343,38 @@ const formattedEnd = formatDateForQuery(endDate, true);
             drink_quantity: 0,
             drink_title: '',
             payment_methods: paymentMethods,
-            amount: parseFloat(amount.toFixed(2)),
+            amount,
             reference: txn.reference,
             merchantReference: txn.merchantReference,
             created_at: txn.created_at,
           });
         });
 
-      drinksItems.forEach(drink => {
-         console.log('Transaction:', txn.username, txn.id);
-          console.log('Payments:', payments);
-          console.log('Items:', drinksItems);
-          console.log('Total Payment:', totalPayment);
-    combined.push({
-      id: txn.id,
-      username: txn.username,
-      phone: txn.phone,
-      email: txn.email,
-      discount: txn.discount,
-      discount_description: txn.discount_description,
-      game_id: '',
-      game_title: '',
-      game_quantity: 0,
-      game_duration: 0,
-      drink_id: drink.drink_id,
-      drink_price: drink.drink_price,
-      drink_quantity: drink.drink_quantity,
-      drink_title: drink.drink_title,
-      payment_methods: paymentMethods,
-      amount: parseFloat((drink.drink_price * drink.drink_quantity).toFixed(2)),
-      reference: txn.reference,
-      merchantReference: txn.merchantReference,
-      created_at: txn.created_at,
-    });
-  });
-});
+        drinkEntries.forEach(({ drink, cost }) => {
+          const amount = totalPayment * (cost / totalBasketCost);
+          combined.push({
+            id: txn.id,
+            username: txn.username,
+            phone: txn.phone,
+            email: txn.email,
+            discount: txn.discount,
+            discount_description: txn.discount_description,
+            game_id: '',
+            game_title: '',
+            game_quantity: 0,
+            game_duration: 0,
+            drink_id: drink.drink_id,
+            drink_price: drink.drink_price,
+            drink_quantity: drink.drink_quantity,
+            drink_title: drink.drink_title,
+            payment_methods: paymentMethods,
+            amount,
+            reference: txn.reference,
+            merchantReference: txn.merchantReference,
+            created_at: txn.created_at,
+          });
+        });
+      });
 
       setRecords(combined);
       setEndOfDaySummary(combined);
@@ -381,14 +413,12 @@ const formattedEnd = formatDateForQuery(endDate, true);
   const calculateMetrics = (filteredRecords: CombinedRecord[]) => {
     // Best/Least Selling Games
     const gameSales = filteredRecords.reduce((acc, record) => {
+      if (!record.game_title) {
+        return acc;
+      }
       acc[record.game_title] = (acc[record.game_title] || 0) + record.game_quantity;
       return acc;
     }, {} as { [key: string]: number });
-
-    const chartData = Object.entries(gameSales).map(([title, quantity]) => ({
-  name: title,
-  quantity,
-}));
 
     const sortedGames = Object.entries(gameSales).sort((a, b) => b[1] - a[1]);
     setBestSellingGames(sortedGames.map(([title, qty]) => ({ game_title: title, game_quantity: qty })));
@@ -408,6 +438,9 @@ const formattedEnd = formatDateForQuery(endDate, true);
 
     // Game Duration Stats
     const gameDurations = filteredRecords.reduce((acc, record) => {
+      if (!record.game_title) {
+        return acc;
+      }
       acc[record.game_title] = (acc[record.game_title] || 0) + record.game_duration * record.game_quantity;
       return acc;
     }, {} as { [key: string]: number });
@@ -533,17 +566,15 @@ const formattedEnd = formatDateForQuery(endDate, true);
 
   // Pagination controls component
   const PaginationControls = () => {
-    const totalPages = Math.ceil(totalRecords / itemsPerPage);
-
     return (
       <div className="flex items-center justify-between mt-4">
         <div>
           <span className="text-sm text-gray-700">
-            Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+            Showing <span className="font-medium">{totalFilteredRecords === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> to{' '}
             <span className="font-medium">
-              {Math.min(currentPage * itemsPerPage, totalRecords)}
+              {Math.min(currentPage * itemsPerPage, totalFilteredRecords)}
             </span>{' '}
-            of <span className="font-medium">{totalRecords}</span> results
+            of <span className="font-medium">{totalFilteredRecords}</span> results
           </span>
         </div>
         
@@ -721,13 +752,17 @@ const formattedEnd = formatDateForQuery(endDate, true);
     }, 300);
     
     return () => clearTimeout(fetchData);
-  }, [startDate, endDate, currentPage, itemsPerPage]);
+  }, [startDate, endDate, selectedMethod]);
 
-useEffect(() => {
-  if (selectedMethod !== null) {
-    fetchAllData();
-  }
-}, [selectedMethod]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedGame, selectedMethod, startDate, endDate, itemsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-NG', {
@@ -736,20 +771,37 @@ useEffect(() => {
     minimumFractionDigits: 0,
   }).format(amount);
 
-const [salesPerMethod, setSalesPerMethod] = useState<Record<string, number>>({});
-
-useEffect(() => {
+const salesPerMethod = useMemo(() => {
   const salesByMethod = new Map<string, number>();
-  filteredRecords.forEach((record) => {
-    const methods = record.payment_methods?.split(',') || ['Unknown'];
-    methods.forEach((method) => {
-      const key = method.trim() || 'Unknown';
-      const current = salesByMethod.get(key) || 0;
-      salesByMethod.set(key, current + record.amount);
-    });
+
+  transactionPaymentsRaw.forEach((payment) => {
+    const txId = payment.transaction_id;
+    if (!visibleTransactionIds.has(txId)) {
+      return;
+    }
+
+    const method = payment.payment_method || 'Unknown';
+
+    if (!selectedGame) {
+      const current = salesByMethod.get(method) || 0;
+      salesByMethod.set(method, current + Number(payment.amount || 0));
+      return;
+    }
+
+    const txPaymentTotal = paymentTotalsByTransaction.get(txId) || 0;
+    const filteredTxAmount = filteredAmountByTransaction.get(txId) || 0;
+    const ratio = txPaymentTotal > 0 ? Math.min(1, filteredTxAmount / txPaymentTotal) : 0;
+
+    if (ratio <= 0) {
+      return;
+    }
+
+    const current = salesByMethod.get(method) || 0;
+    salesByMethod.set(method, current + Number(payment.amount || 0) * ratio);
   });
-  setSalesPerMethod(Object.fromEntries(salesByMethod));
-}, [filteredRecords]);
+
+  return Object.fromEntries(salesByMethod);
+}, [transactionPaymentsRaw, visibleTransactionIds, selectedGame, paymentTotalsByTransaction, filteredAmountByTransaction]);
 
 const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[] }) => (
   <div style={{ width: '100%', height: 300 }}>
@@ -1162,8 +1214,8 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredRecords.length > 0 ? (
-                    filteredRecords.map((record) => (
+                  {paginatedRecords.length > 0 ? (
+                    paginatedRecords.map((record) => (
                       <tr key={`${record.id}-${record.game_id ?? ''}-${record.drink_id ?? ''}`}>
                         <td className="px-4 py-2 whitespace-nowrap">{record.username}</td>
                         <td className="px-4 py-2 whitespace-nowrap">{record.game_title}</td>
@@ -1187,7 +1239,7 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
             
             
             {/* Pagination Controls */}
-            {filteredRecords.length > 0 && <PaginationControls />}
+            {totalFilteredRecords > 0 && <PaginationControls />}
           </div>
         </div>
       </div>

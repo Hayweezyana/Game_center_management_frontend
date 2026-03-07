@@ -1,61 +1,58 @@
-// Imports and component boilerplate
 import React, { useRef, useState } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  extractApprovedAmountKobo,
+  isFailurePosStatus,
+  isSuccessPosStatus,
+  normalizePosStatus,
+} from './utils/moniepointStatus';
+import './CheckoutExperience.css';
+import { useCartContext } from './hooks/useCart';
+
+const formatNaira = (amount: number) => `N${amount.toLocaleString()}`;
 
 const GKGPaymentPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { clearCart } = useCartContext();
+  const { finalAmount: originalAmount = 0, userDetails, cartItems } = (location.state as any) || {};
 
-  const { finalAmount: originalAmount, userDetails, cartItems } = location.state || {};
-
-  
   const [hasSavedPaymentRecord, setHasSavedPaymentRecord] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [transactionId] = useState(uuidv4());
   const [merchantReference] = useState<string>('');
-
   const [adminPassword, setAdminPassword] = useState('');
   const [username, setUsername] = useState('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountReason, setDiscountReason] = useState('');
   const [customDiscountReason, setCustomDiscountReason] = useState('');
-  const [discountWarning, setDiscountWarning] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'POS' | 'GKG_CASH'>('POS');
-
   const [selectedMarketer, setSelectedMarketer] = useState('');
-  const isProcessing = useRef(false);
 
+  const isProcessing = useRef(false);
   const finalAmount = paymentMethod === 'GKG_CASH' ? originalAmount : Math.max(originalAmount - discountAmount, 0);
-  const marketers = [
-    'In House',
-    'Kayode',
-    'O. Judith',
-  ];
+  const marketers = ['In House', 'Kayode', 'O. Judith'];
 
   const savePaymentRecord = async (amount: number, method: string, merchantRef: string) => {
-    if (hasSavedPaymentRecord) {
-    console.log("Payment record already saved for this transaction, skipping.");
-    return;
-  }
-  if (isProcessing.current) return;
+    if (hasSavedPaymentRecord || isProcessing.current) return;
     isProcessing.current = true;
     try {
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/marketer_payments`, {
         amount: Number(amount),
         marketer: selectedMarketer,
-        station: "GKG",
+        station: 'GKG',
         payment_method: method,
-        merchantReference: merchantReference || transactionId,
+        merchantReference: merchantRef || transactionId,
       });
-      console.log("Payment record saved.");
       setHasSavedPaymentRecord(true);
     } catch (err: any) {
-      console.error("Failed to save payment record:", err.response?.data || err.message);
+      console.error('Failed to save payment record:', err.response?.data || err.message);
+    } finally {
+      isProcessing.current = false;
     }
   };
 
@@ -69,67 +66,65 @@ const GKGPaymentPage: React.FC = () => {
       sessionStorage.setItem('token', token);
       sessionStorage.setItem('adminData', JSON.stringify(role));
       setIsAdminAuthenticated(true);
-      alert("Admin authenticated successfully.");
+      alert('Admin authenticated successfully.');
     } catch (err: any) {
-      alert("Invalid admin password.");
+      alert('Invalid admin password.');
       console.error(err.response?.data || err.message);
     }
   };
 
   const handlePOSPayment = async () => {
-    if (!selectedMarketer) {
-      alert("Please select a staff before proceeding");
-      return;
-    }
-    if (
-      discountAmount > 0 &&
-      (!discountReason || (discountReason === 'Others' && customDiscountReason.trim() === ''))
-    ) {
-      alert("Please select or enter a valid discount reason");
-      return;
+    if (!selectedMarketer) return alert('Please select a staff before proceeding');
+    if (discountAmount > 0 && (!discountReason || (discountReason === 'Others' && customDiscountReason.trim() === ''))) {
+      return alert('Please select or enter a valid discount reason');
     }
 
     try {
       setLoading(true);
-      setStatus('Initiating payment on Terminal 3...');
+      setStatus('Initiating payment on GKG terminal...');
+      const merchantRef = merchantReference || transactionId;
+      const posAmountKobo = Math.round(finalAmount * 100);
 
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
-        amount: finalAmount * 100,
+        amount: posAmountKobo,
+        cartAmountKobo: posAmountKobo,
         terminalSerial: process.env.REACT_APP_TERMINAL_SERIAL_GKG,
         transactionType: 'PURCHASE',
         PaymentMethod: 'GKG_POS',
-        merchantReference: merchantReference || transactionId,
+        merchantReference: merchantRef,
         provider_metadata: {
           username: userDetails.username,
           phone: userDetails.phone,
           email: userDetails.email,
         },
+        checkoutPayload: {
+          userDetails,
+          cartItems,
+          discount: discountAmount,
+          discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
+          payment_method: 'GKG_Moniepoint',
+        },
       });
 
-      if (response.status === 202) {
-        setStatus('Awaiting payment on POS terminal 3...');
-        pollTransactionStatus(merchantReference || transactionId);
+      if (response.status === 202 || response.status === 200) {
+        setStatus('Awaiting payment on POS terminal...');
+        pollTransactionStatus(merchantRef);
       } else {
         setStatus('Payment initiation failed. Try again.');
-        
       }
     } catch (error: any) {
       console.error('Error initiating payment:', error.response?.data || error.message);
-      setStatus('Error initiating transaction on Terminal 3');
+      setStatus('Error initiating transaction on terminal.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleCashPayment = async () => {
-    if (!selectedMarketer) {
-      alert("Please select a staff before proceeding");
-      return;
-    }
+    if (!selectedMarketer) return alert('Please select a staff before proceeding');
     try {
       setLoading(true);
       setStatus('Recording cash payment...');
-
       const transactionPayload = {
         ...userDetails,
         reference: uuidv4(),
@@ -142,8 +137,8 @@ const GKGPaymentPage: React.FC = () => {
       };
 
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, transactionPayload);
-
-      await savePaymentRecord(finalAmount, "Cash", transactionId);
+      await savePaymentRecord(finalAmount, 'Cash', transactionId);
+      clearCart();
 
       navigate('/ticket', {
         state: {
@@ -163,211 +158,206 @@ const GKGPaymentPage: React.FC = () => {
     }
   };
 
-  const pollTransactionStatus = (merchantReference: string) => {
+  const pollTransactionStatus = (merchantRef: string) => {
     let pollTimeout: NodeJS.Timeout;
-    let failedAttempts = 0;
     const interval = setInterval(async () => {
       try {
-        const res = await axios.get(
-          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/${merchantReference}`
-        );
-        const txStatus = res.data?.processingStatus;
+        const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/${merchantRef}`);
+        const txStatus = normalizePosStatus(res.data?.processingStatus || res.data?.internalStatus);
+        const approvedAmountKobo = extractApprovedAmountKobo(res.data);
+        const expectedAmountKobo = Math.round(finalAmount * 100);
 
-        if (txStatus === 'PROCESSED') {
-          await savePaymentRecord(finalAmount, "POS", merchantReference);
+        if (isSuccessPosStatus(txStatus)) {
+          if (
+            res.data?.amountMatches === false ||
+            (approvedAmountKobo !== null && approvedAmountKobo !== expectedAmountKobo)
+          ) {
+            clearInterval(interval);
+            clearTimeout(pollTimeout);
+            setStatus('Amount mismatch detected between POS and cart total. Transaction not saved.');
+            return;
+          }
+
+          await savePaymentRecord(finalAmount, 'POS', merchantRef);
           clearInterval(interval);
           clearTimeout(pollTimeout);
           setStatus('Payment successful!');
 
-          const transactionPayload = {
-            ...userDetails,
-            reference: uuidv4(),
-            merchantReference,
-            discount: discountAmount,
-            discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
-            cartItems,
-            payment_methods: [{ method: 'GKG_Moniepoint', amount: finalAmount }],
-            provider_metadata: res.data,
-            game_time_slot: null,
-          };
+          if (!res.data?.applicationTransactionSaved) {
+            const transactionPayload = {
+              ...userDetails,
+              reference: uuidv4(),
+              merchantReference: merchantRef,
+              discount: discountAmount,
+              discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
+              cartItems,
+              payment_methods: [{ method: 'GKG_Moniepoint', amount: finalAmount }],
+              provider_metadata: res.data,
+              game_time_slot: null,
+            };
+            await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, transactionPayload);
+          }
 
-          await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, transactionPayload);
-
+          clearCart();
           navigate('/ticket', {
             state: {
               finalAmount,
               userDetails,
               cartItems,
-              merchantReference,
+              merchantReference: merchantRef,
               dateTime: new Date().toISOString(),
               discount: discountAmount,
             },
           });
-        } else if (['CANCELLED', 'FAILED'].includes(txStatus)) {
-          failedAttempts++;
-          if (failedAttempts >= 2) {
-            clearInterval(interval);
-            clearTimeout(pollTimeout);
-            setStatus('Payment failed or cancelled.');
-          } else {
-            setStatus(`Temporary issue (${txStatus}). Retrying...`);
-          }
+        } else if (isFailurePosStatus(txStatus)) {
+          clearInterval(interval);
+          clearTimeout(pollTimeout);
+          setStatus(`Payment not completed (${txStatus}).`);
         } else {
-          setStatus(`Awaiting payment... Current status: ${txStatus}`);
+          setStatus(`Awaiting payment... Current status: ${txStatus || 'PENDING'}`);
         }
-      } catch (err) {
-        console.error('Polling error:', err);
+      } catch (err: any) {
+        console.error('Polling error:', err?.response?.data || err?.message || err);
+        setStatus('Temporary network delay while verifying payment. Retrying...');
       }
     }, 5000);
 
     pollTimeout = setTimeout(() => {
       clearInterval(interval);
-      setStatus('Payment timed out. Please try again.');
+      setStatus(
+        'Payment verification is taking longer than expected. Transaction remains pending and will be reconciled automatically.'
+      );
     }, 600000);
   };
 
-  const spinnerStyle = {
-    width: '16px',
-    height: '16px',
-    border: '2px solid #f3f3f3',
-    borderTop: '2px solid #3498db',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    display: 'inline-block',
-    marginRight: '8px',
-  };
-
   return (
-    <div>
-      <h1>GKG Payment</h1>
-
-      {/* ✅ Marketer selection */}
-      <div>
-        <label>Select Staff: </label>
-        <select 
-          value={selectedMarketer} 
-          onChange={(e) => setSelectedMarketer(e.target.value)}
-        >
-          <option value="">-- Select Staff --</option>
-          {marketers.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Payment Method Toggle */}
-      <div>
-        <label>
-          <input
-            type="radio"
-            value="POS"
-            checked={paymentMethod === 'POS'}
-            onChange={() => setPaymentMethod('POS')}
-          />
-          Pay via POS
-        </label>
-        <label style={{ marginLeft: '20px' }}>
-          <input
-            type="radio"
-            value="GKG_CASH"
-            checked={paymentMethod === 'GKG_CASH'}
-            onChange={() => setPaymentMethod('GKG_CASH')}
-          />
-          Pay with Cash
-        </label>
-
-        {paymentMethod === 'GKG_CASH' && (
-    <span style={{ marginLeft: '10px', color: 'red' }}>
-      (No Discounts for Cash Payments)
-    </span>
-  )}
-      </div>
-
-      {/* Admin & Discount Section */}
-      {paymentMethod === 'POS' && !isAdminAuthenticated && (
-        <div>
-          <input
-            type="text"
-            placeholder="Admin username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Admin password"
-            value={adminPassword}
-            onChange={(e) => setAdminPassword(e.target.value)}
-          />
-          <button onClick={handleAdminLogin}>Login as Admin</button>
+    <div className="checkout-shell">
+      <div className="payment-page-shell">
+        <div className="payment-page-header">
+          <h1>Go Kart Galaxy Payment</h1>
+          <p>POS and cash collection with transaction reconciliation.</p>
         </div>
-      )}
+        <div className="payment-page-body">
+          <div className="checkout-panel">
+            <h3>Payment Route</h3>
+            <div className="checkout-field">
+              <label>Select Staff</label>
+              <select className="checkout-select" value={selectedMarketer} onChange={(e) => setSelectedMarketer(e.target.value)}>
+                <option value="">-- Select Staff --</option>
+                {marketers.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="checkout-actions">
+              <button className="checkout-btn checkout-btn-secondary" onClick={() => setPaymentMethod('POS')}>
+                POS
+              </button>
+              <button className="checkout-btn checkout-btn-secondary" onClick={() => setPaymentMethod('GKG_CASH')}>
+                Cash
+              </button>
+            </div>
+            {paymentMethod === 'GKG_CASH' && <div className="status-banner warn">Cash mode selected. Discounts are disabled.</div>}
+          </div>
 
-      {paymentMethod === 'POS' && isAdminAuthenticated && (
-        <div>
-          <h3>Apply Discount</h3>
-          <input
-            type="number"
-            placeholder="Discount amount (₦)"
-            value={discountAmount}
-            onChange={(e) => setDiscountAmount(parseInt(e.target.value, 10) || 0)}
-          />
-          <select value={discountReason} onChange={(e) => setDiscountReason(e.target.value)}>
-            <option value="">Select Discount Reason</option>
-            <option value="Promo">Promo</option>
-            <option value="Staff Discount">Staff Discount</option>
-            <option value="Regular Customer">Regular Customer</option>
-            <option value="Cash Payment">Cash Payment</option>
-            <option value="Others">Others</option>
-          </select>
-          {discountReason === 'Others' && (
-            <input
-              type="text"
-              placeholder="Custom reason"
-              value={customDiscountReason}
-              onChange={(e) => setCustomDiscountReason(e.target.value)}
-            />
+          {paymentMethod === 'POS' && !isAdminAuthenticated && (
+            <div className="checkout-panel">
+              <h3>Admin Authorization</h3>
+              <div className="checkout-field-grid">
+                <div className="checkout-field">
+                  <label>Admin Username</label>
+                  <input className="checkout-input" value={username} onChange={(e) => setUsername(e.target.value)} />
+                </div>
+                <div className="checkout-field">
+                  <label>Admin Password</label>
+                  <input
+                    className="checkout-input"
+                    type="password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="checkout-actions">
+                <button className="checkout-btn checkout-btn-secondary" onClick={handleAdminLogin}>
+                  Login as Admin
+                </button>
+              </div>
+            </div>
           )}
-          {discountWarning && <p style={{ color: 'red' }}>{discountWarning}</p>}
+
+          {paymentMethod === 'POS' && isAdminAuthenticated && (
+            <div className="checkout-panel">
+              <h3>Apply Discount</h3>
+              <div className="checkout-field-grid">
+                <div className="checkout-field">
+                  <label>Discount Amount (N)</label>
+                  <input
+                    className="checkout-input"
+                    type="number"
+                    value={discountAmount}
+                    onChange={(e) => setDiscountAmount(parseInt(e.target.value, 10) || 0)}
+                  />
+                </div>
+                <div className="checkout-field">
+                  <label>Reason</label>
+                  <select className="checkout-select" value={discountReason} onChange={(e) => setDiscountReason(e.target.value)}>
+                    <option value="">Select Discount Reason</option>
+                    <option value="Promo">Promo</option>
+                    <option value="Staff Discount">Staff Discount</option>
+                    <option value="Regular Customer">Regular Customer</option>
+                    <option value="Cash Payment">Cash Payment</option>
+                    <option value="Others">Others</option>
+                  </select>
+                </div>
+              </div>
+              {discountReason === 'Others' && (
+                <div className="checkout-field">
+                  <label>Custom Reason</label>
+                  <input
+                    className="checkout-input"
+                    type="text"
+                    value={customDiscountReason}
+                    onChange={(e) => setCustomDiscountReason(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="checkout-panel">
+            <h3>Order Summary</h3>
+            <p>
+              Player: {userDetails?.username} ({userDetails?.phone})
+            </p>
+            <div className="summary-row">
+              <span>Total</span>
+              <span className="value">{formatNaira(finalAmount)}</span>
+            </div>
+            <div className="checkout-actions">
+              {paymentMethod === 'POS' ? (
+                <button className="checkout-btn checkout-btn-primary" onClick={handlePOSPayment} disabled={loading || status?.includes('Awaiting')}>
+                  {loading ? 'Processing...' : 'Pay Now via POS'}
+                </button>
+              ) : (
+                <button className="checkout-btn checkout-btn-primary" onClick={handleCashPayment} disabled={loading}>
+                  {loading ? 'Processing...' : 'Confirm Cash Payment'}
+                </button>
+              )}
+              <button
+                className="checkout-btn checkout-btn-secondary"
+                onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, finalAmount } })}
+              >
+                Edit Cart
+              </button>
+            </div>
+          </div>
+
+          {status && <div className="status-banner">{status}</div>}
         </div>
-      )}
-
-      {/* Price Summary */}
-      <p>
-        <strong>Total:</strong>{' '}
-        {discountAmount > 0 && paymentMethod === 'POS' ? (
-          <>
-            <span style={{ textDecoration: 'line-through', color: 'gray' }}>
-              ₦{originalAmount.toLocaleString()}
-            </span>{' '}
-            <span style={{ color: 'green' }}>₦{finalAmount.toLocaleString()}</span>
-          </>
-        ) : (
-          <>₦{originalAmount.toLocaleString()}</>
-        )}
-      </p>
-
-      {/* Action Buttons */}
-      {paymentMethod === 'POS' ? (
-        <button
-          onClick={handlePOSPayment}
-          disabled={loading || status?.includes('Awaiting')}
-        >
-          {(loading || status?.includes('Awaiting')) && <span style={spinnerStyle}></span>}
-          {loading ? 'Processing...' : 'Pay Now via POS'}
-        </button>
-      ) : (
-        <button onClick={handleCashPayment} disabled={loading}>
-          {loading && <span style={spinnerStyle}></span>}
-          Confirm Cash Payment
-        </button>
-      )}
-
-      {/* Edit Cart & Status */}
-      <button onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, finalAmount } })}>
-        Edit Cart
-      </button>
-
-      {status && <p>{status}</p>}
+      </div>
     </div>
   );
 };

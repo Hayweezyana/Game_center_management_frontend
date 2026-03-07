@@ -1,186 +1,153 @@
-/* WelcomePage.css */
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@500;600;700&display=swap");
+
 :root {
-    --primary-color: #4361ee;
-    --secondary-color: #3a0ca3;
-    --accent-color: #f72585;
-    --dark-color: #1a1a2e;
-    --light-color: #f8f9fa;
-    --success-color: #4cc9f0;
-    --admin-hover: #f72585;
-    --customer-hover: #4cc9f0;
+  --bg-deep: #060b17;
+  --bg-panel: #0b1430;
+  --line-blue: #4f7eff;
+  --accent-cyan: #00d1ff;
+  --accent-orange: #ffb347;
+  --text-main: #edf4ff;
+  --text-muted: #9eb4dc;
 }
 
 body {
-    margin: 0;
-    font-family: 'Poppins', sans-serif;
-    background-color: var(--dark-color);
-    color: var(--light-color);
+  margin: 0;
+  background: var(--bg-deep);
 }
 
 .welcome-page {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
-    position: relative;
-    overflow: hidden;
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--text-main);
+  font-family: "Rajdhani", sans-serif;
+  background: radial-gradient(circle at 15% 15%, rgba(0, 186, 255, 0.25), transparent 38%),
+    radial-gradient(circle at 82% 8%, rgba(79, 126, 255, 0.28), transparent 34%),
+    radial-gradient(circle at 45% 90%, rgba(255, 179, 71, 0.2), transparent 30%),
+    #060b17;
 }
 
 .welcome-page::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-        radial-gradient(circle at 20% 30%, rgba(244, 63, 94, 0.15) 0%, transparent 20%),
-        radial-gradient(circle at 80% 70%, rgba(74, 201, 240, 0.15) 0%, transparent 20%);
-    z-index: 0;
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(141, 170, 235, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(141, 170, 235, 0.08) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at 50% 40%, black 18%, transparent 84%);
+  pointer-events: none;
 }
 
 .content-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-grow: 1;
-    padding: 2rem;
-    position: relative;
-    z-index: 1;
+  position: relative;
+  z-index: 1;
+  max-width: 1020px;
+  width: calc(100% - 40px);
+  margin: auto;
+  border-radius: 22px;
+  background: linear-gradient(155deg, rgba(12, 23, 54, 0.93), rgba(6, 13, 30, 0.92));
+  border: 1px solid rgba(103, 145, 241, 0.28);
+  box-shadow: 0 24px 65px rgba(0, 0, 0, 0.52), inset 0 0 0 1px rgba(0, 210, 255, 0.1);
+  padding: 34px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .logo-container {
-    text-align: center;
-    margin-bottom: 3rem;
-    animation: fadeIn 1s ease-out;
+  text-align: center;
+  margin-bottom: 30px;
 }
 
 .logo {
-    width: 200px;
-    height: auto;
-    margin-bottom: 1.5rem;
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  width: 200px;
+  max-width: 72vw;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
 }
 
 .title {
-    font-size: 2.5rem;
-    margin: 0;
-    background: #3a0ca3;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    font-weight: 700;
-    letter-spacing: 1px;
+  margin: 16px 0 0;
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(2rem, 5vw, 2.9rem);
+  letter-spacing: 0.04em;
 }
 
 .subtitle {
-    font-size: 1.2rem;
-    opacity: 0.9;
-    margin-top: 0.5rem;
-    font-weight: 300;
+  margin: 10px auto 0;
+  max-width: 560px;
+  color: var(--text-muted);
+  font-size: 1.05rem;
 }
 
 .button-container {
-    display: flex;
-    gap: 1.5rem;
-    margin-top: 1rem;
-    flex-wrap: wrap;
-    justify-content: center;
+  width: 100%;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .welcome-button {
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-    border: none;
-    border-radius: 50px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    min-width: 220px;
-    justify-content: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    position: relative;
-    overflow: hidden;
-    z-index: 1;
+  border: 1px solid rgba(115, 157, 255, 0.3);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(140deg, rgba(13, 26, 57, 0.95), rgba(8, 17, 39, 0.9));
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 1.02rem;
+  font-weight: 700;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.welcome-button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
-    z-index: -1;
-}
-
-.welcome-button:hover::before {
-    transform: translateX(100%);
-}
-
-.admin-button {
-    background-color: var(--dark-color);
-    color: var(--light-color);
+.welcome-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 209, 255, 0.6);
+  box-shadow: 0 10px 24px rgba(0, 179, 255, 0.2);
 }
 
 .admin-button:hover {
-    background-color: var(--admin-hover);
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(247, 37, 133, 0.4);
-}
-
-.customer-button {
-    background-color: var(--dark-color);
-    color: var(--light-color);
-}
-
-.customer-button:hover {
-    background-color: var(--customer-hover);
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(76, 201, 240, 0.4);
+  border-color: rgba(255, 179, 71, 0.7);
+  box-shadow: 0 10px 24px rgba(255, 179, 71, 0.2);
 }
 
 .button-icon {
-    font-size: 1.3rem;
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  background: linear-gradient(130deg, var(--accent-cyan), var(--line-blue));
+  color: #031425;
+  border-radius: 999px;
+  min-width: 42px;
+  text-align: center;
+  padding: 5px 8px;
+}
+
+.admin-button .button-icon {
+  background: linear-gradient(130deg, var(--accent-orange), #ffdca8);
 }
 
 .welcome-footer {
-    padding: 1.5rem;
-    text-align: center;
-    background-color: rgb(250, 250, 251);
-    backdrop-filter: blur(10px);
-    font-size: 0.9rem;
-    margin-top: auto;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  color: #86a6db;
+  padding: 16px;
+  font-size: 0.88rem;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+@media (max-width: 760px) {
+  .content-wrapper {
+    width: calc(100% - 20px);
+    padding: 22px 14px;
+    margin: 12px auto auto;
+  }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .title {
-        font-size: 2rem;
-    }
-    
-    .subtitle {
-        font-size: 1rem;
-    }
-    
-    .button-container {
-        flex-direction: column;
-        gap: 1rem;
-    }
-    
-    .welcome-button {
-        width: 100%;
-    }
+  .subtitle {
+    font-size: 0.96rem;
+  }
 }

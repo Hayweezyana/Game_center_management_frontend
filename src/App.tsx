@@ -1,85 +1,109 @@
 import { CartProvider } from './components/hooks/useCart';
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css';
 
+const WelcomePage = lazy(() => import('./components/WelcomePage'));
+const Checkout = lazy(() => import('./components/checkout'));
+const Queue = lazy(() => import('./components/Queue'));
+const GameSelection = lazy(() => import('./components/GameSelection'));
+const PC = lazy(() => import('./components/PC'));
+const Ticket = lazy(() => import('./components/Ticket'));
+const Report = lazy(() => import('./components/report'));
+const PaymentSelection = lazy(() => import('./components/PaymentSelection'));
+const CartAndPayment = lazy(() => import('./components/CartAndPayment'));
+const UserDetails = lazy(() => import('./components/UserDetails'));
+const OperatorDashboard = lazy(() => import('./components/OperatorDashboard'));
+const ImmersiaPaymentPage = lazy(() => import('./components/ImmersiaPaymentPage'));
+const FunstationPaymentPage = lazy(() => import('./components/FunstationPaymentPage'));
+const PaystackPaymentPage = lazy(() => import('./components/PaystackPaymentPage'));
+const GKGPaymentPage = lazy(() => import('./components/GKGPaymentPage'));
+const AIChatBox = lazy(() => import('./components/AIChatBox'));
+const AdminLogin = lazy(() => import('./components/users/AdminLogin'));
+const Admin = lazy(() => import('./components/users/Admin'));
+const CreateAdminForm = lazy(() => import('./components/users/CreateAdminForm'));
+const AdminPaymentPage = lazy(() => import('./components/users/AdminPaymentPage'));
+const OperatorAuth = lazy(() => import('./components/users/OperatorAuth'));
+const DrinkInventory = lazy(() => import('./components/users/DrinkInventory'));
+const OperatorConsumedGames = lazy(() => import('./components/users/OperatorConsumedGames'));
+const AdminDashboard = lazy(() => import('./components/users/AdminDashboard'));
+const PCLockDashboard = lazy(() => import('./components/users/PCLockDashboard'));
+const AdminTransaction = lazy(() => import('./components/users/Admintransaction'));
+const MarketersReportPage = lazy(() => import('./components/MarketersReportPage'));
+const AdminPcControl = lazy(() => import('./components/users/AdminPcControl'));
+const CustomerPortal = lazy(() => import('./components/customer/CustomerPortal'));
 
-// Importing pages
-import WelcomePage from "./components/WelcomePage";
-import Checkout from './components/checkout';
-import Queue from './components/Queue';
-import GameSelection from './components/GameSelection';
-import PC from './components/PC';
-import Ticket from './components/Ticket';
-import Report from './components/report';
-import PaymentSelection from './components/PaymentSelection';
-import CartAndPayment from './components/CartAndPayment';
-import UserDetails from './components/UserDetails';
-// import MoniepointDashboard from './components/MoniepointDashboard';
-import OperatorDashboard from './components/OperatorDashboard';
-import ImmersiaPaymentPage from './components/ImmersiaPaymentPage';
-import FunstationPaymentPage from './components/FunstationPaymentPage';
-import PaystackPaymentPage from './components/PaystackPaymentPage';
-import GKGPaymentPage from './components/GKGPaymentPage';
-import AIChatBox from './components/AIChatBox';
-
-
-
-// Importing user-related pages
-import AdminLogin from './components/users/AdminLogin';
-import Admin from './components/users/Admin';
-import CreateAdminForm from './components/users/CreateAdminForm';
-import AdminPaymentPage from './components/users/AdminPaymentPage';
-import OperatorAuth from './components/users/OperatorAuth';
-import DrinkInventory from './components/users/DrinkInventory';
-import OperatorConsumedGames from './components/users/OperatorConsumedGames';
-import AdminDashboard from './components/users/AdminDashboard';
-import PCLockDashboard from './components/users/PCLockDashboard';
-import AdminTransaction from './components/users/Admintransaction';
-import MarketersReportPage from './components/MarketersReportPage';
-import AdminPcControl from './components/users/AdminPcControl';
+const RouteLoader: React.FC = () => (
+  <div className="route-loader" role="status" aria-live="polite">
+    Loading...
+  </div>
+);
 
 const App: React.FC = () => {
   return (
     <CartProvider>
-    <Router>
-      <Routes>
-        {/* Default route to WelcomePage */}
-        <Route path="/" element={<WelcomePage />} />
-          <Route path="/AdminLogin" element={<AdminLogin onLoginSuccess={() => {}} onClose={() => {}} />} />
-          <Route path="/Admin" element={<Admin />} />
-          <Route path="/CreateAdmin" element={<CreateAdminForm />} />
-          <Route path="/GameSelection" element={<GameSelection />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/UserDetails" element={<UserDetails userDetails={{ username: '', phone: '' }} setUserDetails={() => {}} onNext={() => {}} />} />
-          <Route path="/CartAndPayment" element={<CartAndPayment cartItems={[]} cartTotal={0} payment_methods={[]} setPaymentMethods={() => {}} setCartItems={() => {}} onNext={() => {}} />} />
-          <Route path="/Queue" element={<Queue />} />
-          <Route path="/PC" element={<PC cart={[]} />} />
-          <Route path="/Ticket" element={<Ticket />} />
-          <Route path="/report" element={<Report />} />
-          <Route path="/PaymentSelection" element={<PaymentSelection  cartTotal={0} userDetails={{ username: '', phone: '' }} cartItems={[]} handlePaymentSuccess={async () => {}} />} />
-          <Route path="/AdminPaymentPage" element={<AdminPaymentPage cartTotal={0} userDetails={{ username: '', phone: '' }} payment_methods={[]} cartItems={[]} onPaymentSuccess={() => {}} isAdmin={false} discount_description="" setDiscountDescription={() => {}} otherReason="" setOtherReason={() => {}} />} />
-          <Route path="/OperatorAuth" element={<OperatorAuth />} />
-          {/* <Route path="/moniepoint" element={<MoniepointDashboard />} /> */}
-          <Route path="/OperatorDashboard" element={<OperatorDashboard />} />
-          <Route path="/ImmersiaPaymentPage" element={<ImmersiaPaymentPage />} />
-          <Route path="/FunstationPaymentPage" element={<FunstationPaymentPage />} />
-          <Route path="/PaystackPaymentPage" element={<PaystackPaymentPage />}/>
-          <Route path="/GKGPaymentPage" element={<GKGPaymentPage />}/>
-          <Route path="/AIChatBox" element={<AIChatBox isAdmin={true} />} />
-          <Route path="/DrinkInventory" element={<DrinkInventory isAdmin={true} />} />
-          <Route path="/OperatorConsumedGames" element={<OperatorConsumedGames />} />
-          <Route path="/AdminDashboard" element={<AdminDashboard />} />
-          <Route path="/PCLockDashboard" element={<PCLockDashboard />} />
-          <Route path="/AdminTransaction" element={<AdminTransaction />} />
-          <Route path="/MarketersReportPage" element={<MarketersReportPage />} />
-          <Route path="/AdminPcControl" element={<AdminPcControl />} />
-
-          
-        </Routes>
-    </Router>
+      <Router>
+        <Suspense fallback={<RouteLoader />}>
+          <Routes>
+            <Route path="/" element={<WelcomePage />} />
+            <Route path="/AdminLogin" element={<AdminLogin onLoginSuccess={() => {}} onClose={() => {}} />} />
+            <Route path="/Admin" element={<Admin />} />
+            <Route path="/CreateAdmin" element={<CreateAdminForm />} />
+            <Route path="/GameSelection" element={<GameSelection />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route
+              path="/UserDetails"
+              element={<UserDetails userDetails={{ username: '', phone: '' }} setUserDetails={() => {}} onNext={() => {}} />}
+            />
+            <Route
+              path="/CartAndPayment"
+              element={<CartAndPayment cartItems={[]} cartTotal={0} payment_methods={[]} setPaymentMethods={() => {}} setCartItems={() => {}} onNext={() => {}} />}
+            />
+            <Route path="/Queue" element={<Queue />} />
+            <Route path="/PC" element={<PC cart={[]} />} />
+            <Route path="/Ticket" element={<Ticket />} />
+            <Route path="/report" element={<Report />} />
+            <Route
+              path="/PaymentSelection"
+              element={<PaymentSelection cartTotal={0} userDetails={{ username: '', phone: '' }} cartItems={[]} handlePaymentSuccess={async () => {}} />}
+            />
+            <Route
+              path="/AdminPaymentPage"
+              element={
+                <AdminPaymentPage
+                  cartTotal={0}
+                  userDetails={{ username: '', phone: '' }}
+                  payment_methods={[]}
+                  cartItems={[]}
+                  onPaymentSuccess={() => {}}
+                  isAdmin={false}
+                  discount_description=""
+                  setDiscountDescription={() => {}}
+                  otherReason=""
+                  setOtherReason={() => {}}
+                />
+              }
+            />
+            <Route path="/OperatorAuth" element={<OperatorAuth />} />
+            <Route path="/OperatorDashboard" element={<OperatorDashboard />} />
+            <Route path="/ImmersiaPaymentPage" element={<ImmersiaPaymentPage />} />
+            <Route path="/FunstationPaymentPage" element={<FunstationPaymentPage />} />
+            <Route path="/PaystackPaymentPage" element={<PaystackPaymentPage />} />
+            <Route path="/GKGPaymentPage" element={<GKGPaymentPage />} />
+            <Route path="/AIChatBox" element={<AIChatBox isAdmin={true} />} />
+            <Route path="/DrinkInventory" element={<DrinkInventory isAdmin={true} />} />
+            <Route path="/OperatorConsumedGames" element={<OperatorConsumedGames />} />
+            <Route path="/AdminDashboard" element={<AdminDashboard />} />
+            <Route path="/PCLockDashboard" element={<PCLockDashboard />} />
+            <Route path="/AdminTransaction" element={<AdminTransaction />} />
+            <Route path="/MarketersReportPage" element={<MarketersReportPage />} />
+            <Route path="/AdminPcControl" element={<AdminPcControl />} />
+            <Route path="/customer-portal" element={<CustomerPortal />} />
+          </Routes>
+        </Suspense>
+      </Router>
     </CartProvider>
   );
-}
+};
 
 export default App;

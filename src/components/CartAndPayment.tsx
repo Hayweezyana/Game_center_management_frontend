@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import  UseCart  from './hooks/useCart'; // Adjust path if needed
+import React, { useEffect, useState } from 'react';
+import UseCart from './hooks/useCart';
+import './CheckoutExperience.css';
 
 interface CartItem {
   id: string;
@@ -20,6 +21,8 @@ interface CartAndPaymentProps {
   setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
 }
 
+const formatNaira = (amount: number) => `N${amount.toLocaleString()}`;
+
 const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   cartItems,
   cartTotal,
@@ -27,99 +30,109 @@ const CartAndPayment: React.FC<CartAndPaymentProps> = ({
   onNext,
   setCartItems,
 }) => {
-  
-  const [isPaying,] = useState(false);
+  const [isPaying] = useState(false);
   const [items, setItems] = useState<CartItem[]>(cartItems);
   const [total, setTotal] = useState<number>(cartTotal);
   const { clearCart } = UseCart();
 
   useEffect(() => {
-  const newTotal = items.reduce((sum, item) => {
-    if (item.type === 'game' && item.title === '360 Video Booth') {
-      // First item at regular price, rest at ₦2500 each
-      const extraQuantity = Math.max(0, item.quantity - 1);
-      return sum + item.price + (extraQuantity * 2500);
-    } else {
+    const newTotal = items.reduce((sum, item) => {
+      if (item.type === 'game' && item.title === '360 Video Booth') {
+        const extraQuantity = Math.max(0, item.quantity - 1);
+        return sum + item.price + extraQuantity * 2500;
+      }
       return sum + item.price * item.quantity;
-    }
-  }, 0);
+    }, 0);
 
-    // Update payment method total as well
     setTotal(newTotal);
     setPaymentMethods([{ method: 'Moniepoint', amount: newTotal }]);
   }, [items, setPaymentMethods]);
 
   const handleQuantityChangeById = (id: string, delta: number) => {
     setItems((prev) => {
-    const updated = prev.map(item =>
-      item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
-    );
-    setCartItems(updated); // Update the global cart
-    return updated;
-  });
-};
-
-  const handleCancelTransaction = () => {
-    if (window.confirm('Are you sure you want to cancel the transaction and clear the cart?')) {
-      const zeroedItems = items.map(item => ({ ...item, quantity: 0 }));
-    setItems(zeroedItems);
-    setCartItems([]);
-      setTotal(0);
-      setPaymentMethods([]); // Clear payment methods
-      clearCart(); // Clear the cart in the context
-      alert('Transaction cancelled and cart cleared.');
-    }
+      const updated = prev.map((item) =>
+        item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
+      );
+      setCartItems(updated);
+      return updated;
+    });
   };
 
-  const renderCartItems = (type: 'game' | 'drink') => {
-    return items
-      .filter(item => item.type === type)
+  const handleCancelTransaction = () => {
+    if (!window.confirm('Are you sure you want to cancel the transaction and clear the cart?')) {
+      return;
+    }
+    setItems([]);
+    setCartItems([]);
+    setTotal(0);
+    setPaymentMethods([]);
+    clearCart();
+    alert('Transaction cancelled and cart cleared.');
+  };
+
+  const renderCartItems = (type: 'game' | 'drink') =>
+    items
+      .filter((item) => item.type === type)
       .map((item) => {
         const itemTotal =
           item.type === 'game' && item.title === '360 Video Booth'
-            ? item.price + (Math.max(0, item.quantity - 1) * 2500)
+            ? item.price + Math.max(0, item.quantity - 1) * 2500
             : item.price * item.quantity;
 
-  return (
-          <li key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ flex: 1 }}>
-            <strong>{type === 'drink' ? `Drink: ${item.title}` : item.title}</strong> – ₦{item.price} × {item.quantity} = ₦{itemTotal}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button onClick={() => handleQuantityChangeById(item.id, -1)} disabled={item.quantity === 1}>-</button>
-            <span style={{ minWidth: '24px', textAlign: 'center' }}>{item.quantity}</span>
-            <button onClick={() => handleQuantityChangeById(item.id, 1)}>+</button>
-          </div>
-        </li>
+        return (
+          <li key={item.id} className="cart-row">
+            <div>
+              <div className="cart-item-title">{type === 'drink' ? `Drink: ${item.title}` : item.title}</div>
+              <div className="cart-item-meta">
+                {formatNaira(item.price)} x {item.quantity} = {formatNaira(itemTotal)}
+              </div>
+            </div>
+            <div className="quantity-controls">
+              <button
+                className="qty-btn"
+                onClick={() => handleQuantityChangeById(item.id, -1)}
+                disabled={item.quantity === 1}
+              >
+                -
+              </button>
+              <span>{item.quantity}</span>
+              <button className="qty-btn" onClick={() => handleQuantityChangeById(item.id, 1)}>
+                +
+              </button>
+            </div>
+          </li>
         );
       });
-  };
 
   return (
-    <div>
-      {items.some(item => item.type === 'game') && (
+    <div className="checkout-panel">
+      {items.some((item) => item.type === 'game') && (
         <>
           <h3>Games</h3>
-          <ul>{renderCartItems('game')}</ul>
+          <ul className="cart-list">{renderCartItems('game')}</ul>
         </>
       )}
 
-      {items.some(item => item.type === 'drink') && (
+      {items.some((item) => item.type === 'drink') && (
         <>
           <h3>Drinks</h3>
-          <ul>{renderCartItems('drink')}</ul>
+          <ul className="cart-list">{renderCartItems('drink')}</ul>
         </>
       )}
 
-      <h2>Total: ₦{total}</h2>
+      <div className="summary-row">
+        <span>Total Payable</span>
+        <span className="value">{formatNaira(total)}</span>
+      </div>
 
-      <button onClick={onNext} disabled={isPaying || total === 0}>
-        {isPaying ? 'Processing...' : 'Enter Details'}
-      </button>
-
-      <button onClick={handleCancelTransaction} style={{ marginLeft: '1rem', color: 'red' }}>
-        Cancel Transaction
-      </button>
+      <div className="checkout-actions">
+        <button className="checkout-btn checkout-btn-primary" onClick={onNext} disabled={isPaying || total === 0}>
+          {isPaying ? 'Processing...' : 'Enter Details'}
+        </button>
+        <button className="checkout-btn checkout-btn-danger" onClick={handleCancelTransaction}>
+          Cancel Transaction
+        </button>
+      </div>
     </div>
   );
 };
