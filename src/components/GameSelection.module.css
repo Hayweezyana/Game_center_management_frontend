@@ -172,6 +172,44 @@
   transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
 }
 
+.videoPreview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  position: relative;
+  display: block;
+}
+
+.videoThumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.videoFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: #cde8fb;
+  background: linear-gradient(150deg, #051829, #10344f);
+}
+
+.previewHint {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(3, 19, 33, 0.8);
+  color: #dcf6ff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 4px 9px;
+}
+
 .videoFrame :global(iframe) {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -187,6 +225,11 @@
 
 .videoCard:hover .videoFrame :global(iframe) {
   transform: scale(1.035);
+}
+
+.videoCard:hover .videoThumbnail {
+  transform: scale(1.035);
+  transition: transform 240ms ease;
 }
 
 .quantityControls {
@@ -319,6 +362,24 @@
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
+.loadMoreButton {
+  display: block;
+  margin: 16px auto 8px;
+  border: 1px solid rgba(36, 214, 255, 0.45);
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #d8f7ff;
+  background: rgba(2, 31, 47, 0.92);
+  cursor: pointer;
+}
+
+.loadMoreButton:hover {
+  border-color: rgba(115, 233, 255, 0.8);
+  background: rgba(7, 53, 78, 0.95);
+}
+
 .checkoutButton:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 22px 34px rgba(14, 197, 241, 0.42);
@@ -341,6 +402,12 @@
   .cardHeader {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .videoCard {
+    opacity: 1;
+    transform: none;
+    animation: none;
   }
 
   .addDrinkForm {

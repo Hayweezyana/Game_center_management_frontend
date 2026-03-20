@@ -1,8 +1,7 @@
-import React, { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import React, { CSSProperties, useEffect, useMemo, useState } from 'react';
 import YouTube from 'react-youtube';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import io, { Socket } from 'socket.io-client';
 import { FaMinus, FaPlus } from 'react-icons/fa';
 import { UUID } from 'crypto';
 import { useCartContext } from './hooks/useCart';
@@ -35,6 +34,35 @@ interface Drink {
 }
 
 const formatNaira = (amount: number) => `N${amount.toLocaleString()}`;
+const MOBILE_BREAKPOINT = 860;
+const MOBILE_INITIAL_GAMES = 6;
+const DESKTOP_INITIAL_GAMES = 12;
+const LOAD_MORE_STEP = 6;
+
+const getYouTubeVideoId = (rawUrl: string) => {
+  const value = (rawUrl || '').trim();
+  if (!value) return '';
+  if (/^[\w-]{11}$/.test(value)) return value;
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.hostname.includes('youtu.be')) {
+      return parsed.pathname.replace('/', '').slice(0, 11);
+    }
+
+    if (parsed.hostname.includes('youtube.com')) {
+      const v = parsed.searchParams.get('v');
+      if (v) return v.slice(0, 11);
+      const splitPath = parsed.pathname.split('/').filter(Boolean);
+      const tail = splitPath[splitPath.length - 1];
+      return tail ? tail.slice(0, 11) : '';
+    }
+  } catch (_error) {
+    return '';
+  }
+
+  return '';
+};
 
 const GameSelection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,24 +75,22 @@ const GameSelection: React.FC = () => {
   const [newDrinkPrice, setNewDrinkPrice] = useState<number>(0);
   const [newDrinkQuantity, setNewDrinkQuantity] = useState<number>(0);
   const [drinks, setDrinks] = useState<Drink[]>([]);
+  const [isMobileView, setIsMobileView] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches : false
+  );
+  const [visibleGameCount, setVisibleGameCount] = useState<number>(
+    isMobileView ? MOBILE_INITIAL_GAMES : DESKTOP_INITIAL_GAMES
+  );
 
   const navigate = useNavigate();
   const { addToCart, cartItems, updateCartItem } = useCartContext();
-  const playerRefs = useRef<{ [key: string]: any }>({});
-
-  const socket: Socket = useMemo(
-    () =>
-      io('https://game-center-management.onrender.com', {
-        transports: ['websocket'],
-        path: '/socket.io',
-      }),
-    []
-  );
 
   const filteredGames = useMemo(
     () => games.filter((game) => game.title.toLowerCase().includes(searchTerm.toLowerCase())),
     [searchTerm, games]
   );
+  const visibleGames = useMemo(() => filteredGames.slice(0, visibleGameCount), [filteredGames, visibleGameCount]);
+  const hasMoreGames = filteredGames.length > visibleGames.length;
 
   const gameCartCount = useMemo(
     () => cartItems.filter((item) => item.type === 'game').reduce((sum, item) => sum + item.quantity, 0),
@@ -95,10 +121,32 @@ const GameSelection: React.FC = () => {
     };
 
     fetchGames();
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    const onChange = (event: MediaQueryListEvent) => setIsMobileView(event.matches);
+
+    setIsMobileView(mediaQuery.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', onChange);
+    } else {
+      mediaQuery.addListener(onChange);
+    }
+
     return () => {
-      socket.disconnect();
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', onChange);
+      } else {
+        mediaQuery.removeListener(onChange);
+      }
     };
-  }, [socket]);
+  }, []);
+
+  useEffect(() => {
+    setVisibleGameCount(isMobileView ? MOBILE_INITIAL_GAMES : DESKTOP_INITIAL_GAMES);
+    setSelectedGameId(null);
+  }, [searchTerm, isMobileView]);
 
   useEffect(() => {
     axios
@@ -238,10 +286,6 @@ const GameSelection: React.FC = () => {
     navigate('/checkout');
   };
 
-  const onPlayerReady = (event: any, gameId: string) => {
-    playerRefs.current[gameId] = event.target;
-  };
-
   const onPlayerError = (playerError: any, gameId: string) => {
     console.error(`YouTube player error for game ${gameId}:`, playerError);
   };
@@ -285,10 +329,12 @@ const GameSelection: React.FC = () => {
         <p className={styles.errorText}>{error}</p>
       ) : (
         <div className={styles.videoGrid}>
-          {filteredGames.map((game, index) => {
+          {visibleGames.map((game, index) => {
             const currentQty = getCartQuantity(game.id);
             const isOpen = selectedGameId === game.id;
             const cardStyle = { ['--stagger' as any]: `${index * 55}ms` } as CSSProperties;
+            const videoId = getYouTubeVideoId(game.url);
+            const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
 
             return (
               <article key={game.id} className={styles.videoCard} style={cardStyle}>
@@ -305,12 +351,34 @@ const GameSelection: React.FC = () => {
                   className={styles.videoFrame}
                   onClick={() => setSelectedGameId((prev) => (prev === game.id ? null : game.id))}
                 >
-                  <YouTube
-                    videoId={game.url}
-                    opts={{ playerVars: { rel: 0, modestbranding: 1 } }}
-                    onReady={(event) => onPlayerReady(event, game.id)}
-                    onError={(event) => onPlayerError(event, game.id)}
-                  />
+                  {isOpen && videoId ? (
+                    <YouTube
+                      videoId={videoId}
+                      opts={{
+                        playerVars: {
+                          rel: 0,
+                          modestbranding: 1,
+                          playsinline: 1,
+                        },
+                      }}
+                      onError={(event) => onPlayerError(event, game.id)}
+                    />
+                  ) : (
+                    <div className={styles.videoPreview}>
+                      {thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={`${game.title} preview`}
+                          className={styles.videoThumbnail}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div className={styles.videoFallback}>Preview unavailable</div>
+                      )}
+                      <span className={styles.previewHint}>Tap to preview</span>
+                    </div>
+                  )}
                 </button>
 
                 <div className={styles.quantityControls}>
@@ -390,7 +458,18 @@ const GameSelection: React.FC = () => {
               </article>
             );
           })}
+          {filteredGames.length === 0 && <p className={styles.stateText}>No games found for "{searchTerm}"</p>}
         </div>
+      )}
+
+      {hasMoreGames && (
+        <button
+          type="button"
+          className={styles.loadMoreButton}
+          onClick={() => setVisibleGameCount((current) => current + LOAD_MORE_STEP)}
+        >
+          Load More Games
+        </button>
       )}
 
       <button
