@@ -140,6 +140,131 @@ body {
   font-size: 0.88rem;
 }
 
+/* ========================================
+   EID MUBARAK THEME OVERRIDES
+   Active only when body.eid-theme is set
+   (auto-reverts at end of day via App.tsx)
+   ======================================== */
+
+body.eid-theme .welcome-page {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(18, 135, 108, 0.3), transparent 38%),
+    radial-gradient(circle at 82% 8%,  rgba(246, 188, 63, 0.22), transparent 34%),
+    radial-gradient(circle at 45% 90%, rgba(246, 150, 20, 0.18), transparent 30%),
+    #061d1b;
+}
+
+body.eid-theme .welcome-page::before {
+  background-image:
+    linear-gradient(rgba(246, 188, 63, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(246, 188, 63, 0.06) 1px, transparent 1px);
+}
+
+body.eid-theme .content-wrapper {
+  border-color: rgba(246, 188, 63, 0.35);
+  box-shadow:
+    0 24px 65px rgba(0, 0, 0, 0.52),
+    inset 0 0 0 1px rgba(246, 188, 63, 0.12),
+    0 0 48px rgba(18, 135, 108, 0.15);
+  background: linear-gradient(155deg, rgba(6, 26, 22, 0.95), rgba(4, 16, 14, 0.93));
+}
+
+body.eid-theme .title {
+  background: linear-gradient(135deg, #ffd77f, #f6bc3f, #ffe8a0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+body.eid-theme .welcome-button {
+  border-color: rgba(246, 188, 63, 0.3);
+  background: linear-gradient(140deg, rgba(8, 36, 30, 0.95), rgba(4, 22, 18, 0.9));
+}
+
+body.eid-theme .welcome-button:hover {
+  border-color: rgba(246, 188, 63, 0.7);
+  box-shadow: 0 10px 24px rgba(246, 188, 63, 0.25);
+}
+
+body.eid-theme .button-icon {
+  background: linear-gradient(130deg, #f6bc3f, #ffd77f);
+  color: #1a0a00;
+}
+
+body.eid-theme .welcome-footer {
+  color: #a0c8b0;
+}
+
+/* Logo golden glow on Eid */
+.logo-eid {
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 24px rgba(246, 188, 63, 0.3));
+}
+
+/* ---- Eid Welcome Section ---- */
+.eid-welcome-section {
+  margin: 14px auto 4px;
+  text-align: center;
+  animation: eid-fade-in 0.8s ease-out;
+}
+
+@keyframes eid-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.eid-welcome-icons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.eid-icon-crescent {
+  font-size: 2.2rem;
+  color: #f6bc3f;
+  text-shadow: 0 0 18px rgba(246, 188, 63, 0.8), 0 0 36px rgba(246, 188, 63, 0.4);
+  animation: eid-twinkle-icon 3s ease-in-out infinite;
+  display: inline-block;
+}
+
+.eid-icon-star {
+  font-size: 1.1rem;
+  color: #ffd77f;
+  text-shadow: 0 0 10px rgba(246, 188, 63, 0.7);
+  animation: eid-twinkle-icon 2.5s ease-in-out infinite;
+  animation-delay: 0.4s;
+  display: inline-block;
+}
+
+@keyframes eid-twinkle-icon {
+  0%, 100% { opacity: 0.7; transform: scale(0.95); }
+  50%       { opacity: 1;   transform: scale(1.08); }
+}
+
+.eid-welcome-heading {
+  margin: 0 0 6px;
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #ffe082, #f6bc3f, #ffcc5c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 8px rgba(246, 188, 63, 0.5));
+}
+
+.eid-welcome-sub {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #b8ddd0;
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+/* ---------------------------------------- */
+
 @media (max-width: 760px) {
   .content-wrapper {
     width: calc(100% - 20px);

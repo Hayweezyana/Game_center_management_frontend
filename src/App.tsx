@@ -125,12 +125,36 @@ const AppShell: React.FC = () => {
 
   return (
     <div className={applyEidTheme ? `eid-theme-shell${showEidBanner ? ' has-eid-banner' : ''}` : ''}>
-      {applyEidTheme ? <div className="eid-crescent" aria-hidden="true" /> : null}
+      {applyEidTheme ? (
+        <>
+          <div className="eid-crescent" aria-hidden="true">
+            <span className="eid-crescent-star">★</span>
+          </div>
+          <div className="eid-stars" aria-hidden="true">
+            {[1,2,3,4,5,6,7,8,9,10].map(i => (
+              <span key={i} className={`eid-star eid-star-${i}`}>✦</span>
+            ))}
+          </div>
+          <div className="eid-lantern eid-lantern-left" aria-hidden="true">
+            <div className="eid-lantern-cap" />
+            <div className="eid-lantern-body" />
+            <div className="eid-lantern-base" />
+            <div className="eid-lantern-string" />
+          </div>
+          <div className="eid-lantern eid-lantern-right" aria-hidden="true">
+            <div className="eid-lantern-cap" />
+            <div className="eid-lantern-body" />
+            <div className="eid-lantern-base" />
+            <div className="eid-lantern-string" />
+          </div>
+        </>
+      ) : null}
       {showEidBanner ? (
         <div className="eid-banner" role="note" aria-label="Eid greeting">
+          <div className="eid-banner-ornament eid-banner-ornament-left" aria-hidden="true">☪</div>
           <img src={immersiaLogo} alt="Immersia logo" className="eid-banner-logo" />
           <div className="eid-banner-copy">
-            <strong>Eid Mubarak</strong>
+            <strong>Eid Mubarak! ✨</strong>
             <span>Wishing you joy, peace, and winning game sessions from everyone at Immersia.</span>
           </div>
           <button type="button" className="eid-banner-close" aria-label="Close Eid greeting" onClick={closeEidBanner}>
