@@ -41,6 +41,8 @@ const RouteLoader: React.FC = () => (
 );
 
 const EID_THEME_DATE = (process.env.REACT_APP_EID_THEME_DATE || '').trim() || '2026-03-20';
+// Theme is active from EID_THEME_DATE through EID_THEME_END_DATE (exclusive — midnight that day)
+const EID_THEME_END_DATE = (process.env.REACT_APP_EID_THEME_END_DATE || '').trim() || '2026-03-23';
 const EID_BANNER_DISMISS_KEY = `eid-banner-dismissed:${EID_THEME_DATE}`;
 
 const CUSTOMER_FACING_PATHS = new Set([
@@ -70,17 +72,16 @@ const isValidDateParts = (year: number, month: number, day: number) =>
   day <= 31;
 
 const isEidThemeActiveAt = (date: Date) => {
-  const [yearRaw, monthRaw, dayRaw] = EID_THEME_DATE.split('-');
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
-  const day = Number(dayRaw);
+  const [sY, sM, sD] = EID_THEME_DATE.split('-').map(Number);
+  const [eY, eM, eD] = EID_THEME_END_DATE.split('-').map(Number);
 
-  if (!isValidDateParts(year, month, day)) {
+  if (!isValidDateParts(sY, sM, sD) || !isValidDateParts(eY, eM, eD)) {
     return false;
   }
 
-  const start = new Date(year, month - 1, day, 0, 0, 0, 0);
-  const end = new Date(year, month - 1, day + 1, 0, 0, 0, 0);
+  const start = new Date(sY, sM - 1, sD, 0, 0, 0, 0);
+  // end is midnight of EID_THEME_END_DATE (theme expires when that day begins)
+  const end = new Date(eY, eM - 1, eD, 0, 0, 0, 0);
   return date >= start && date < end;
 };
 
