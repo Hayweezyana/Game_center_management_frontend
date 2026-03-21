@@ -397,7 +397,7 @@ const GameSelection: React.FC = () => {
                   </button>
                 </div>
 
-                {isOpen && (
+                {isOpen && (!game.time_slot || Number(game.time_slot) === 0) && (
                   <div className={styles.drinkList}>
                     <div className={styles.drinkHead}>
                       <h4>Pair with Drinks</h4>
