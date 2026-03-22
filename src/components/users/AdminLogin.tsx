@@ -87,11 +87,11 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onClose }) => {
 
       const userData = userResponse.data.data;
 
-      const response = await axios.patch(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/roles/${userData.id}`, {
+      const response = await axios.put(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/roles/${userData.id}`, {
         name,
         current_password: oldPassword,
         new_password: newPassword,
-        permissions: userData.permissions,
+        permissions: userData.permissions?.length ? userData.permissions : [crypto.randomUUID()],
       });
 
       alert(response.data.message);

@@ -126,11 +126,12 @@ const Admin: React.FC = () => {
     if (!adminRole?.raw?.id) { setCpMsg({ ok: false, text: 'Session error — please log in again.' }); return; }
     setCpBusy(true);
     try {
-      await axios.patch(`${BACKEND}/v1/admin/roles/${adminRole.raw.id}`, {
+      await axios.put(`${BACKEND}/v1/admin/roles/${adminRole.raw.id}`, {
         name: adminRole.raw.name,
+        description: adminRole.raw.description ?? '',
         current_password: cpCurrent,
         new_password: cpNew,
-        permissions: adminRole.raw.permissions ?? [],
+        permissions: [uuidv4()], // required by validator; factory ignores it
       }, { headers: { Authorization: `Bearer ${adminToken}` } });
       setCpMsg({ ok: true, text: 'Password changed successfully.' });
       setCpCurrent(''); setCpNew(''); setCpConfirm('');
@@ -804,7 +805,9 @@ const Admin: React.FC = () => {
     } catch (e: any) { alert(e?.response?.data?.error ?? 'Failed to create admin'); }
   };
 
-  const handleDeleteAdmin = async (id: string) => {
+  const handleDeleteAdmin = async (id: string, description: string) => {
+    const targetRole = (() => { try { return JSON.parse(description)?.role_type; } catch { return 'site_admin'; } })();
+    if (targetRole === 'site_admin') { alert('Site admin accounts cannot be deleted.'); return; }
     if (!window.confirm('Delete this admin?')) return;
     try {
       await axios.delete(`${BACKEND}/v1/admin/roles/${id}`, { headers: { Authorization: `Bearer ${adminToken}` } });
@@ -864,7 +867,7 @@ const Admin: React.FC = () => {
                 <td className="text-muted">{parseUserLabel(u.description)}</td>
                 <td>
                   {u.id !== adminRole?.raw?.id && (
-                    <button className="btn-danger" onClick={() => handleDeleteAdmin(u.id)}>Delete</button>
+                    <button className="btn-danger" onClick={() => handleDeleteAdmin(u.id, u.description)}>Delete</button>
                   )}
                 </td>
               </tr>
