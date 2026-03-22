@@ -179,3 +179,162 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Send Periodic Report Card ─────────────────────────────────────────────── */
+
+.send-report-card {
+  border: 1px solid rgba(130, 188, 216, 0.34);
+  border-radius: 18px;
+  padding: 22px 24px;
+  background: linear-gradient(135deg, rgba(8, 28, 44, 0.9), rgba(4, 18, 32, 0.94));
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.24);
+}
+
+.send-report-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.send-report-icon {
+  font-size: 26px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.send-report-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e8f7ff;
+}
+
+.send-report-sub {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: #9ebdd1;
+}
+
+.send-report-schedule-info {
+  font-size: 0.75rem;
+  color: rgba(148, 189, 209, 0.7);
+  background: rgba(37, 216, 255, 0.06);
+  border: 1px solid rgba(37, 216, 255, 0.15);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 18px;
+}
+
+.send-report-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.send-report-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 10px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.14s;
+}
+
+.send-report-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.send-report-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+.send-report-btn--daily {
+  background: rgba(79, 70, 229, 0.25);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #a5b4fc;
+}
+
+.send-report-btn--weekly {
+  background: rgba(5, 150, 105, 0.22);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #6ee7b7;
+}
+
+.send-report-btn--monthly {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #fcd34d;
+}
+
+.send-report-btn--yearly {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fca5a5;
+}
+
+.send-report-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: rp-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes rp-spin {
+  to { transform: rotate(360deg); }
+}
+
+.send-report-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.send-report-result--ok {
+  background: rgba(5, 150, 105, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+}
+
+.send-report-result--err {
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+.send-report-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+  font-size: 0.9rem;
+  opacity: 0.7;
+  padding: 0 4px;
+}
+
+.send-report-dismiss:hover {
+  opacity: 1;
+}
+
+@media (max-width: 600px) {
+  .send-report-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

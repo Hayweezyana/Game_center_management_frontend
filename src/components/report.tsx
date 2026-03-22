@@ -130,6 +130,10 @@ const Report: React.FC = () => {
   const [salesTrend, setSalesTrend] = useState([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
 
+  // Send-report state
+  const [sendingReport, setSendingReport] = useState<string | null>(null);
+  const [reportSendResult, setReportSendResult] = useState<{ period: string; ok: boolean; msg: string } | null>(null);
+
 const filteredRecords = useMemo(() => {
   return records.filter((record) => {
     if (selectedGame && record.game_title !== selectedGame) return false;
@@ -565,6 +569,27 @@ const totalSales = useMemo(() => {
     }
   };
 
+  const handleSendReport = async (period: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
+    setSendingReport(period);
+    setReportSendResult(null);
+    try {
+      const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/reports/send`, { period });
+      setReportSendResult({
+        period,
+        ok: true,
+        msg: res.data.message || `${period} report sent successfully`,
+      });
+    } catch (err: any) {
+      setReportSendResult({
+        period,
+        ok: false,
+        msg: err?.response?.data?.error || `Failed to send ${period} report`,
+      });
+    } finally {
+      setSendingReport(null);
+    }
+  };
+
   // Pagination controls component
   const PaginationControls = () => {
     return (
@@ -860,6 +885,52 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
           </div>
         </div>
         
+        {/* Send Periodic Report */}
+        <div className="send-report-card mb-6">
+          <div className="send-report-header">
+            <span className="send-report-icon">📧</span>
+            <div>
+              <h2 className="send-report-title">Send Periodic Report</h2>
+              <p className="send-report-sub">Email a formatted sales report to configured recipients</p>
+            </div>
+          </div>
+
+          <div className="send-report-schedule-info">
+            <span>⏱ Scheduled: Daily 10 PM · Monday midnight · 1st of month · Jan 1st</span>
+          </div>
+
+          <div className="send-report-buttons">
+            {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((period) => {
+              const isSending = sendingReport === period;
+              const label = period.charAt(0).toUpperCase() + period.slice(1);
+              const icons: Record<string, string> = { daily: '📅', weekly: '🗓', monthly: '📆', yearly: '🏁' };
+              return (
+                <button
+                  key={period}
+                  className={`send-report-btn send-report-btn--${period}`}
+                  onClick={() => handleSendReport(period)}
+                  disabled={!!sendingReport}
+                >
+                  {isSending ? (
+                    <span className="send-report-spinner" />
+                  ) : (
+                    <span>{icons[period]}</span>
+                  )}
+                  {isSending ? 'Sending…' : `Send ${label}`}
+                </button>
+              );
+            })}
+          </div>
+
+          {reportSendResult && (
+            <div className={`send-report-result ${reportSendResult.ok ? 'send-report-result--ok' : 'send-report-result--err'}`}>
+              <span>{reportSendResult.ok ? '✅' : '❌'}</span>
+              <span>{reportSendResult.msg}</span>
+              <button className="send-report-dismiss" onClick={() => setReportSendResult(null)}>✕</button>
+            </div>
+          )}
+        </div>
+
         {/* Date Range Selector */}
         <div className="report-card report-filter-card bg-white p-4 rounded shadow mb-6">
           <h2 className="text-xl font-semibold mb-3">Select Date Range</h2>
