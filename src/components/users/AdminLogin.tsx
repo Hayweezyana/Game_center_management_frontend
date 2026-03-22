@@ -55,9 +55,22 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onClose }) => {
       });
 
       const { token, role } = response.data;
-    sessionStorage.setItem('token', token);
-    sessionStorage.setItem('adminData', JSON.stringify(role));
-    navigate('/admin');
+      sessionStorage.setItem('token', token);
+
+      // Fetch the full role object (includes description/slug needed for permissions)
+      try {
+        const fullRoleRes = await axios.get(
+          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/roles/${role.id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const fullRole = fullRoleRes.data?.data ?? role;
+        sessionStorage.setItem('adminData', JSON.stringify(fullRole));
+      } catch {
+        // Fallback to login response if fetch fails
+        sessionStorage.setItem('adminData', JSON.stringify(role));
+      }
+
+      navigate('/admin');
     
   } catch (error: any) {
     console.error('Login error:', error);

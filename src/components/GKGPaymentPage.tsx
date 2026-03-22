@@ -10,6 +10,7 @@ import {
 } from './utils/moniepointStatus';
 import './CheckoutExperience.css';
 import { useCartContext } from './hooks/useCart';
+import { parseAdminRole, canGiveDiscount, getMaxDiscount } from '../utils/adminPermissions';
 
 const formatNaira = (amount: number) => `N${amount.toLocaleString()}`;
 const isValidEmail = (email?: string) => Boolean(email && /\S+@\S+\.\S+/.test(email));
@@ -34,6 +35,7 @@ const GKGPaymentPage: React.FC = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [username, setUsername] = useState('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [maxDiscount, setMaxDiscount] = useState<number | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountReason, setDiscountReason] = useState('');
   const [customDiscountReason, setCustomDiscountReason] = useState('');
@@ -71,11 +73,29 @@ const GKGPaymentPage: React.FC = () => {
       });
       const { token, role } = res.data;
       sessionStorage.setItem('token', token);
-      sessionStorage.setItem('adminData', JSON.stringify(role));
+
+      let fullRole = role;
+      try {
+        const fullRes = await axios.get(
+          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/roles/${role.id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        fullRole = fullRes.data?.data ?? role;
+      } catch {}
+
+      sessionStorage.setItem('adminData', JSON.stringify(fullRole));
+      const parsed = parseAdminRole(fullRole);
+
+      if (!canGiveDiscount(parsed)) {
+        alert('This admin role is not permitted to apply discounts.');
+        return;
+      }
+
+      setMaxDiscount(getMaxDiscount(parsed));
       setIsAdminAuthenticated(true);
       alert('Admin authenticated successfully.');
     } catch (err: any) {
-      alert('Invalid admin password.');
+      alert('Invalid admin credentials.');
       console.error(err.response?.data || err.message);
     }
   };
@@ -311,12 +331,25 @@ const GKGPaymentPage: React.FC = () => {
               <h3>Apply Discount</h3>
               <div className="checkout-field-grid">
                 <div className="checkout-field">
-                  <label>Discount Amount (N)</label>
+                  <label>
+                    Discount Amount (N)
+                    {maxDiscount !== null && (
+                      <span style={{ fontWeight: 'normal', color: '#e07b00', marginLeft: 8 }}>
+                        — max ₦{maxDiscount.toLocaleString()}
+                      </span>
+                    )}
+                  </label>
                   <input
                     className="checkout-input"
                     type="number"
+                    min={0}
+                    max={maxDiscount !== null ? Math.min(originalAmount, maxDiscount) : originalAmount}
                     value={discountAmount}
-                    onChange={(e) => setDiscountAmount(parseInt(e.target.value, 10) || 0)}
+                    onChange={(e) => {
+                      let v = parseInt(e.target.value, 10) || 0;
+                      if (maxDiscount !== null) v = Math.min(v, maxDiscount);
+                      setDiscountAmount(v);
+                    }}
                   />
                 </div>
                 <div className="checkout-field">
