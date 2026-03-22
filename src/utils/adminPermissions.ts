@@ -38,7 +38,7 @@ const ROLE_TABS: Record<RoleType, AdminTab[]> = {
   site_admin:    ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports', 'admins'],
   manager:       ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports'],
   supervisor:    ['games', 'reports'],
-  account_audit: ['bypasses', 'reports'],
+  account_audit: ['pc', 'bypasses', 'reports'],
 };
 
 // ── Discount permissions ──────────────────────────────────────────────────────
