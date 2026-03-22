@@ -782,6 +782,7 @@ const Admin: React.FC = () => {
 
   const handleCreateAdmin = async () => {
     if (!newAdminName || !newAdminPw) { alert('Name and password are required'); return; }
+    if (newAdminName.length < 5) { alert('Username must be at least 5 characters'); return; }
     if (newAdminPw.length < 8) { alert('Password must be at least 8 characters'); return; }
     const maxDiscount = ['supervisor', 'manager'].includes(newAdminRoleType) && newAdminMaxDiscount !== ''
       ? Number(newAdminMaxDiscount)
@@ -794,7 +795,7 @@ const Admin: React.FC = () => {
         password: newAdminPw,
         slug: newAdminName.toLowerCase().replace(/\s+/g, '-'),
         secret_key: uuidv4(),
-        permissions: [],
+        permissions: [uuidv4()],
       }, { headers: { Authorization: `Bearer ${adminToken}` } });
       alert('Admin created successfully');
       setNewAdminName(''); setNewAdminLabel(''); setNewAdminPw('');
