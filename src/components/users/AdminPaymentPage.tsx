@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCartContext } from '../hooks/useCart';
+import { getAdminRole, canGiveDiscount, getMaxDiscount } from '../../utils/adminPermissions';
 
 
 
@@ -37,6 +38,10 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
 
   const navigate = useNavigate();
   const { setCart } = useCartContext();
+
+  const adminRole = getAdminRole();
+  const discountAllowed = isAdmin && adminRole ? canGiveDiscount(adminRole) : isAdmin;
+  const maxDiscountAllowed: number | null = adminRole ? getMaxDiscount(adminRole) : null;
 
   const finalAmount = Math.max(0, cartTotal - discount);
 
@@ -81,9 +86,9 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
   };
 
   const handleApplyDiscount = () => {
-    if (discount > cartTotal) {
-      setDiscount(cartTotal);
-    }
+    let capped = Math.min(discount, cartTotal);
+    if (maxDiscountAllowed !== null) capped = Math.min(capped, maxDiscountAllowed);
+    setDiscount(capped);
   };
 
   const handleCancelTransaction = () => {
@@ -102,17 +107,29 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
           <span>₦{cartTotal.toFixed(2)}</span>
         </div>
 
-        {isAdmin && (
+        {isAdmin && discountAllowed && (
           <div className="discount-controls">
             <div className="form-group">
-              <label htmlFor="discount">Discount Amount (₦):</label>
+              <label htmlFor="discount">
+                Discount Amount (₦)
+                {maxDiscountAllowed !== null && (
+                  <span style={{ fontWeight: 'normal', color: '#e07b00', marginLeft: 8 }}>
+                    — max ₦{maxDiscountAllowed.toLocaleString()}
+                  </span>
+                )}
+                :
+              </label>
               <input
                 type="number"
                 id="discount"
                 min="0"
-                max={cartTotal}
+                max={maxDiscountAllowed !== null ? Math.min(cartTotal, maxDiscountAllowed) : cartTotal}
                 value={discount}
-                onChange={(e) => setDiscount(Number(e.target.value))}
+                onChange={(e) => {
+                  let v = Number(e.target.value);
+                  if (maxDiscountAllowed !== null) v = Math.min(v, maxDiscountAllowed);
+                  setDiscount(v);
+                }}
                 onBlur={handleApplyDiscount}
               />
             </div>
@@ -170,7 +187,7 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
           {isProcessing ? 'Processing...' : `Proceed to Payment ₦${finalAmount.toFixed(2)}`}
         </button>
 
-        {isAdmin && (
+        {isAdmin && discountAllowed && (
           <button onClick={handleCancelTransaction} className="cancel-button">
             Cancel Transaction
           </button>

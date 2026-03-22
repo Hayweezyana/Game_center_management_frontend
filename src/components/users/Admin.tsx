@@ -1,7 +1,20 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Report from '../report';
 import './Admin.css';
+import {
+  getAdminRole,
+  getPermittedTabs,
+  canManageAdmins,
+  canGiveDiscount,
+  getMaxDiscount,
+  encodeRoleDescription,
+  ROLE_LABELS,
+  type RoleType,
+  type AdminTab,
+  type ParsedAdminRole,
+} from '../../utils/adminPermissions';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,7 +82,7 @@ interface AdminUser {
 
 const BACKEND = (process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:2024').replace(/\/+$/, '');
 
-const TAB_LABELS: { key: Tab; label: string }[] = [
+const ALL_TABS: { key: Tab; label: string }[] = [
   { key: 'pc',       label: '🖥  PC Control'     },
   { key: 'queue',    label: '🎮  Operator Queue'  },
   { key: 'bypasses', label: '🔑  Bypass Logs'     },
@@ -83,10 +96,49 @@ const TAB_LABELS: { key: Tab; label: string }[] = [
 
 const Admin: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<Tab>('pc');
+
+  // ── Role / permissions ──────────────────────────────────────────────────────
+  const adminRole: ParsedAdminRole | null = React.useMemo(() => getAdminRole(), []);
+  const permittedTabs = React.useMemo(
+    () => (adminRole ? getPermittedTabs(adminRole) : (['reports'] as AdminTab[])),
+    [adminRole]
+  );
+  const visibleTabs = ALL_TABS.filter(t => permittedTabs.includes(t.key as AdminTab));
+  const firstTab = (permittedTabs[0] ?? 'reports') as Tab;
+
+  const [activeTab, setActiveTab] = useState<Tab>(firstTab);
 
   const adminToken    = sessionStorage.getItem('token')         || '';
   const operatorToken = localStorage.getItem('operatorToken')   || '';
+
+  // ── Change Password modal ───────────────────────────────────────────────────
+  const [showChangePw, setShowChangePw]     = useState(false);
+  const [cpCurrent,    setCpCurrent]        = useState('');
+  const [cpNew,        setCpNew]            = useState('');
+  const [cpConfirm,    setCpConfirm]        = useState('');
+  const [cpMsg,        setCpMsg]            = useState<{ ok: boolean; text: string } | null>(null);
+  const [cpBusy,       setCpBusy]           = useState(false);
+
+  const handleChangePassword = async () => {
+    if (cpNew !== cpConfirm) { setCpMsg({ ok: false, text: 'New passwords do not match.' }); return; }
+    if (cpNew.length < 8)    { setCpMsg({ ok: false, text: 'Password must be at least 8 characters.' }); return; }
+    if (!adminRole?.raw?.id) { setCpMsg({ ok: false, text: 'Session error — please log in again.' }); return; }
+    setCpBusy(true);
+    try {
+      await axios.patch(`${BACKEND}/v1/admin/roles/${adminRole.raw.id}`, {
+        name: adminRole.raw.name,
+        current_password: cpCurrent,
+        new_password: cpNew,
+        permissions: adminRole.raw.permissions ?? [],
+      }, { headers: { Authorization: `Bearer ${adminToken}` } });
+      setCpMsg({ ok: true, text: 'Password changed successfully.' });
+      setCpCurrent(''); setCpNew(''); setCpConfirm('');
+    } catch (e: any) {
+      setCpMsg({ ok: false, text: e?.response?.data?.error ?? 'Password change failed.' });
+    } finally {
+      setCpBusy(false);
+    }
+  };
 
   const adminHeaders   = adminToken    ? { Authorization: `Bearer ${adminToken}`    } : {};
   const operatorHeaders = operatorToken ? { Authorization: `Bearer ${operatorToken}` } : {};
@@ -654,39 +706,56 @@ const Admin: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const [reportSubTab, setReportSubTab] = useState<'full' | 'consumed'>('full');
+
   const renderReports = () => (
     <div className="tab-section">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2>Consumed Games Report</h2>
-        <button className="btn-secondary" onClick={exportReportCsv} disabled={filteredReports.length === 0}>⬇ Export CSV</button>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <button
+          className={`tab-btn${reportSubTab === 'full' ? ' active' : ''}`}
+          onClick={() => setReportSubTab('full')}
+        >📈 Full Report</button>
+        <button
+          className={`tab-btn${reportSubTab === 'consumed' ? ' active' : ''}`}
+          onClick={() => setReportSubTab('consumed')}
+        >🎮 Consumed Games</button>
       </div>
-      <div className="report-filters">
-        <input placeholder="Search game / customer / operator" value={reportSearch}
-          onChange={e => { setReportSearch(e.target.value); setReportPage(1); }} />
-        <input type="date" value={reportFrom} onChange={e => { setReportFrom(e.target.value); setReportPage(1); }} />
-        <input type="date" value={reportTo}   onChange={e => { setReportTo(e.target.value);   setReportPage(1); }} />
-      </div>
-      <table className="admin-table">
-        <thead><tr><th>Game</th><th>Unit</th><th>Customer</th><th>Operator</th><th>Consumed At</th></tr></thead>
-        <tbody>
-          {pagedReports.length === 0
-            ? <tr><td colSpan={5} className="no-data">No records found.</td></tr>
-            : pagedReports.map(r => (
-              <tr key={r.id}>
-                <td>{r.game_title}</td>
-                <td>#{r.unit_index + 1}</td>
-                <td>{r.username ?? '—'}</td>
-                <td>{r.operator_name}</td>
-                <td>{new Date(r.consumed_at).toLocaleString()}</td>
-              </tr>
-            ))}
-        </tbody>
-      </table>
-      <div className="pagination">
-        <button disabled={reportPage === 1} onClick={() => setReportPage(p => p - 1)}>← Prev</button>
-        <span>Page {reportPage} of {Math.max(1, Math.ceil(filteredReports.length / REPORT_PER_PAGE))}</span>
-        <button disabled={reportPage * REPORT_PER_PAGE >= filteredReports.length} onClick={() => setReportPage(p => p + 1)}>Next →</button>
-      </div>
+
+      {reportSubTab === 'full' && <Report />}
+
+      {reportSubTab === 'consumed' && <>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2>Consumed Games Report</h2>
+          <button className="btn-secondary" onClick={exportReportCsv} disabled={filteredReports.length === 0}>⬇ Export CSV</button>
+        </div>
+        <div className="report-filters">
+          <input placeholder="Search game / customer / operator" value={reportSearch}
+            onChange={e => { setReportSearch(e.target.value); setReportPage(1); }} />
+          <input type="date" value={reportFrom} onChange={e => { setReportFrom(e.target.value); setReportPage(1); }} />
+          <input type="date" value={reportTo}   onChange={e => { setReportTo(e.target.value);   setReportPage(1); }} />
+        </div>
+        <table className="admin-table">
+          <thead><tr><th>Game</th><th>Unit</th><th>Customer</th><th>Operator</th><th>Consumed At</th></tr></thead>
+          <tbody>
+            {pagedReports.length === 0
+              ? <tr><td colSpan={5} className="no-data">No records found.</td></tr>
+              : pagedReports.map(r => (
+                <tr key={r.id}>
+                  <td>{r.game_title}</td>
+                  <td>#{r.unit_index + 1}</td>
+                  <td>{r.username ?? '—'}</td>
+                  <td>{r.operator_name}</td>
+                  <td>{new Date(r.consumed_at).toLocaleString()}</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+        <div className="pagination">
+          <button disabled={reportPage === 1} onClick={() => setReportPage(p => p - 1)}>← Prev</button>
+          <span>Page {reportPage} of {Math.max(1, Math.ceil(filteredReports.length / REPORT_PER_PAGE))}</span>
+          <button disabled={reportPage * REPORT_PER_PAGE >= filteredReports.length} onClick={() => setReportPage(p => p + 1)}>Next →</button>
+        </div>
+      </>}
     </div>
   );
 
@@ -696,7 +765,9 @@ const Admin: React.FC = () => {
 
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [newAdminName, setNewAdminName] = useState('');
-  const [newAdminDesc, setNewAdminDesc] = useState('');
+  const [newAdminLabel, setNewAdminLabel] = useState('');
+  const [newAdminRoleType, setNewAdminRoleType] = useState<RoleType>('supervisor');
+  const [newAdminMaxDiscount, setNewAdminMaxDiscount] = useState<string>('');
   const [newAdminPw, setNewAdminPw] = useState('');
 
   const fetchAdminUsers = useCallback(async () => {
@@ -710,53 +781,96 @@ const Admin: React.FC = () => {
 
   const handleCreateAdmin = async () => {
     if (!newAdminName || !newAdminPw) { alert('Name and password are required'); return; }
+    if (newAdminPw.length < 8) { alert('Password must be at least 8 characters'); return; }
+    const maxDiscount = ['supervisor', 'manager'].includes(newAdminRoleType) && newAdminMaxDiscount !== ''
+      ? Number(newAdminMaxDiscount)
+      : null;
+    const description = encodeRoleDescription(newAdminLabel, newAdminRoleType, maxDiscount);
     try {
       await axios.post(`${BACKEND}/v1/admin/roles/create`, {
         name: newAdminName,
-        description: newAdminDesc,
-        hashed_password: newAdminPw,
+        description,
+        password: newAdminPw,
         slug: newAdminName.toLowerCase().replace(/\s+/g, '-'),
         permissions: [],
-      });
-      alert('Admin created');
-      setNewAdminName(''); setNewAdminDesc(''); setNewAdminPw('');
+      }, { headers: { Authorization: `Bearer ${adminToken}` } });
+      alert('Admin created successfully');
+      setNewAdminName(''); setNewAdminLabel(''); setNewAdminPw('');
+      setNewAdminRoleType('supervisor'); setNewAdminMaxDiscount('');
       fetchAdminUsers();
-    } catch { alert('Failed to create admin'); }
+    } catch (e: any) { alert(e?.response?.data?.error ?? 'Failed to create admin'); }
   };
 
   const handleDeleteAdmin = async (id: string) => {
     if (!window.confirm('Delete this admin?')) return;
     try {
-      await axios.delete(`${BACKEND}/v1/admin/roles/${id}`);
+      await axios.delete(`${BACKEND}/v1/admin/roles/${id}`, { headers: { Authorization: `Bearer ${adminToken}` } });
       setAdminUsers(prev => prev.filter(u => u.id !== id));
     } catch { alert('Failed to delete admin'); }
   };
 
-  const renderAdmins = () => (
-    <div className="tab-section">
-      <h2>Admin Management</h2>
-      <h3>Add New Admin</h3>
-      <div className="add-game-form">
-        <input type="text" placeholder="Name" value={newAdminName} onChange={e => setNewAdminName(e.target.value)} />
-        <input type="text" placeholder="Description" value={newAdminDesc} onChange={e => setNewAdminDesc(e.target.value)} />
-        <input type="password" placeholder="Password (min 8 chars)" value={newAdminPw} onChange={e => setNewAdminPw(e.target.value)} />
-        <button onClick={handleCreateAdmin}>Create Admin</button>
+  const parseUserLabel = (description: string) => {
+    try { return JSON.parse(description)?.label || description; } catch { return description; }
+  };
+
+  const parseUserRole = (description: string): string => {
+    try {
+      const r = JSON.parse(description)?.role_type as RoleType;
+      return ROLE_LABELS[r] ?? 'Site Admin';
+    } catch { return 'Site Admin'; }
+  };
+
+  const renderAdmins = () => {
+    if (!canManageAdmins(adminRole!)) {
+      return <div className="tab-section"><p className="no-data">Access restricted.</p></div>;
+    }
+    const needsDiscountCap = ['supervisor', 'manager'].includes(newAdminRoleType);
+    return (
+      <div className="tab-section">
+        <h2>Admin Management</h2>
+        <h3>Add New Admin</h3>
+        <div className="add-game-form">
+          <input type="text" placeholder="Username" value={newAdminName} onChange={e => setNewAdminName(e.target.value)} />
+          <input type="text" placeholder="Display title (e.g. Head Cashier)" value={newAdminLabel} onChange={e => setNewAdminLabel(e.target.value)} />
+          <select value={newAdminRoleType} onChange={e => setNewAdminRoleType(e.target.value as RoleType)} className="admin-select">
+            <option value="site_admin">Site Admin</option>
+            <option value="manager">Manager</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="account_audit">Account &amp; Audit</option>
+          </select>
+          {needsDiscountCap && (
+            <input
+              type="number"
+              min={0}
+              placeholder="Max discount amount (₦) — leave blank for unlimited"
+              value={newAdminMaxDiscount}
+              onChange={e => setNewAdminMaxDiscount(e.target.value)}
+            />
+          )}
+          <input type="password" placeholder="Password (min 8 chars)" value={newAdminPw} onChange={e => setNewAdminPw(e.target.value)} />
+          <button onClick={handleCreateAdmin}>Create Admin</button>
+        </div>
+
+        <table className="admin-table" style={{ marginTop: 24 }}>
+          <thead><tr><th>Username</th><th>Role</th><th>Title</th><th>Action</th></tr></thead>
+          <tbody>
+            {adminUsers.map(u => (
+              <tr key={u.id}>
+                <td>{u.name}</td>
+                <td><span className="role-badge">{parseUserRole(u.description)}</span></td>
+                <td className="text-muted">{parseUserLabel(u.description)}</td>
+                <td>
+                  {u.id !== adminRole?.raw?.id && (
+                    <button className="btn-danger" onClick={() => handleDeleteAdmin(u.id)}>Delete</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <table className="admin-table" style={{ marginTop: 24 }}>
-        <thead><tr><th>Name</th><th>Description</th><th>Slug</th><th>Action</th></tr></thead>
-        <tbody>
-          {adminUsers.map(u => (
-            <tr key={u.id}>
-              <td>{u.name}</td>
-              <td>{u.description}</td>
-              <td className="text-muted small">{u.slug}</td>
-              <td><button className="btn-danger" onClick={() => handleDeleteAdmin(u.id)}>Delete</button></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+    );
+  };
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
@@ -779,17 +893,32 @@ const Admin: React.FC = () => {
       <div className="admin-hero">
         <div>
           <h1>Immersia Admin Console</h1>
-          <p>PCs · Operator Queue · Games · Reports — all in one place.</p>
+          <p>
+            {adminRole ? (
+              <>
+                Logged in as <strong>{adminRole.raw.name}</strong>
+                {' · '}
+                <span className="role-badge role-badge--{adminRole.roleType}">
+                  {ROLE_LABELS[adminRole.roleType]}
+                </span>
+              </>
+            ) : 'PCs · Operator Queue · Games · Reports — all in one place.'}
+          </p>
         </div>
-        <button className="btn-danger" onClick={handleLogout}>Logout</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-secondary" onClick={() => { setShowChangePw(true); setCpMsg(null); }}>
+            🔑 Change Password
+          </button>
+          <button className="btn-danger" onClick={handleLogout}>Logout</button>
+        </div>
       </div>
 
       <nav className="tab-nav">
-        {TAB_LABELS.map(({ key, label }) => (
+        {visibleTabs.map(({ key, label }) => (
           <button
             key={key}
             className={`tab-btn${activeTab === key ? ' active' : ''}`}
-            onClick={() => setActiveTab(key)}
+            onClick={() => setActiveTab(key as Tab)}
           >
             {label}
           </button>
@@ -799,6 +928,49 @@ const Admin: React.FC = () => {
       <div className="tab-content">
         {renderTab()}
       </div>
+
+      {/* ── Change Password Modal ── */}
+      {showChangePw && (
+        <div className="modal-overlay" onClick={() => setShowChangePw(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <h3>Change Password</h3>
+            {cpMsg && (
+              <div className={cpMsg.ok ? 'info-banner success' : 'error-banner'} style={{ marginBottom: 12 }}>
+                {cpMsg.text}
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <input
+                type="password"
+                placeholder="Current password"
+                value={cpCurrent}
+                onChange={e => setCpCurrent(e.target.value)}
+                className="admin-input"
+              />
+              <input
+                type="password"
+                placeholder="New password (min 8 chars)"
+                value={cpNew}
+                onChange={e => setCpNew(e.target.value)}
+                className="admin-input"
+              />
+              <input
+                type="password"
+                placeholder="Confirm new password"
+                value={cpConfirm}
+                onChange={e => setCpConfirm(e.target.value)}
+                className="admin-input"
+              />
+            </div>
+            <div className="modal-actions" style={{ marginTop: 16 }}>
+              <button className="btn-primary" onClick={handleChangePassword} disabled={cpBusy}>
+                {cpBusy ? 'Saving…' : 'Change Password'}
+              </button>
+              <button className="btn-secondary" onClick={() => setShowChangePw(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
