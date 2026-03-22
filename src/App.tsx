@@ -14,7 +14,6 @@ const Report = lazy(() => import('./components/report'));
 const PaymentSelection = lazy(() => import('./components/PaymentSelection'));
 const CartAndPayment = lazy(() => import('./components/CartAndPayment'));
 const UserDetails = lazy(() => import('./components/UserDetails'));
-const OperatorDashboard = lazy(() => import('./components/OperatorDashboard'));
 const ImmersiaPaymentPage = lazy(() => import('./components/ImmersiaPaymentPage'));
 const FunstationPaymentPage = lazy(() => import('./components/FunstationPaymentPage'));
 const PaystackPaymentPage = lazy(() => import('./components/PaystackPaymentPage'));
@@ -27,11 +26,8 @@ const AdminPaymentPage = lazy(() => import('./components/users/AdminPaymentPage'
 const OperatorAuth = lazy(() => import('./components/users/OperatorAuth'));
 const DrinkInventory = lazy(() => import('./components/users/DrinkInventory'));
 const OperatorConsumedGames = lazy(() => import('./components/users/OperatorConsumedGames'));
-const AdminDashboard = lazy(() => import('./components/users/AdminDashboard'));
-const PCLockDashboard = lazy(() => import('./components/users/PCLockDashboard'));
 const AdminTransaction = lazy(() => import('./components/users/Admintransaction'));
 const MarketersReportPage = lazy(() => import('./components/MarketersReportPage'));
-const AdminPcControl = lazy(() => import('./components/users/AdminPcControl'));
 const CustomerPortal = lazy(() => import('./components/customer/CustomerPortal'));
 
 const RouteLoader: React.FC = () => (
@@ -204,7 +200,7 @@ const AppShell: React.FC = () => {
           }
         />
         <Route path="/OperatorAuth" element={<OperatorAuth />} />
-        <Route path="/OperatorDashboard" element={<OperatorDashboard />} />
+        <Route path="/OperatorDashboard" element={<Admin />} />
         <Route path="/ImmersiaPaymentPage" element={<ImmersiaPaymentPage />} />
         <Route path="/FunstationPaymentPage" element={<FunstationPaymentPage />} />
         <Route path="/PaystackPaymentPage" element={<PaystackPaymentPage />} />
@@ -212,11 +208,11 @@ const AppShell: React.FC = () => {
         <Route path="/AIChatBox" element={<AIChatBox isAdmin={true} />} />
         <Route path="/DrinkInventory" element={<DrinkInventory isAdmin={true} />} />
         <Route path="/OperatorConsumedGames" element={<OperatorConsumedGames />} />
-        <Route path="/AdminDashboard" element={<AdminDashboard />} />
-        <Route path="/PCLockDashboard" element={<PCLockDashboard />} />
+        <Route path="/AdminDashboard" element={<Admin />} />
+        <Route path="/PCLockDashboard" element={<Admin />} />
         <Route path="/AdminTransaction" element={<AdminTransaction />} />
         <Route path="/MarketersReportPage" element={<MarketersReportPage />} />
-        <Route path="/AdminPcControl" element={<AdminPcControl />} />
+        <Route path="/AdminPcControl" element={<Admin />} />
         <Route path="/customer-portal" element={<CustomerPortal />} />
       </Routes>
     </div>

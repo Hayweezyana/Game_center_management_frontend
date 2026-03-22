@@ -5,12 +5,11 @@ import "./OperatorDashboard.css";
 interface GameItem {
   id: string; // transaction_item ID
   game_title: string;
-  game_duration?: number; // minutes (optional)
+  game_duration: number; // minutes per session
   username: string;
   game_quantity: number;
   transaction_created_at: string;
   transaction_time: string; // ISO
-  transaction: { game_duration?: number | null };
   unit_index: number;
 }
 
@@ -123,7 +122,7 @@ const OperatorDashboard: React.FC = () => {
         const now = new Date();
         const filtered = (res.data as GameItem[]).filter((item) => {
           const createdAt = new Date(item.transaction_time);
-          const hours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 7);
+          const hours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
           return hours <= 168; // within 7 days
         });
         setUnconsumedGames(filtered);
@@ -174,7 +173,7 @@ const OperatorDashboard: React.FC = () => {
 
   const handleOpenPc = async () => {
     if (!selectedItem || !selectedPCId) return;
-    const gameDuration = selectedItem.transaction?.game_duration ?? selectedItem.game_duration ?? 6;
+    const gameDuration = selectedItem.game_duration ?? 6;
     const totalDuration = gameDuration + 3;
 
     // Prefer new route: /admin/pcs/:id/unlock
@@ -240,42 +239,41 @@ useEffect(() => {
     try {
       const msg = JSON.parse(ev.data);
 
-      // 📥 Full state snapshot
-      if (msg?.type === "init_state" && Array.isArray(msg.pcs)) {
+      // 📥 Full state snapshot (wsHub sends "pcs-sync")
+      if (msg?.type === "pcs-sync" && Array.isArray(msg.pcs)) {
         console.log("📥 Init PC state:", msg.pcs);
         setAvailablePCs(
           msg.pcs.map((pc: any) => ({
             id: String(pc.id),
             title: String(pc.title),
-            isLocked: pc.status === "locked",
-            isOnline: true, // assume online if sending status
+            isLocked: pc.isLocked ?? pc.status === "locked",
+            isOnline: pc.isOnline ?? true,
             lastUnlockedAt: pc.busyUntil ? new Date(pc.busyUntil).toISOString() : null,
           }))
         );
       }
 
-      // 🔄 Live updates
-      if (msg?.type === "pc_update" && msg.pc) {
+      // 🔄 Live updates (wsHub sends "pc-status")
+      if (msg?.type === "pc-status" && msg.pc) {
         console.log("🔄 PC update:", msg.pc);
         setAvailablePCs((prev) => {
           const exists = prev.find((p) => p.id === msg.pc.id);
           if (!exists) {
-            // New PC registered after init
             return [...prev, {
               id: msg.pc.id,
               title: msg.pc.title,
-              isLocked: msg.pc.status === "locked",
-              isOnline: true,
+              isLocked: msg.pc.isLocked ?? msg.pc.status === "locked",
+              isOnline: msg.pc.isOnline ?? true,
               lastUnlockedAt: msg.pc.busyUntil ? new Date(msg.pc.busyUntil).toISOString() : null,
             }];
           }
-          // Merge into existing PC row
           return prev.map((p) =>
             p.id === msg.pc.id
               ? {
                   ...p,
                   title: msg.pc.title,
-                  isLocked: msg.pc.status === "locked",
+                  isLocked: msg.pc.isLocked ?? msg.pc.status === "locked",
+                  isOnline: msg.pc.isOnline ?? p.isOnline,
                   lastUnlockedAt: msg.pc.busyUntil ? new Date(msg.pc.busyUntil).toISOString() : null,
                 }
               : p
