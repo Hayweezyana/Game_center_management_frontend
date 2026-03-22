@@ -10,7 +10,7 @@
  *  site_admin    — full access, create all user types
  *  manager       — supervisor privileges + PC Control, Queue, Bypass Logs, Drinks
  *  supervisor    — add games, view reports, give discounts (capped by maxDiscount)
- *  account_audit — view reports, bypass logs
+ *  account_audit — view reports, bypass logs, operator queue
  */
 
 export type RoleType = 'site_admin' | 'manager' | 'supervisor' | 'account_audit';
@@ -38,7 +38,7 @@ const ROLE_TABS: Record<RoleType, AdminTab[]> = {
   site_admin:    ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports', 'admins'],
   manager:       ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports'],
   supervisor:    ['games', 'reports'],
-  account_audit: ['pc', 'bypasses', 'reports'],
+  account_audit: ['queue', 'bypasses', 'reports'],
 };
 
 // ── Discount permissions ──────────────────────────────────────────────────────
