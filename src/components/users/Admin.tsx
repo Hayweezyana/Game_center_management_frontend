@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Report from '../report';
@@ -792,6 +793,7 @@ const Admin: React.FC = () => {
         description,
         password: newAdminPw,
         slug: newAdminName.toLowerCase().replace(/\s+/g, '-'),
+        secret_key: uuidv4(),
         permissions: [],
       }, { headers: { Authorization: `Bearer ${adminToken}` } });
       alert('Admin created successfully');
