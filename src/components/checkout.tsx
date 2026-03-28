@@ -149,6 +149,12 @@ const Checkout: React.FC = () => {
       {currentStep !== 'cart' && (
         <div className="checkout-actions">
           <button className="checkout-btn checkout-btn-secondary" onClick={handleBack}>Back</button>
+          <button
+            className="checkout-btn checkout-btn-danger"
+            onClick={() => { setCart([]); navigate('/gameselection'); }}
+          >
+            Cancel Transaction
+          </button>
         </div>
       )}
         </div>

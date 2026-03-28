@@ -40,7 +40,6 @@ const PaystackPaymentPage: React.FC = () => {
   const marketers = ['In House', 'O. Timileyin', 'O. Judith', 'Damilola', 'Saviour', 'E. Success', 'K. Ese'];
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
-  const callbackUrl = `${backendUrl}/v1/payments/paystack/callback`;
 
   const handleAdminLogin = async () => {
     try {
@@ -63,7 +62,6 @@ const PaystackPaymentPage: React.FC = () => {
     amount: finalAmount * 100,
     publicKey: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY!,
     currency: 'NGN',
-    callback_url: callbackUrl,
     metadata: {
       custom_fields: [
         { display_name: 'Username', variable_name: 'username', value: userDetails?.username },
