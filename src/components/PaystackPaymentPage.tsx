@@ -10,6 +10,8 @@ interface CartItem {
   gameDuration: number;
   quantity: number;
   title: string;
+  price: number;
+  type?: 'game' | 'drink';
 }
 
 const formatNaira = (amount: number) => `N${amount.toLocaleString()}`;
@@ -18,7 +20,11 @@ const PaystackPaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { clearCart } = useCartContext();
-  const { finalAmount: originalAmount = 0, userDetails, cartItems = [] } = (location.state as any) || {};
+  const {
+    finalAmount: originalAmount = 0,
+    userDetails,
+    cartItems = [],
+  } = (location.state as any) || {};
 
   const [adminPassword, setAdminPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -27,31 +33,18 @@ const PaystackPaymentPage: React.FC = () => {
   const [discountReason, setDiscountReason] = useState('');
   const [customDiscountReason, setCustomDiscountReason] = useState('');
   const [selectedMarketer, setSelectedMarketer] = useState('');
-  const [hasSavedPaymentRecord, setHasSavedPaymentRecord] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const isProcessing = useRef(false);
+  const preventDoubleSubmit = useRef(false);
   const finalAmount = Math.max(originalAmount - discountAmount, 0);
   const marketers = ['In House', 'O. Timileyin', 'O. Judith', 'Damilola', 'Saviour', 'E. Success', 'K. Ese'];
 
-  const savePaymentRecord = async (amount: number, method: string, merchantRef: string) => {
-    if (hasSavedPaymentRecord) return;
-    try {
-      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/marketer_payments`, {
-        amount: Number(amount),
-        marketer: selectedMarketer || 'In House',
-        station: 'online',
-        payment_method: method,
-        merchantReference: merchantRef,
-      });
-      setHasSavedPaymentRecord(true);
-    } catch (err: any) {
-      console.error('Marketer record error:', err.response?.data || err.message);
-    }
-  };
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  const callbackUrl = `${backendUrl}/v1/payments/paystack/callback`;
 
   const handleAdminLogin = async () => {
     try {
-      const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/roles/login`, {
+      const res = await axios.post(`${backendUrl}/v1/admin/roles/login`, {
         name: username,
         password: adminPassword,
       });
@@ -59,21 +52,23 @@ const PaystackPaymentPage: React.FC = () => {
         setIsAdminAuthenticated(true);
         alert('Admin authenticated.');
       }
-    } catch (_err: any) {
+    } catch {
       alert('Invalid admin credentials.');
     }
   };
 
   const config = {
-    reference: new Date().getTime().toString(),
-    email: userDetails?.email || 'customer@example.com',
+    reference: `immersia_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    email: userDetails?.email || 'customer@immersia.ng',
     amount: finalAmount * 100,
     publicKey: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY!,
     currency: 'NGN',
+    callback_url: callbackUrl,
     metadata: {
       custom_fields: [
         { display_name: 'Username', variable_name: 'username', value: userDetails?.username },
-        { display_name: 'Phone', variable_name: 'phone', value: userDetails?.phone },
+        { display_name: 'Phone',    variable_name: 'phone',    value: userDetails?.phone },
+        { display_name: 'Staff',    variable_name: 'staff',    value: selectedMarketer || 'In House' },
       ],
     },
   };
@@ -81,37 +76,62 @@ const PaystackPaymentPage: React.FC = () => {
   const initializePayment = usePaystackPayment(config);
 
   const onSuccess = async (reference: any) => {
-    if (isProcessing.current) return;
-    isProcessing.current = true;
+    if (preventDoubleSubmit.current) return;
+    preventDoubleSubmit.current = true;
+    setIsProcessing(true);
+
+    const ref: string = reference?.reference ?? config.reference;
+    const resolvedDiscountReason =
+      discountReason === 'Others' ? customDiscountReason : discountReason;
+
     try {
-      const paidAt = new Date().toISOString();
+      // ── Step 1: Server-side verification + transaction creation ──────────
+      const verifyResponse = await axios.post(
+        `${backendUrl}/v1/payments/paystack/verify`,
+        {
+          reference: ref,
+          userDetails,
+          cartItems,
+          discount: discountAmount,
+          discount_description: resolvedDiscountReason,
+        }
+      );
 
-      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, {
-        ...userDetails,
-        reference: reference.reference,
-        payment_methods: [{ method: 'Paystack', amount: finalAmount }],
-        cartItems,
-        discount: discountAmount,
-        discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
-      });
+      if (!verifyResponse.data.success) {
+        throw new Error(verifyResponse.data.error || 'Payment verification failed');
+      }
 
-      await savePaymentRecord(finalAmount, 'Paystack', reference.reference);
+      // ── Step 2: Save marketer attribution ──────────────────────────────
+      try {
+        await axios.post(`${backendUrl}/v1/admin/marketer_payments`, {
+          amount: finalAmount,
+          marketer: selectedMarketer || 'In House',
+          station: 'online',
+          payment_method: 'Paystack',
+          merchantReference: ref,
+        });
+      } catch (marketerErr: any) {
+        console.error('Marketer record error:', marketerErr.response?.data || marketerErr.message);
+      }
+
       clearCart();
 
+      // ── Step 3: Navigate to ticket ─────────────────────────────────────
       navigate('/ticket', {
         state: {
           finalAmount,
           userDetails,
           cartItems,
-          reference: reference.reference,
+          reference: ref,
           discount: discountAmount,
-          dateTime: paidAt,
+          dateTime: verifyResponse.data.payment?.paid_at ?? new Date().toISOString(),
         },
       });
 
+      // ── Step 4: Queue games (fire-and-forget after navigation) ─────────
       void Promise.all(
         cartItems.map((item: CartItem) =>
-          axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/queue/add`, {
+          axios.post(`${backendUrl}/v1/admin/queue/add`, {
             game_id: item.id,
             user_id: userDetails.id,
             username: userDetails.username,
@@ -120,21 +140,23 @@ const PaystackPaymentPage: React.FC = () => {
             game_title: item.title,
           })
         )
-      ).catch((queueError) => {
-        console.error('Queue insertion failed after receipt navigation:', queueError);
-      });
-    } catch (error) {
-      console.error('Finalization error:', error);
-      alert('Payment successful, but failed to update records. Please contact admin.');
+      ).catch((err) => console.error('Queue insertion failed after navigation:', err));
+    } catch (error: any) {
+      console.error('Payment processing error:', error);
+      alert(
+        error.response?.data?.error ||
+        error.message ||
+        'Payment received but finalizing failed. Contact admin with reference: ' + ref
+      );
     } finally {
-      isProcessing.current = false;
+      setIsProcessing(false);
+      preventDoubleSubmit.current = false;
     }
   };
 
   const handlePayment = () => {
     if (finalAmount <= 0) return alert('Amount must be greater than 0.');
-    if (discountAmount > 0 && !discountReason) return alert('Reason required for discount.');
-
+    if (discountAmount > 0 && !discountReason) return alert('A reason is required for the discount.');
     initializePayment({ onSuccess, onClose: () => console.log('Closed') });
   };
 
@@ -143,7 +165,7 @@ const PaystackPaymentPage: React.FC = () => {
       <div className="payment-page-shell">
         <div className="payment-page-header">
           <h1>Paystack Checkout</h1>
-          <p>Online payment with instant receipt and automatic queue update.</p>
+          <p>Payment is verified server-side before the booking is confirmed.</p>
         </div>
 
         <div className="payment-page-body">
@@ -153,11 +175,7 @@ const PaystackPaymentPage: React.FC = () => {
               <label>Staff</label>
               <select className="checkout-select" value={selectedMarketer} onChange={(e) => setSelectedMarketer(e.target.value)}>
                 <option value="">In House</option>
-                {marketers.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
+                {marketers.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
           </div>
@@ -172,13 +190,7 @@ const PaystackPaymentPage: React.FC = () => {
                 </div>
                 <div className="checkout-field">
                   <label>Admin Password</label>
-                  <input
-                    className="checkout-input"
-                    type="password"
-                    placeholder="Password"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                  />
+                  <input className="checkout-input" type="password" placeholder="Password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} />
                 </div>
               </div>
               <div className="checkout-actions">
@@ -193,17 +205,12 @@ const PaystackPaymentPage: React.FC = () => {
               <div className="checkout-field-grid">
                 <div className="checkout-field">
                   <label>Discount Amount (N)</label>
-                  <input
-                    className="checkout-input"
-                    type="number"
-                    placeholder="Amount"
-                    onChange={(e) => setDiscountAmount(Number(e.target.value))}
-                  />
+                  <input className="checkout-input" type="number" placeholder="Amount" onChange={(e) => setDiscountAmount(Number(e.target.value))} />
                 </div>
                 <div className="checkout-field">
                   <label>Reason</label>
                   <select className="checkout-select" value={discountReason} onChange={(e) => setDiscountReason(e.target.value)}>
-                    <option value="">Reason...</option>
+                    <option value="">Reason…</option>
                     <option value="Promo">Promo</option>
                     <option value="Others">Others</option>
                   </select>
@@ -212,11 +219,7 @@ const PaystackPaymentPage: React.FC = () => {
               {discountReason === 'Others' && (
                 <div className="checkout-field">
                   <label>Custom Reason</label>
-                  <input
-                    className="checkout-input"
-                    placeholder="Describe reason"
-                    onChange={(e) => setCustomDiscountReason(e.target.value)}
-                  />
+                  <input className="checkout-input" placeholder="Describe reason" onChange={(e) => setCustomDiscountReason(e.target.value)} />
                 </div>
               )}
             </div>
@@ -224,20 +227,22 @@ const PaystackPaymentPage: React.FC = () => {
 
           <div className="checkout-panel">
             <h3>Order Summary</h3>
-            <p>
-              Player: {userDetails?.username} ({userDetails?.phone})
-            </p>
+            <p>Player: {userDetails?.username} ({userDetails?.phone})</p>
             <div className="summary-row">
               <span>Total Payable</span>
               <span className="value">{formatNaira(finalAmount)}</span>
             </div>
+            {isProcessing && (
+              <p style={{ color: '#22c55e', marginTop: 8 }}>Verifying payment with Paystack…</p>
+            )}
             <div className="checkout-actions">
-              <button className="checkout-btn checkout-btn-primary" onClick={handlePayment}>
-                Pay with Paystack
+              <button className="checkout-btn checkout-btn-primary" onClick={handlePayment} disabled={isProcessing}>
+                {isProcessing ? 'Processing…' : 'Pay with Paystack'}
               </button>
               <button
                 className="checkout-btn checkout-btn-secondary"
                 onClick={() => navigate('/gameselection', { state: { userDetails, cartItems, finalAmount } })}
+                disabled={isProcessing}
               >
                 Edit Cart
               </button>
