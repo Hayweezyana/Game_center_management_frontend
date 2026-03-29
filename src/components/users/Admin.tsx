@@ -308,10 +308,10 @@ const Admin: React.FC = () => {
   const [queueMsg, setQueueMsg] = useState('');
 
   const fetchQueue = useCallback(async () => {
-    if (!operatorToken) return;
     setQueueLoading(true);
+    const headers = operatorToken ? operatorHeaders : adminHeaders;
     try {
-      const res = await axios.get(`${BACKEND}/v1/admin/consumed-game`, { headers: operatorHeaders });
+      const res = await axios.get(`${BACKEND}/v1/admin/consumed-game`, { headers });
       const now = Date.now();
       setQueueGames((res.data as GameItem[]).filter(item => {
         const hrs = (now - new Date(item.transaction_time).getTime()) / (1000 * 60 * 60);
@@ -329,11 +329,12 @@ const Admin: React.FC = () => {
   }, [activeTab, fetchQueue]);
 
   const handleConsume = async (item: GameItem) => {
+    const headers = operatorToken ? operatorHeaders : adminHeaders;
     try {
       await axios.post(
         `${BACKEND}/v1/admin/consumed-game/consume`,
         { transactionItemId: item.id, unit_index: item.unit_index, game_title: item.game_title },
-        { headers: operatorHeaders }
+        { headers }
       );
       setQueueGames(prev => prev.filter(g => !(g.id === item.id && g.unit_index === item.unit_index)));
       setSelectedItem(item);
@@ -347,11 +348,12 @@ const Admin: React.FC = () => {
   const handleOpenPc = async () => {
     if (!selectedItem || !selectedPcId) return;
     const duration = (selectedItem.game_duration ?? 6) + 3;
+    const headers = operatorToken ? operatorHeaders : adminHeaders;
     try {
       await axios.post(
         `${BACKEND}/v1/admin/pcs/${encodeURIComponent(selectedPcId)}/unlock`,
         { duration_minutes: duration, transactionItemId: selectedItem.id, unit_index: selectedItem.unit_index },
-        { headers: operatorHeaders }
+        { headers }
       );
       setQueueMsg(`✅ ${selectedItem.game_title} — PC unlocked for ${duration} min (${selectedItem.game_duration} min game + 3 min setup)`);
       setSelectedItem(null);
@@ -381,11 +383,6 @@ const Admin: React.FC = () => {
         <h2>Operator Queue</h2>
         <button className="btn-secondary" onClick={fetchQueue}>↻ Refresh</button>
       </div>
-      {!operatorToken && (
-        <div className="info-banner warning">
-          Operator token not found. <button className="btn-link" onClick={() => navigate('/OperatorAuth')}>Log in as Operator</button>
-        </div>
-      )}
       {queueError && <div className="error-banner">{queueError}</div>}
       {queueMsg  && <div className="info-banner success">{queueMsg}</div>}
       {queueLoading ? <div className="spinner">Loading queue…</div>
@@ -924,7 +921,7 @@ const Admin: React.FC = () => {
           <button
             key={key}
             className={`tab-btn${activeTab === key ? ' active' : ''}`}
-            onClick={() => setActiveTab(key as Tab)}
+            onClick={() => { setActiveTab(key as Tab); window.scrollTo({ top: 0 }); }}
           >
             {label}
           </button>

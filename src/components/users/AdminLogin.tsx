@@ -38,10 +38,6 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onClose }) => {
         alert('Please enter both username and password');
         return;
       }
-      if (password.length < 8) {
-        alert('Password must be at least 8 characters long');
-        return;
-      }
 
       console.log("Attempting login with:", { name, password });
 
@@ -214,6 +210,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onClose }) => {
                   placeholder=" "
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                   className="floating-input"
                 />
                 <label className="floating-label">Password</label>
