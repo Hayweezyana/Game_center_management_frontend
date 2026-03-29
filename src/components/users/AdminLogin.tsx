@@ -39,7 +39,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onClose }) => {
         return;
       }
 
-      console.log("Attempting login with:", { name, password });
+      console.log("Attempting login with:", { name});
 
       const response = await axios.post<LoginResponse>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/roles/login`, {
         name,
