@@ -14,7 +14,7 @@
  */
 
 export type RoleType = 'site_admin' | 'manager' | 'supervisor' | 'account_audit';
-export type AdminTab = 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins';
+export type AdminTab = 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx';
 
 export interface AdminRoleData {
   id: string;
@@ -35,7 +35,7 @@ export interface ParsedAdminRole {
 // ── Tab permissions per role ──────────────────────────────────────────────────
 
 const ROLE_TABS: Record<RoleType, AdminTab[]> = {
-  site_admin:    ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports', 'admins'],
+  site_admin:    ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports', 'admins', 'manual-tx'],
   manager:       ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports'],
   supervisor:    ['games', 'reports'],
   account_audit: ['queue', 'bypasses', 'reports'],

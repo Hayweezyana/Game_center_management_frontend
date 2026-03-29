@@ -19,7 +19,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins';
+type Tab = 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx';
 
 interface PcRow {
   id: string;
@@ -84,13 +84,14 @@ interface AdminUser {
 const BACKEND = (process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:2024').replace(/\/+$/, '');
 
 const ALL_TABS: { key: Tab; label: string }[] = [
-  { key: 'pc',       label: '🖥  PC Control'     },
-  { key: 'queue',    label: '🎮  Operator Queue'  },
-  { key: 'bypasses', label: '🔑  Bypass Logs'     },
-  { key: 'games',    label: '🕹  Games'           },
-  { key: 'drinks',   label: '🥤  Drinks'          },
-  { key: 'reports',  label: '📊  Reports'         },
-  { key: 'admins',   label: '👤  Admins'          },
+  { key: 'pc',        label: '🖥  PC Control'        },
+  { key: 'queue',     label: '🎮  Operator Queue'     },
+  { key: 'bypasses',  label: '🔑  Bypass Logs'        },
+  { key: 'games',     label: '🕹  Games'              },
+  { key: 'drinks',    label: '🥤  Drinks'             },
+  { key: 'reports',   label: '📊  Reports'            },
+  { key: 'admins',    label: '👤  Admins'             },
+  { key: 'manual-tx', label: '🧾  Manual Transaction' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -551,7 +552,7 @@ const Admin: React.FC = () => {
     } catch {}
   }, [gamesLoaded]);
 
-  useEffect(() => { if (activeTab === 'games') fetchGames(); }, [activeTab, fetchGames]);
+  useEffect(() => { if (activeTab === 'games' || activeTab === 'manual-tx') fetchGames(); }, [activeTab, fetchGames]);
 
   const handleUpdateGame = async (id: string) => {
     const updates = updatedGameFields[id];
@@ -768,6 +769,11 @@ const Admin: React.FC = () => {
   const [newAdminRoleType, setNewAdminRoleType] = useState<RoleType>('supervisor');
   const [newAdminMaxDiscount, setNewAdminMaxDiscount] = useState<string>('');
   const [newAdminPw, setNewAdminPw] = useState('');
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+  const [editRoleType, setEditRoleType] = useState<RoleType>('supervisor');
+  const [editLabel, setEditLabel] = useState('');
+  const [editMaxDiscount, setEditMaxDiscount] = useState('');
+  const [editRoleSaving, setEditRoleSaving] = useState(false);
 
   const fetchAdminUsers = useCallback(async () => {
     try {
@@ -800,6 +806,38 @@ const Admin: React.FC = () => {
       setNewAdminRoleType('supervisor'); setNewAdminMaxDiscount('');
       fetchAdminUsers();
     } catch (e: any) { alert(e?.response?.data?.error ?? 'Failed to create admin'); }
+  };
+
+  const handleStartEditRole = (u: AdminUser) => {
+    try {
+      const parsed = JSON.parse(u.description || '{}');
+      setEditRoleType((parsed.role_type as RoleType) || 'supervisor');
+      setEditLabel(parsed.label || '');
+      setEditMaxDiscount(parsed.maxDiscount != null ? String(parsed.maxDiscount) : '');
+    } catch {
+      setEditRoleType('supervisor'); setEditLabel(''); setEditMaxDiscount('');
+    }
+    setEditingRoleId(u.id);
+  };
+
+  const handleSaveRole = async (u: AdminUser) => {
+    setEditRoleSaving(true);
+    const maxDiscount = ['supervisor', 'manager'].includes(editRoleType) && editMaxDiscount !== ''
+      ? Number(editMaxDiscount)
+      : null;
+    const description = encodeRoleDescription(editLabel, editRoleType, maxDiscount);
+    try {
+      await axios.patch(`${BACKEND}/v1/admin/roles/${u.id}/description`,
+        { description },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      setAdminUsers(prev => prev.map(a => a.id === u.id ? { ...a, description } : a));
+      setEditingRoleId(null);
+    } catch (e: any) {
+      alert(e?.response?.data?.error ?? 'Failed to update role');
+    } finally {
+      setEditRoleSaving(false);
+    }
   };
 
   const handleDeleteAdmin = async (id: string, description: string) => {
@@ -855,20 +893,61 @@ const Admin: React.FC = () => {
         </div>
 
         <table className="admin-table" style={{ marginTop: 24 }}>
-          <thead><tr><th>Username</th><th>Role</th><th>Title</th><th>Action</th></tr></thead>
+          <thead><tr><th>Username</th><th>Role</th><th>Title</th><th>Actions</th></tr></thead>
           <tbody>
-            {adminUsers.map(u => (
-              <tr key={u.id}>
-                <td>{u.name}</td>
-                <td><span className="role-badge">{parseUserRole(u.description)}</span></td>
-                <td className="text-muted">{parseUserLabel(u.description)}</td>
-                <td>
-                  {u.id !== adminRole?.raw?.id && (
-                    <button className="btn-danger" onClick={() => handleDeleteAdmin(u.id, u.description)}>Delete</button>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {adminUsers.map(u => {
+              const isSelf = u.id === adminRole?.raw?.id;
+              const isEditing = editingRoleId === u.id;
+              const targetIsSiteAdmin = (() => { try { return JSON.parse(u.description)?.role_type === 'site_admin'; } catch { return true; } })();
+              return (
+                <tr key={u.id}>
+                  <td>{u.name}</td>
+                  <td>
+                    {isEditing ? (
+                      <select value={editRoleType} onChange={e => setEditRoleType(e.target.value as RoleType)} style={{ fontSize: 13 }}>
+                        <option value="site_admin">Site Admin</option>
+                        <option value="manager">Manager</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="account_audit">Account &amp; Audit</option>
+                      </select>
+                    ) : (
+                      <span className="role-badge">{parseUserRole(u.description)}</span>
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <input placeholder="Display title" value={editLabel} onChange={e => setEditLabel(e.target.value)} style={{ fontSize: 13 }} />
+                        {['supervisor', 'manager'].includes(editRoleType) && (
+                          <input type="number" placeholder="Max discount (₦)" value={editMaxDiscount} onChange={e => setEditMaxDiscount(e.target.value)} style={{ fontSize: 13, width: 160 }} />
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted">{parseUserLabel(u.description)}</span>
+                    )}
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {!isSelf && !targetIsSiteAdmin && (
+                        isEditing ? (
+                          <>
+                            <button className="btn-primary" style={{ fontSize: 12, padding: '4px 10px' }} disabled={editRoleSaving} onClick={() => handleSaveRole(u)}>
+                              {editRoleSaving ? '…' : 'Save'}
+                            </button>
+                            <button className="btn-secondary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => setEditingRoleId(null)}>Cancel</button>
+                          </>
+                        ) : (
+                          <button className="btn-secondary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => handleStartEditRole(u)}>Edit Role</button>
+                        )
+                      )}
+                      {!isSelf && (
+                        <button className="btn-danger" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => handleDeleteAdmin(u.id, u.description)}>Delete</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -876,18 +955,319 @@ const Admin: React.FC = () => {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // TAB: MANUAL TRANSACTION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  interface ManualCartItem {
+    key: string; // local UI key
+    id: string;
+    title: string;
+    price: number;
+    quantity: number;
+    gameDuration: number;
+    type: 'game' | 'drink';
+  }
+
+  interface ManualPayment {
+    key: string;
+    method: string;
+    amount: number;
+  }
+
+  const PAYMENT_METHODS_LIST = [
+    'Immersia Cash', 'Immersia_Moniepoint', 'Funstation Cash', 'Funstation_Moniepoint',
+    'GKG Cash', 'GKG_Moniepoint', 'Paystack', 'Transfer', 'Others',
+  ];
+
+  const [mtUsername,    setMtUsername]    = useState('');
+  const [mtPhone,       setMtPhone]       = useState('');
+  const [mtEmail,       setMtEmail]       = useState('');
+  const [mtDiscount,    setMtDiscount]    = useState(0);
+  const [mtDiscountDesc, setMtDiscountDesc] = useState('');
+  const [mtCreatedAt,   setMtCreatedAt]   = useState('');
+  const [mtCartItems,   setMtCartItems]   = useState<ManualCartItem[]>([]);
+  const [mtPayments,    setMtPayments]    = useState<ManualPayment[]>([{ key: '1', method: 'Immersia Cash', amount: 0 }]);
+  const [mtSubmitting,  setMtSubmitting]  = useState(false);
+  const [mtMsg,         setMtMsg]         = useState<{ ok: boolean; text: string } | null>(null);
+  const [mtSuccessTx,   setMtSuccessTx]   = useState<any>(null);
+  const [mtPhoneLooking, setMtPhoneLooking] = useState(false);
+
+  const mtLookupPhone = async (phone: string) => {
+    if (phone.length < 7) return;
+    setMtPhoneLooking(true);
+    try {
+      const res = await axios.get(`${BACKEND}/v1/admin/users/phone`, { params: { phone }, headers: adminHeaders });
+      const user = res.data?.data ?? res.data;
+      if (user?.username) { setMtUsername(user.username); }
+      if (user?.email)    { setMtEmail(user.email); }
+    } catch {
+      // user not found — leave fields blank for manual entry
+    } finally {
+      setMtPhoneLooking(false);
+    }
+  };
+
+  // Game/drink picker state
+  const [mtItemType,     setMtItemType]     = useState<'game' | 'drink'>('game');
+  const [mtSelectedGame, setMtSelectedGame] = useState('');
+  const [mtCustomTitle,  setMtCustomTitle]  = useState('');
+  const [mtItemPrice,    setMtItemPrice]    = useState(0);
+  const [mtItemQty,      setMtItemQty]      = useState(1);
+  const [mtItemDuration, setMtItemDuration] = useState(6);
+
+  const mtTotalItems = mtCartItems.reduce((s, i) => s + i.price * i.quantity, 0);
+  const mtTotalPaid  = mtPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const mtFinal      = Math.max(0, mtTotalItems - mtDiscount);
+
+  const mtAddItem = () => {
+    const title = mtItemType === 'game' && mtSelectedGame
+      ? (games.find(g => g.id === mtSelectedGame)?.title ?? mtCustomTitle)
+      : mtCustomTitle;
+    if (!title || mtItemPrice <= 0 || mtItemQty <= 0) {
+      setMtMsg({ ok: false, text: 'Fill item title, price and quantity.' });
+      return;
+    }
+    setMtCartItems(prev => [...prev, {
+      key: Date.now().toString(),
+      id: mtSelectedGame || Date.now().toString(),
+      title,
+      price: mtItemPrice,
+      quantity: mtItemQty,
+      gameDuration: mtItemDuration,
+      type: mtItemType,
+    }]);
+    setMtSelectedGame(''); setMtCustomTitle(''); setMtItemPrice(0); setMtItemQty(1); setMtItemDuration(6);
+    setMtMsg(null);
+  };
+
+  const mtRemoveItem = (key: string) => setMtCartItems(prev => prev.filter(i => i.key !== key));
+
+  const mtAddPayment = () => setMtPayments(prev => [...prev, { key: Date.now().toString(), method: 'Immersia Cash', amount: 0 }]);
+  const mtRemovePayment = (key: string) => setMtPayments(prev => prev.filter(p => p.key !== key));
+
+  const mtReset = () => {
+    setMtUsername(''); setMtPhone(''); setMtEmail('');
+    setMtDiscount(0); setMtDiscountDesc(''); setMtCreatedAt('');
+    setMtCartItems([]); setMtPayments([{ key: '1', method: 'Immersia Cash', amount: 0 }]);
+    setMtMsg(null); setMtSuccessTx(null);
+  };
+
+  const mtSubmit = async () => {
+    if (!mtUsername || !mtPhone) { setMtMsg({ ok: false, text: 'Username and phone are required.' }); return; }
+    if (mtCartItems.length === 0) { setMtMsg({ ok: false, text: 'Add at least one item.' }); return; }
+    if (mtPayments.every(p => !p.amount)) { setMtMsg({ ok: false, text: 'Enter at least one payment amount.' }); return; }
+
+    setMtSubmitting(true);
+    setMtMsg(null);
+    const headers = operatorToken ? operatorHeaders : adminHeaders;
+    try {
+      const res = await axios.post(`${BACKEND}/v1/admin/transactions/manual`, {
+        username: mtUsername,
+        phone: mtPhone,
+        email: mtEmail || undefined,
+        discount: mtDiscount,
+        discount_description: mtDiscountDesc,
+        created_at: mtCreatedAt || undefined,
+        payment_methods: mtPayments.map(p => ({ method: p.method, amount: Number(p.amount) })),
+        cartItems: mtCartItems.map(i => ({
+          id: i.id,
+          title: i.title,
+          price: i.price,
+          quantity: i.quantity,
+          gameDuration: i.gameDuration,
+          type: i.type,
+        })),
+      }, { headers });
+
+      const tx = res.data?.data?.data ?? res.data?.data ?? res.data;
+      setMtSuccessTx(tx);
+      setMtMsg({ ok: true, text: `Transaction recorded — ID: ${tx?.transaction_id ?? 'saved'}` });
+      setMtCartItems([]); setMtPayments([{ key: '1', method: 'Immersia Cash', amount: 0 }]);
+      setMtUsername(''); setMtPhone(''); setMtEmail('');
+      setMtDiscount(0); setMtDiscountDesc(''); setMtCreatedAt('');
+    } catch (e: any) {
+      setMtMsg({ ok: false, text: e?.response?.data?.error ?? e.message ?? 'Failed to record transaction.' });
+    } finally {
+      setMtSubmitting(false);
+    }
+  };
+
+  const renderManualTransaction = () => (
+    <div className="tab-section">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2>Manual Transaction Entry</h2>
+        <button className="btn-secondary" onClick={mtReset}>↺ Reset form</button>
+      </div>
+
+      {mtMsg && (
+        <div className={mtMsg.ok ? 'info-banner success' : 'error-banner'} style={{ marginBottom: 16 }}>
+          {mtMsg.text}
+        </div>
+      )}
+
+      {/* ── Customer ── */}
+      <div style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Customer</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ flex: '1 1 140px', position: 'relative' }}>
+            <input
+              placeholder="Phone *"
+              value={mtPhone}
+              onChange={e => { setMtPhone(e.target.value); setMtUsername(''); setMtEmail(''); }}
+              onBlur={e => mtLookupPhone(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', paddingRight: mtPhoneLooking ? 28 : undefined }}
+            />
+            {mtPhoneLooking && (
+              <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--muted)' }}>…</span>
+            )}
+          </div>
+          <input placeholder="Username *" value={mtUsername} onChange={e => setMtUsername(e.target.value)} style={{ flex: '1 1 180px' }} />
+          <input placeholder="Email (optional)" value={mtEmail} onChange={e => setMtEmail(e.target.value)} style={{ flex: '1 1 200px' }} />
+          <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 11, color: 'var(--muted)' }}>Backdate (leave blank for now)</label>
+            <input type="datetime-local" value={mtCreatedAt} onChange={e => setMtCreatedAt(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Add Item ── */}
+      <div style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Add Item</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+          <select value={mtItemType} onChange={e => { setMtItemType(e.target.value as 'game' | 'drink'); setMtSelectedGame(''); setMtCustomTitle(''); }} style={{ flex: '0 0 100px' }}>
+            <option value="game">Game</option>
+            <option value="drink">Drink</option>
+          </select>
+
+          {mtItemType === 'game' && games.length > 0 ? (
+            <select value={mtSelectedGame} onChange={e => {
+              setMtSelectedGame(e.target.value);
+              const g = games.find(x => x.id === e.target.value);
+              if (g) { setMtItemPrice(g.price); setMtItemDuration(g.time_slot); }
+            }} style={{ flex: '1 1 200px' }}>
+              <option value="">— Pick game —</option>
+              {games.map(g => <option key={g.id} value={g.id}>{g.title} (₦{g.price.toLocaleString()})</option>)}
+            </select>
+          ) : (
+            <input placeholder={mtItemType === 'drink' ? 'Drink name' : 'Game title'} value={mtCustomTitle} onChange={e => setMtCustomTitle(e.target.value)} style={{ flex: '1 1 180px' }} />
+          )}
+
+          <input type="number" placeholder="Price (₦)" value={mtItemPrice || ''} onChange={e => setMtItemPrice(Number(e.target.value))} style={{ flex: '0 0 110px' }} />
+          <input type="number" placeholder="Qty" min={1} value={mtItemQty || ''} onChange={e => setMtItemQty(Number(e.target.value))} style={{ flex: '0 0 70px' }} />
+          {mtItemType === 'game' && (
+            <input type="number" placeholder="Duration (min)" min={1} value={mtItemDuration || ''} onChange={e => setMtItemDuration(Number(e.target.value))} style={{ flex: '0 0 130px' }} />
+          )}
+          <button className="btn-primary" onClick={mtAddItem}>+ Add</button>
+        </div>
+
+        {mtCartItems.length > 0 && (
+          <table className="admin-table" style={{ marginTop: 14 }}>
+            <thead>
+              <tr><th>Item</th><th>Type</th><th>Price</th><th>Qty</th><th>Duration</th><th>Subtotal</th><th></th></tr>
+            </thead>
+            <tbody>
+              {mtCartItems.map(item => (
+                <tr key={item.key}>
+                  <td>{item.title}</td>
+                  <td><span className={`badge ${item.type === 'game' ? 'badge-blue' : 'badge-yellow'}`}>{item.type}</span></td>
+                  <td>₦{item.price.toLocaleString()}</td>
+                  <td>{item.quantity}</td>
+                  <td>{item.type === 'game' ? `${item.gameDuration} min` : '—'}</td>
+                  <td style={{ fontWeight: 600 }}>₦{(item.price * item.quantity).toLocaleString()}</td>
+                  <td><button className="btn-danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => mtRemoveItem(item.key)}>✕</button></td>
+                </tr>
+              ))}
+              <tr style={{ background: '#f0f7ff' }}>
+                <td colSpan={5} style={{ fontWeight: 700, textAlign: 'right', paddingRight: 16 }}>Items total</td>
+                <td style={{ fontWeight: 700, color: 'var(--primary)' }}>₦{mtTotalItems.toLocaleString()}</td>
+                <td />
+              </tr>
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* ── Discount ── */}
+      <div style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Discount</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <input type="number" placeholder="Discount (₦)" min={0} value={mtDiscount || ''} onChange={e => setMtDiscount(Number(e.target.value))} style={{ flex: '0 0 150px' }} />
+          <input placeholder="Reason (e.g. Promo)" value={mtDiscountDesc} onChange={e => setMtDiscountDesc(e.target.value)} style={{ flex: '1 1 240px' }} />
+        </div>
+      </div>
+
+      {/* ── Payments ── */}
+      <div style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: 14, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payments</h3>
+          <button className="btn-secondary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={mtAddPayment}>+ Split payment</button>
+        </div>
+        {mtPayments.map((p, idx) => (
+          <div key={p.key} style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+            <select value={p.method} onChange={e => setMtPayments(prev => prev.map(x => x.key === p.key ? { ...x, method: e.target.value } : x))} style={{ flex: '1 1 180px' }}>
+              {PAYMENT_METHODS_LIST.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <input type="number" placeholder="Amount (₦)" value={p.amount || ''} onChange={e => setMtPayments(prev => prev.map(x => x.key === p.key ? { ...x, amount: Number(e.target.value) } : x))} style={{ flex: '0 0 140px' }} />
+            {mtPayments.length > 1 && (
+              <button className="btn-danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => mtRemovePayment(p.key)}>✕</button>
+            )}
+          </div>
+        ))}
+
+        {/* Summary row */}
+        <div style={{ marginTop: 12, padding: '10px 12px', background: '#f0f7ff', borderRadius: 8, display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 14 }}>
+          <span>Items: <strong>₦{mtTotalItems.toLocaleString()}</strong></span>
+          {mtDiscount > 0 && <span style={{ color: 'var(--danger)' }}>Discount: <strong>−₦{mtDiscount.toLocaleString()}</strong></span>}
+          <span>Payable: <strong style={{ color: 'var(--primary)' }}>₦{mtFinal.toLocaleString()}</strong></span>
+          <span style={{ color: mtTotalPaid >= mtFinal ? 'var(--success)' : 'var(--danger)' }}>
+            Paid: <strong>₦{mtTotalPaid.toLocaleString()}</strong>
+            {mtTotalPaid < mtFinal && <span> (short by ₦{(mtFinal - mtTotalPaid).toLocaleString()})</span>}
+            {mtTotalPaid > mtFinal && <span> (over by ₦{(mtTotalPaid - mtFinal).toLocaleString()})</span>}
+          </span>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button
+          className="btn-primary"
+          onClick={mtSubmit}
+          disabled={mtSubmitting || mtCartItems.length === 0 || !mtUsername || !mtPhone}
+          style={{ minWidth: 180, fontSize: 15, padding: '10px 24px' }}
+        >
+          {mtSubmitting ? 'Saving…' : '✓ Record Transaction'}
+        </button>
+        <button className="btn-secondary" onClick={mtReset}>Clear</button>
+      </div>
+
+      {/* ── Success receipt ── */}
+      {mtSuccessTx && (
+        <div style={{ marginTop: 20, background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: 12, padding: 20 }}>
+          <h3 style={{ margin: '0 0 10px', color: '#065f46' }}>Transaction Recorded</h3>
+          <div style={{ fontSize: 13, color: '#047857', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span>ID: <strong>{mtSuccessTx.transaction_id}</strong></span>
+            <span>Customer: <strong>{mtSuccessTx.username}</strong> · {mtSuccessTx.phone}</span>
+            <span>Total: <strong>₦{Number(mtSuccessTx.total_amount || 0).toLocaleString()}</strong></span>
+            {mtSuccessTx.created_at && <span>Date: {new Date(mtSuccessTx.created_at).toLocaleString()}</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'pc':       return renderPcControl();
-      case 'queue':    return renderQueue();
-      case 'bypasses': return renderBypassLogs();
-      case 'games':    return renderGames();
-      case 'drinks':   return renderDrinks();
-      case 'reports':  return renderReports();
-      case 'admins':   return renderAdmins();
+      case 'pc':        return renderPcControl();
+      case 'queue':     return renderQueue();
+      case 'bypasses':  return renderBypassLogs();
+      case 'games':     return renderGames();
+      case 'drinks':    return renderDrinks();
+      case 'reports':   return renderReports();
+      case 'admins':    return renderAdmins();
+      case 'manual-tx': return renderManualTransaction();
     }
   };
 
