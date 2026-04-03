@@ -8,8 +8,6 @@ import {
   getAdminRole,
   getPermittedTabs,
   canManageAdmins,
-  canGiveDiscount,
-  getMaxDiscount,
   encodeRoleDescription,
   ROLE_LABELS,
   type RoleType,
@@ -19,7 +17,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx';
+type Tab = 'overview' | 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx';
 
 interface PcRow {
   id: string;
@@ -84,6 +82,7 @@ interface AdminUser {
 const BACKEND = (process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:2024').replace(/\/+$/, '');
 
 const ALL_TABS: { key: Tab; label: string }[] = [
+  { key: 'overview',  label: 'Overview'                },
   { key: 'pc',        label: '🖥  PC Control'        },
   { key: 'queue',     label: '🎮  Operator Queue'     },
   { key: 'bypasses',  label: '🔑  Bypass Logs'        },
@@ -93,6 +92,17 @@ const ALL_TABS: { key: Tab; label: string }[] = [
   { key: 'admins',    label: '👤  Admins'             },
   { key: 'manual-tx', label: '🧾  Manual Transaction' },
 ];
+
+const TAB_SUMMARIES: Record<Exclude<Tab, 'overview'>, string> = {
+  pc: 'Lock or unlock PCs and monitor their live status.',
+  queue: 'Verify payments and assign customers to available PCs.',
+  bypasses: 'Review emergency bypass actions across the center.',
+  games: 'Manage the game catalog, pricing, and time slots.',
+  drinks: 'Track drink stock levels and update inventory.',
+  reports: 'Open sales, customer, and consumed-game reporting.',
+  admins: 'Create and manage admin accounts and permissions.',
+  'manual-tx': 'Record manual or split transactions from the desk.',
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -105,10 +115,12 @@ const Admin: React.FC = () => {
     () => (adminRole ? getPermittedTabs(adminRole) : (['reports'] as AdminTab[])),
     [adminRole]
   );
-  const visibleTabs = ALL_TABS.filter(t => permittedTabs.includes(t.key as AdminTab));
-  const firstTab = (permittedTabs[0] ?? 'reports') as Tab;
+  const visibleTabs = React.useMemo(
+    () => ALL_TABS.filter(t => t.key === 'overview' || permittedTabs.includes(t.key as AdminTab)),
+    [permittedTabs]
+  );
 
-  const [activeTab, setActiveTab] = useState<Tab>(firstTab);
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   const adminToken    = sessionStorage.getItem('token')         || '';
   const operatorToken = localStorage.getItem('operatorToken')   || '';
@@ -213,6 +225,54 @@ const Admin: React.FC = () => {
   const handleLogout = () => {
     sessionStorage.removeItem('token');
     navigate('/');
+  };
+
+  const renderOverview = () => {
+    const accessibleTabs = visibleTabs.filter(({ key }) => key !== 'overview');
+
+    return (
+      <div className="tab-section overview-section">
+        <div className="overview-header">
+          <div>
+            <h2>Dashboard Overview</h2>
+            <p className="overview-copy">
+              Use these shortcuts to jump into the tools available for your current role.
+            </p>
+          </div>
+          <div className="overview-metrics" aria-label="dashboard summary">
+            <div className="overview-metric">
+              <span>Role</span>
+              <strong>{adminRole ? ROLE_LABELS[adminRole.roleType] : 'Reports only'}</strong>
+            </div>
+            <div className="overview-metric">
+              <span>Modules</span>
+              <strong>{accessibleTabs.length}</strong>
+            </div>
+            <div className="overview-metric">
+              <span>Live PCs</span>
+              <strong>{pcs.filter(pc => pc.isOnline).length}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="overview-grid">
+          {accessibleTabs.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              className="overview-card"
+              onClick={() => {
+                setActiveTab(key);
+                window.scrollTo({ top: 0 });
+              }}
+            >
+              <span className="overview-card-label">{label}</span>
+              <span className="overview-card-copy">{TAB_SUMMARIES[key as Exclude<Tab, 'overview'>]}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -721,7 +781,7 @@ const Admin: React.FC = () => {
         >🎮 Consumed Games</button>
       </div>
 
-      {reportSubTab === 'full' && <Report onBack={() => { setActiveTab('pc'); window.scrollTo({ top: 0 }); }} />}
+      {reportSubTab === 'full' && <Report onBack={() => { setActiveTab('overview'); window.scrollTo({ top: 0 }); }} />}
 
       {reportSubTab === 'consumed' && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -1260,6 +1320,7 @@ const Admin: React.FC = () => {
 
   const renderTab = () => {
     switch (activeTab) {
+      case 'overview':  return renderOverview();
       case 'pc':        return renderPcControl();
       case 'queue':     return renderQueue();
       case 'bypasses':  return renderBypassLogs();
