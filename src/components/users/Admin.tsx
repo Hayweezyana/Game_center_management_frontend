@@ -721,7 +721,7 @@ const Admin: React.FC = () => {
         >🎮 Consumed Games</button>
       </div>
 
-      {reportSubTab === 'full' && <Report />}
+      {reportSubTab === 'full' && <Report onBack={() => { setActiveTab('pc'); window.scrollTo({ top: 0 }); }} />}
 
       {reportSubTab === 'consumed' && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>

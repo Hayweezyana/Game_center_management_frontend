@@ -41,6 +41,26 @@ const EID_THEME_DATE = (process.env.REACT_APP_EID_THEME_DATE || '').trim() || '2
 const EID_THEME_END_DATE = (process.env.REACT_APP_EID_THEME_END_DATE || '').trim() || '2026-03-23';
 const EID_BANNER_DISMISS_KEY = `eid-banner-dismissed:${EID_THEME_DATE}`;
 
+// Easter theme: Good Friday → Easter Monday (inclusive)
+const EASTER_START_DATE = (process.env.REACT_APP_EASTER_START_DATE || '').trim() || '2026-04-03';
+const EASTER_END_DATE   = (process.env.REACT_APP_EASTER_END_DATE   || '').trim() || '2026-04-07';
+const EASTER_BANNER_DISMISS_KEY = `easter-banner-dismissed:${EASTER_START_DATE}`;
+
+const isEasterThemeActiveAt = (date: Date) => {
+  const [sY, sM, sD] = EASTER_START_DATE.split('-').map(Number);
+  const [eY, eM, eD] = EASTER_END_DATE.split('-').map(Number);
+  if (!isValidDateParts(sY, sM, sD) || !isValidDateParts(eY, eM, eD)) return false;
+  const start = new Date(sY, sM - 1, sD, 0, 0, 0, 0);
+  const end   = new Date(eY, eM - 1, eD, 0, 0, 0, 0);
+  return date >= start && date < end;
+};
+
+const isGoodFridayAt = (date: Date) => {
+  const [sY, sM, sD] = EASTER_START_DATE.split('-').map(Number);
+  if (!isValidDateParts(sY, sM, sD)) return false;
+  return date.getFullYear() === sY && date.getMonth() === sM - 1 && date.getDate() === sD;
+};
+
 const CUSTOMER_FACING_PATHS = new Set([
   '/',
   '/gameselection',
@@ -83,6 +103,7 @@ const isEidThemeActiveAt = (date: Date) => {
 
 const AppShell: React.FC = () => {
   const location = useLocation();
+
   const [isEidThemeActive, setIsEidThemeActive] = React.useState<boolean>(() => isEidThemeActiveAt(new Date()));
   const [isEidBannerDismissed, setIsEidBannerDismissed] = React.useState<boolean>(() => {
     try {
@@ -91,14 +112,31 @@ const AppShell: React.FC = () => {
       return false;
     }
   });
+
+  const [isEasterThemeActive, setIsEasterThemeActive] = React.useState<boolean>(() => isEasterThemeActiveAt(new Date()));
+  const [isGoodFriday, setIsGoodFriday] = React.useState<boolean>(() => isGoodFridayAt(new Date()));
+  const [isEasterBannerDismissed, setIsEasterBannerDismissed] = React.useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem(EASTER_BANNER_DISMISS_KEY) === '1';
+    } catch (_error) {
+      return false;
+    }
+  });
+
   const normalizedPath = location.pathname.toLowerCase();
   const isCustomerRoute = CUSTOMER_FACING_PATHS.has(normalizedPath);
   const applyEidTheme = isCustomerRoute && isEidThemeActive;
   const showEidBanner = applyEidTheme && !isEidBannerDismissed;
+  // Easter takes precedence over Eid if both somehow overlap
+  const applyEasterTheme = isCustomerRoute && isEasterThemeActive && !applyEidTheme;
+  const showEasterBanner = applyEasterTheme && !isEasterBannerDismissed;
 
   React.useEffect(() => {
     const timer = window.setInterval(() => {
-      setIsEidThemeActive(isEidThemeActiveAt(new Date()));
+      const d = new Date();
+      setIsEidThemeActive(isEidThemeActiveAt(d));
+      setIsEasterThemeActive(isEasterThemeActiveAt(d));
+      setIsGoodFriday(isGoodFridayAt(d));
     }, 30_000);
 
     return () => window.clearInterval(timer);
@@ -111,6 +149,14 @@ const AppShell: React.FC = () => {
     };
   }, [applyEidTheme]);
 
+  React.useEffect(() => {
+    document.body.classList.toggle('easter-theme', applyEasterTheme);
+    document.body.classList.toggle('easter-friday', applyEasterTheme && isGoodFriday);
+    return () => {
+      document.body.classList.remove('easter-theme', 'easter-friday');
+    };
+  }, [applyEasterTheme, isGoodFriday]);
+
   const closeEidBanner = React.useCallback(() => {
     setIsEidBannerDismissed(true);
     try {
@@ -120,8 +166,23 @@ const AppShell: React.FC = () => {
     }
   }, []);
 
+  const closeEasterBanner = React.useCallback(() => {
+    setIsEasterBannerDismissed(true);
+    try {
+      window.localStorage.setItem(EASTER_BANNER_DISMISS_KEY, '1');
+    } catch (_error) {
+      // Ignore storage errors and still dismiss in memory.
+    }
+  }, []);
+
+  const themeShellClass = applyEasterTheme
+    ? `easter-theme-shell${showEasterBanner ? ' has-easter-banner' : ''}${isGoodFriday ? ' easter-friday-shell' : ''}`
+    : applyEidTheme
+      ? `eid-theme-shell${showEidBanner ? ' has-eid-banner' : ''}`
+      : '';
+
   return (
-    <div className={applyEidTheme ? `eid-theme-shell${showEidBanner ? ' has-eid-banner' : ''}` : ''}>
+    <div className={themeShellClass || undefined}>
       {applyEidTheme ? (
         <>
           <div className="eid-crescent" aria-hidden="true">
@@ -146,6 +207,27 @@ const AppShell: React.FC = () => {
           </div>
         </>
       ) : null}
+      {applyEasterTheme ? (
+        <>
+          {/* Floating eggs */}
+          <div className="easter-eggs" aria-hidden="true">
+            {['🥚','🐣','🌸','🌷','✝️','🥚','🐇','🌼','🥚','🌸'].map((em, i) => (
+              <span key={i} className={`easter-egg easter-egg-${i + 1}`}>{em}</span>
+            ))}
+          </div>
+          {/* CSS cross ornament — solemn on Good Friday, glowing on Easter */}
+          <div className={`easter-cross${isGoodFriday ? ' easter-cross-friday' : ''}`} aria-hidden="true">
+            <div className="easter-cross-v" />
+            <div className="easter-cross-h" />
+          </div>
+          {/* Sunrise rays decoration */}
+          {!isGoodFriday && (
+            <div className="easter-sunrise" aria-hidden="true">
+              {[...Array(8)].map((_, i) => <div key={i} className={`easter-ray easter-ray-${i + 1}`} />)}
+            </div>
+          )}
+        </>
+      ) : null}
       {showEidBanner ? (
         <div className="eid-banner" role="note" aria-label="Eid greeting">
           <div className="eid-banner-ornament eid-banner-ornament-left" aria-hidden="true">☪</div>
@@ -155,6 +237,22 @@ const AppShell: React.FC = () => {
             <span>Wishing you joy, peace, and winning game sessions from everyone at Immersia.</span>
           </div>
           <button type="button" className="eid-banner-close" aria-label="Close Eid greeting" onClick={closeEidBanner}>
+            ×
+          </button>
+        </div>
+      ) : null}
+      {showEasterBanner ? (
+        <div className="easter-banner" role="note" aria-label="Easter greeting">
+          <div className="easter-banner-ornament" aria-hidden="true">{isGoodFriday ? '✝️' : '🐣'}</div>
+          <img src={immersiaLogo} alt="Immersia logo" className="eid-banner-logo" />
+          <div className="eid-banner-copy">
+            <strong>{isGoodFriday ? 'Good Friday 🕊️' : 'Happy Easter! 🌷'}</strong>
+            <span>{isGoodFriday
+              ? 'Wishing you a reflective Good Friday from everyone at Immersia.'
+              : 'Wishing you joy, new beginnings, and winning sessions this Easter!'
+            }</span>
+          </div>
+          <button type="button" className="eid-banner-close" aria-label="Close Easter greeting" onClick={closeEasterBanner}>
             ×
           </button>
         </div>

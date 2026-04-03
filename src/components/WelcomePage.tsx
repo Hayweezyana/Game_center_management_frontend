@@ -4,22 +4,25 @@ import logo from './logo/immersia.png';
 import './WelcomePage.css';
 import { getRoutePrefetchProps } from '../utils/routePrefetch';
 
-const useEidTheme = () => {
-  const [isEid, setIsEid] = React.useState(() => document.body.classList.contains('eid-theme'));
+const useBodyTheme = () => {
+  const get = () => ({
+    isEid:          document.body.classList.contains('eid-theme'),
+    isEaster:       document.body.classList.contains('easter-theme'),
+    isGoodFriday:   document.body.classList.contains('easter-friday'),
+  });
+  const [theme, setTheme] = React.useState(get);
   React.useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsEid(document.body.classList.contains('eid-theme'));
-    });
+    const observer = new MutationObserver(() => setTheme(get()));
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
-  return isEid;
+  return theme;
 };
 
 const WelcomePage: React.FC = () => {
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
-  const isEidTheme = useEidTheme();
+  const { isEid: isEidTheme, isEaster: isEasterTheme, isGoodFriday } = useBodyTheme();
 
   return (
     <div className="welcome-page">
@@ -37,11 +40,31 @@ const WelcomePage: React.FC = () => {
                 <p className="eid-welcome-sub">من إمرشيا — May your Eid be filled with joy & winning streaks!</p>
               </div>
             ) : null}
-            <h1 className="title">{isEidTheme ? 'Welcome to Immersia' : 'Welcome to Immersia'}</h1>
+            {isEasterTheme ? (
+              <div className="easter-welcome-section">
+                <div className="easter-welcome-icons">
+                  {isGoodFriday
+                    ? <><span>✝️</span><span>🕊️</span><span>✝️</span></>
+                    : <><span>🌷</span><span>🐣</span><span>🌸</span></>
+                  }
+                </div>
+                <h2 className="easter-welcome-heading">
+                  {isGoodFriday ? 'Good Friday' : 'Happy Easter!'}
+                </h2>
+                <p className="easter-welcome-sub">
+                  {isGoodFriday
+                    ? 'A day of reflection & hope — from all of us at Immersia.'
+                    : 'New beginnings & great sessions await you this Easter!'}
+                </p>
+              </div>
+            ) : null}
+            <h1 className="title">Welcome to Immersia</h1>
             <p className="subtitle">
-              {isEidTheme
-                ? 'Celebrate Eid with us — games, fun, and unforgettable moments await.'
-                : 'Arcade energy. Rewarded gameplay. Next-level sessions.'}
+              {isEasterTheme
+                ? (isGoodFriday ? 'Games, community, and a moment of peace.' : 'Celebrate Easter with us — games, fun, and unforgettable moments await.')
+                : isEidTheme
+                  ? 'Celebrate Eid with us — games, fun, and unforgettable moments await.'
+                  : 'Arcade energy. Rewarded gameplay. Next-level sessions.'}
             </p>
           </div>
 

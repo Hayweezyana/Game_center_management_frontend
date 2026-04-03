@@ -471,3 +471,253 @@ body.eid-theme [class*="panel"] {
     display: none;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   EASTER THEME
+   Good Friday (April 3) → Easter Monday (April 6)
+   Body classes: .easter-theme  and  .easter-friday (Good Friday only)
+   Shell class:  .easter-theme-shell  /  .easter-friday-shell
+   ════════════════════════════════════════════════════════════════ */
+
+/* ---- Easter shell background ---- */
+.easter-theme-shell {
+  min-height: 100vh;
+  padding-top: 22px;
+  background:
+    radial-gradient(circle at 12% 8%,  rgba(232, 180, 220, 0.22), transparent 34%),
+    radial-gradient(circle at 88% 10%, rgba(255, 220, 100, 0.18), transparent 34%),
+    linear-gradient(140deg, #1a0c2e 0%, #2a1040 45%, #1e0c30 100%);
+  position: relative;
+}
+
+/* Good Friday: darker, more solemn purple */
+.easter-friday-shell {
+  background:
+    radial-gradient(circle at 12% 8%,  rgba(160, 80, 180, 0.18), transparent 34%),
+    radial-gradient(circle at 88% 10%, rgba(90,  60, 120, 0.15), transparent 34%),
+    linear-gradient(140deg, #0d0618 0%, #180930 45%, #0d0618 100%);
+}
+
+.easter-theme-shell.has-easter-banner {
+  padding-top: 86px;
+}
+
+.easter-theme-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Soft pastel glow overlay */
+.easter-theme-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 25% 30%, rgba(230, 160, 220, 0.1) 0, transparent 28%),
+    radial-gradient(circle at 75% 25%, rgba(255, 230, 140, 0.1) 0, transparent 22%);
+  z-index: 0;
+}
+
+/* ---- Floating egg/flower particles ---- */
+.easter-eggs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.easter-egg {
+  position: absolute;
+  opacity: 0;
+  font-size: 1.4rem;
+  animation: easter-float 4s ease-in-out infinite;
+  user-select: none;
+  filter: drop-shadow(0 0 6px rgba(255, 200, 230, 0.5));
+}
+
+@keyframes easter-float {
+  0%   { opacity: 0;    transform: translateY(0)    scale(0.8) rotate(-8deg); }
+  20%  { opacity: 0.85; }
+  80%  { opacity: 0.85; }
+  100% { opacity: 0;    transform: translateY(-28px) scale(1.1) rotate(8deg); }
+}
+
+.easter-egg-1  { top: 8%;  left: 6%;   animation-delay: 0s;    animation-duration: 3.8s; font-size: 1.1rem; }
+.easter-egg-2  { top: 20%; left: 2%;   animation-delay: 0.9s;  animation-duration: 4.2s; }
+.easter-egg-3  { top: 50%; left: 4%;   animation-delay: 1.6s;  animation-duration: 3.5s; font-size: 1.0rem; }
+.easter-egg-4  { top: 72%; left: 3%;   animation-delay: 0.4s;  animation-duration: 4.6s; font-size: 1.2rem; }
+.easter-egg-5  { top: 88%; left: 8%;   animation-delay: 2.1s;  animation-duration: 3.9s; }
+.easter-egg-6  { top: 12%; right: 7%;  animation-delay: 0.6s;  animation-duration: 4.0s; font-size: 1.1rem; }
+.easter-egg-7  { top: 35%; right: 3%;  animation-delay: 1.4s;  animation-duration: 3.6s; font-size: 1.3rem; }
+.easter-egg-8  { top: 58%; right: 5%;  animation-delay: 0.2s;  animation-duration: 4.4s; }
+.easter-egg-9  { top: 78%; right: 4%;  animation-delay: 1.9s;  animation-duration: 3.7s; font-size: 1.0rem; }
+.easter-egg-10 { top: 44%; left: 50%;  animation-delay: 2.5s;  animation-duration: 4.8s; font-size: 0.9rem; }
+
+/* ---- CSS Cross ornament ---- */
+.easter-cross {
+  position: fixed;
+  top: 90px;
+  right: clamp(14px, 5vw, 70px);
+  pointer-events: none;
+  z-index: 2;
+  animation: easter-cross-glow 4s ease-in-out infinite;
+}
+
+.easter-cross-v {
+  width: 12px;
+  height: 72px;
+  background: linear-gradient(to bottom, #e8c0f0, #c07adc);
+  border-radius: 4px;
+  margin: 0 auto;
+  position: relative;
+  box-shadow: 0 0 14px rgba(200, 120, 240, 0.6);
+}
+
+.easter-cross-h {
+  width: 44px;
+  height: 12px;
+  background: linear-gradient(to right, #e8c0f0, #c07adc);
+  border-radius: 4px;
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 14px rgba(200, 120, 240, 0.6);
+}
+
+/* Good Friday: deep gold/amber cross, no bright purple */
+.easter-cross-friday .easter-cross-v,
+.easter-cross-friday .easter-cross-h {
+  background: linear-gradient(to bottom, #c8a43c, #8a6010);
+  box-shadow: 0 0 18px rgba(200, 160, 60, 0.45);
+}
+
+@keyframes easter-cross-glow {
+  0%, 100% { opacity: 0.75; }
+  50%       { opacity: 1; }
+}
+
+/* ---- Sunrise rays (Easter Sunday/Monday only) ---- */
+.easter-sunrise {
+  position: fixed;
+  bottom: -30px;
+  left: clamp(10px, 3vw, 50px);
+  pointer-events: none;
+  z-index: 1;
+  width: 80px;
+  height: 80px;
+}
+
+.easter-ray {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  height: 60px;
+  border-radius: 2px;
+  background: linear-gradient(to top, rgba(255, 220, 80, 0.7), transparent);
+  transform-origin: bottom center;
+  animation: easter-ray-pulse 3s ease-in-out infinite;
+}
+
+.easter-ray-1 { transform: translateX(-50%) rotate(-42deg); animation-delay: 0s; }
+.easter-ray-2 { transform: translateX(-50%) rotate(-28deg); animation-delay: 0.3s; }
+.easter-ray-3 { transform: translateX(-50%) rotate(-14deg); animation-delay: 0.6s; }
+.easter-ray-4 { transform: translateX(-50%) rotate(0deg);   animation-delay: 0.9s; }
+.easter-ray-5 { transform: translateX(-50%) rotate(14deg);  animation-delay: 1.2s; }
+.easter-ray-6 { transform: translateX(-50%) rotate(28deg);  animation-delay: 1.5s; }
+.easter-ray-7 { transform: translateX(-50%) rotate(42deg);  animation-delay: 1.8s; }
+.easter-ray-8 { transform: translateX(-50%) rotate(56deg);  animation-delay: 2.1s; }
+
+@keyframes easter-ray-pulse {
+  0%, 100% { opacity: 0.4; height: 50px; }
+  50%       { opacity: 0.9; height: 70px; }
+}
+
+/* ---- Easter banner ---- */
+.easter-banner {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92vw, 980px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(210, 150, 240, 0.45);
+  background:
+    linear-gradient(135deg, rgba(28, 10, 50, 0.96), rgba(55, 20, 80, 0.93));
+  color: #f5e8ff;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(200, 140, 240, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  z-index: 5000;
+  animation: eid-banner-appear 0.5s ease-out;
+}
+
+/* Good Friday banner: gold/amber tones */
+body.easter-friday .easter-banner {
+  border-color: rgba(200, 160, 60, 0.45);
+  background: linear-gradient(135deg, rgba(20, 10, 5, 0.96), rgba(50, 30, 10, 0.93));
+  color: #fff8e8;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.easter-banner-ornament {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px rgba(220, 160, 240, 0.7));
+}
+
+/* ---- Card accents on Easter ---- */
+body.easter-theme [class*="container"],
+body.easter-theme [class*="card"],
+body.easter-theme [class*="panel"] {
+  border-color: rgba(200, 140, 240, 0.18);
+}
+
+/* ---- Mobile ---- */
+@media (max-width: 768px) {
+  .easter-theme-shell {
+    padding-top: 18px;
+  }
+
+  .easter-theme-shell.has-easter-banner {
+    padding-top: 108px;
+  }
+
+  .easter-cross {
+    right: 10px;
+    top: 110px;
+  }
+
+  .easter-cross-v { height: 54px; width: 9px; }
+  .easter-cross-h { width: 33px; height: 9px; top: 15px; }
+
+  .easter-sunrise {
+    display: none;
+  }
+
+  .easter-egg-3,
+  .easter-egg-4,
+  .easter-egg-9,
+  .easter-egg-10 {
+    display: none;
+  }
+
+  .easter-banner {
+    top: 10px;
+    width: min(94vw, 980px);
+    gap: 10px;
+    padding: 10px 12px;
+  }
+}

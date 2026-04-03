@@ -99,7 +99,11 @@ interface InsightCardProps {
   };
 }
 
-const Report: React.FC = () => {
+interface ReportProps {
+  onBack?: () => void;
+}
+
+const Report: React.FC<ReportProps> = ({ onBack }) => {
   // State for data
   const [records, setRecords] = useState<CombinedRecord[]>([]);
   const [bestSellingGames, setBestSellingGames] = useState<{ game_title: string; game_quantity: number }[]>([]);
@@ -860,6 +864,20 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
             }
           }`}
       </style>
+
+      {onBack && (
+        <button
+          onClick={onBack}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            marginBottom: 16, padding: '8px 16px',
+            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)',
+            borderRadius: 8, color: 'inherit', cursor: 'pointer', fontSize: 14, fontWeight: 500,
+          }}
+        >
+          ← Back to Dashboard
+        </button>
+      )}
 
       <div className="report-shell mb-6">
         <div className="report-hero mb-6">
