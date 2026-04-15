@@ -1,5 +1,8 @@
-export const SUCCESS_POS_STATUSES = new Set(["PROCESSED", "APPROVED", "SUCCESS", "COMPLETED"]);
-export const FAILURE_POS_STATUSES = new Set(["FAILED", "DECLINED"]);
+// "PROCESSED" is intentionally excluded — it means the terminal completed an interaction
+// (could be approved OR declined). Use internalStatus ("APPROVED"/"FAILED") from the backend
+// to determine the real outcome.
+export const SUCCESS_POS_STATUSES = new Set(["APPROVED", "SUCCESS", "COMPLETED"]);
+export const FAILURE_POS_STATUSES = new Set(["FAILED", "DECLINED", "REJECTED", "ERROR"]);
 export const CANCELLED_POS_STATUSES = new Set(["CANCELLED", "CANCELED", "VOIDED", "EXPIRED"]);
 
 export const normalizePosStatus = (status?: string | null) => (status || "").toUpperCase();

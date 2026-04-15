@@ -230,19 +230,19 @@ const totalSales = useMemo(() => {
           limit: 100000,
           ...(selectedMethod !== 'all' && { payment_method: selectedMethod }),
         },
-        timeout: 30000,
+        timeout: 120000,
       }),
       axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionItems`, {
         params: { startDate: formattedStart, endDate: formattedEnd },
-        timeout: 30000,
+        timeout: 120000,
       }),
       axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionPayments`, {
         params: { startDate: formattedStart, endDate: formattedEnd },
-        timeout: 30000,
+        timeout: 120000,
       }),
       axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transactionDrinks`, {
         params: { startDate: formattedStart, endDate: formattedEnd },
-        timeout: 30000,
+        timeout: 120000,
       }),
       axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/games`),
     ];
@@ -773,16 +773,7 @@ const totalSales = useMemo(() => {
     );
   };
 
-  // Fetch data when filters or pagination changes
-  useEffect(() => {
-    const fetchData = setTimeout(() => {
-      if (startDate && endDate) {
-        fetchAllData();
-      }
-    }, 300);
-    
-    return () => clearTimeout(fetchData);
-  }, [startDate, endDate, selectedMethod]);
+  // Data fetch is now triggered manually via the "Fetch Report" button
 
   useEffect(() => {
     setCurrentPage(1);
@@ -1005,7 +996,25 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
 </select>
 
           </div>
+          <div className="flex items-end mt-4">
+            <button
+              onClick={() => {
+                if (!startDate || !endDate) {
+                  alert('Please select both a start date and an end date.');
+                  return;
+                }
+                fetchAllData();
+              }}
+              disabled={isFetching}
+              className="report-btn report-btn-primary px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 w-full sm:w-auto"
+            >
+              {isFetching ? 'Fetching…' : 'Fetch Report'}
+            </button>
+          </div>
         </div>
+        {isFetching && (
+          <p className="text-sm text-gray-500 mt-2">Loading report data…</p>
+        )}
 
         {/* AI Assistant Section */}
         <div className="report-card p-6 mb-6 bg-white shadow rounded">

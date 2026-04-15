@@ -201,7 +201,7 @@ const GKGPaymentPage: React.FC = () => {
     const interval = setInterval(async () => {
       try {
         const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/${merchantRef}`);
-        const txStatus = normalizePosStatus(res.data?.processingStatus || res.data?.internalStatus);
+        const txStatus = normalizePosStatus(res.data?.internalStatus || res.data?.processingStatus);
         const approvedAmountKobo = extractApprovedAmountKobo(res.data);
         const expectedAmountKobo = Math.round(finalAmount * 100);
 

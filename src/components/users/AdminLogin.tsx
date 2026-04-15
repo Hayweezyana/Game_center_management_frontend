@@ -52,6 +52,8 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onClose }) => {
 
       const { token, role } = response.data;
       sessionStorage.setItem('token', token);
+      // Clear any stale operator token so admin identity is used for consume-game calls
+      localStorage.removeItem('operatorToken');
 
       // Fetch the full role object (includes description/slug needed for permissions)
       try {

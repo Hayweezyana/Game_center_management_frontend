@@ -1,6 +1,6 @@
 import { CartProvider } from './components/hooks/useCart';
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import './App.css';
 import immersiaLogo from './components/logo/immersia.png';
 
@@ -35,6 +35,16 @@ const RouteLoader: React.FC = () => (
     Loading...
   </div>
 );
+
+// Requires either an admin session token or an operator token
+const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
+  const hasAdminToken    = Boolean(sessionStorage.getItem('token'));
+  const hasOperatorToken = Boolean(localStorage.getItem('operatorToken'));
+  if (!hasAdminToken && !hasOperatorToken) {
+    return <Navigate to="/AdminLogin" replace />;
+  }
+  return element;
+};
 
 const EID_THEME_DATE = (process.env.REACT_APP_EID_THEME_DATE || '').trim() || '2026-03-20';
 // Theme is active from EID_THEME_DATE through EID_THEME_END_DATE (exclusive — midnight that day)
@@ -260,8 +270,8 @@ const AppShell: React.FC = () => {
       <Routes>
         <Route path="/" element={<WelcomePage />} />
         <Route path="/AdminLogin" element={<AdminLogin onLoginSuccess={() => {}} onClose={() => {}} />} />
-        <Route path="/Admin" element={<Admin />} />
-        <Route path="/CreateAdmin" element={<CreateAdminForm />} />
+        <Route path="/Admin"            element={<PrivateRoute element={<Admin />} />} />
+        <Route path="/CreateAdmin"      element={<PrivateRoute element={<CreateAdminForm />} />} />
         <Route path="/GameSelection" element={<GameSelection />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route
@@ -275,7 +285,7 @@ const AppShell: React.FC = () => {
         <Route path="/Queue" element={<Queue />} />
         <Route path="/PC" element={<PC cart={[]} />} />
         <Route path="/Ticket" element={<Ticket />} />
-        <Route path="/report" element={<Report />} />
+        <Route path="/report"           element={<PrivateRoute element={<Report />} />} />
         <Route
           path="/PaymentSelection"
           element={<PaymentSelection cartTotal={0} userDetails={{ username: '', phone: '' }} cartItems={[]} handlePaymentSuccess={async () => {}} />}
@@ -283,34 +293,36 @@ const AppShell: React.FC = () => {
         <Route
           path="/AdminPaymentPage"
           element={
-            <AdminPaymentPage
-              cartTotal={0}
-              userDetails={{ username: '', phone: '' }}
-              payment_methods={[]}
-              cartItems={[]}
-              onPaymentSuccess={() => {}}
-              isAdmin={false}
-              discount_description=""
-              setDiscountDescription={() => {}}
-              otherReason=""
-              setOtherReason={() => {}}
-            />
+            <PrivateRoute element={
+              <AdminPaymentPage
+                cartTotal={0}
+                userDetails={{ username: '', phone: '' }}
+                payment_methods={[]}
+                cartItems={[]}
+                onPaymentSuccess={() => {}}
+                isAdmin={false}
+                discount_description=""
+                setDiscountDescription={() => {}}
+                otherReason=""
+                setOtherReason={() => {}}
+              />
+            } />
           }
         />
         <Route path="/OperatorAuth" element={<OperatorAuth />} />
-        <Route path="/OperatorDashboard" element={<Admin />} />
+        <Route path="/OperatorDashboard"  element={<PrivateRoute element={<Admin />} />} />
         <Route path="/ImmersiaPaymentPage" element={<ImmersiaPaymentPage />} />
         <Route path="/FunstationPaymentPage" element={<FunstationPaymentPage />} />
         <Route path="/PaystackPaymentPage" element={<PaystackPaymentPage />} />
         <Route path="/GKGPaymentPage" element={<GKGPaymentPage />} />
-        <Route path="/AIChatBox" element={<AIChatBox isAdmin={true} />} />
-        <Route path="/DrinkInventory" element={<DrinkInventory isAdmin={true} />} />
-        <Route path="/OperatorConsumedGames" element={<OperatorConsumedGames />} />
-        <Route path="/AdminDashboard" element={<Admin />} />
-        <Route path="/PCLockDashboard" element={<Admin />} />
-        <Route path="/AdminTransaction" element={<AdminTransaction />} />
-        <Route path="/MarketersReportPage" element={<MarketersReportPage />} />
-        <Route path="/AdminPcControl" element={<Admin />} />
+        <Route path="/AIChatBox"          element={<PrivateRoute element={<AIChatBox isAdmin={true} />} />} />
+        <Route path="/DrinkInventory"     element={<PrivateRoute element={<DrinkInventory isAdmin={true} />} />} />
+        <Route path="/OperatorConsumedGames" element={<PrivateRoute element={<OperatorConsumedGames />} />} />
+        <Route path="/AdminDashboard"     element={<PrivateRoute element={<Admin />} />} />
+        <Route path="/PCLockDashboard"    element={<PrivateRoute element={<Admin />} />} />
+        <Route path="/AdminTransaction"   element={<PrivateRoute element={<AdminTransaction />} />} />
+        <Route path="/MarketersReportPage" element={<PrivateRoute element={<MarketersReportPage />} />} />
+        <Route path="/AdminPcControl"     element={<PrivateRoute element={<Admin />} />} />
         <Route path="/customer-portal" element={<CustomerPortal />} />
       </Routes>
     </div>
