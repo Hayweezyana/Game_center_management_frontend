@@ -219,7 +219,7 @@ const GKGPaymentPage: React.FC = () => {
 
         if (isSuccessPosStatus(txStatus)) {
           if (
-            res.data?.amountMatches !== true ||
+            res.data?.amountMatches === false ||
             (approvedAmountKobo !== null && approvedAmountKobo !== expectedAmountKobo)
           ) {
             clearInterval(interval);
