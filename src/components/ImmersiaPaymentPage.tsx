@@ -14,6 +14,18 @@ import { parseAdminRole, canGiveDiscount, getMaxDiscount } from '../utils/adminP
 
 const formatNaira = (amount: number) => `N${amount.toLocaleString()}`;
 const isValidEmail = (email?: string) => Boolean(email && /\S+@\S+\.\S+/.test(email));
+
+const calcCartTotalKobo = (items: any[]): number =>
+  Math.round(
+    items.reduce((sum: number, item: any) => {
+      if (item.type === 'game' && item.title === '360 Video Booth') {
+        const extra = Math.max(0, item.quantity - 1);
+        return sum + item.price + extra * 2500;
+      }
+      return sum + item.price * item.quantity;
+    }, 0) * 100
+  );
+
 const getApiErrorMessage = (error: any) =>
   error?.response?.data?.error ||
   error?.response?.data?.message ||
@@ -123,9 +135,10 @@ const ImmersiaPaymentPage: React.FC = () => {
         ...(isValidEmail(userDetails.email) ? { email: userDetails.email } : {}),
       };
 
+      const cartTotalKobo = calcCartTotalKobo(cartItems ?? []);
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/moniepoint/transactions`, {
         amount: posAmountKobo,
-        cartAmountKobo: posAmountKobo,
+        cartAmountKobo: cartTotalKobo,
         terminalSerial,
         transactionType: 'PURCHASE',
         PaymentMethod: 'IMMERSIA_POS',
@@ -208,7 +221,7 @@ const ImmersiaPaymentPage: React.FC = () => {
 
         if (isSuccessPosStatus(txStatus)) {
           if (
-            res.data?.amountMatches === false ||
+            res.data?.amountMatches !== true ||
             (approvedAmountKobo !== null && approvedAmountKobo !== expectedAmountKobo)
           ) {
             clearInterval(interval);
