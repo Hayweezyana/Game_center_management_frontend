@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import './InternalControl.css';
 
 type Game = { id: string; title: string; price: number };
 type Station = 'Funstation' | 'Immersia' | 'GKG';
@@ -204,140 +205,214 @@ const InternalControlEntry: React.FC = () => {
   const editable = (r: SavedReport) => isoMinusMs(r.locked_at) > Date.now();
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto', fontFamily: 'system-ui' }}>
-      <h2 style={{ marginBottom: 4 }}>Internal Control — Level 1 Entry</h2>
-      <p style={{ color: '#6b7280', marginTop: 0 }}>
-        Record camera-based counts. Edits are allowed for 24 hours after creation.
-      </p>
+    <div className="ic-shell">
+      <h2>Internal Control — Level 1 Entry</h2>
+      <p className="ic-sub">Record camera-based counts. Edits are allowed for 24 hours after creation.</p>
 
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 20, marginTop: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-          <label>
-            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Date</div>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6 }} />
-          </label>
-          <label>
-            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Station</div>
-            <select value={station} onChange={(e) => setStation(e.target.value as Station)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6 }}>
+      <div className="ic-card">
+        <div className="ic-grid-3">
+          <div className="ic-field">
+            <label className="ic-field-label">Date</label>
+            <input className="ic-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div className="ic-field">
+            <label className="ic-field-label">Station</label>
+            <select className="ic-select" value={station} onChange={(e) => setStation(e.target.value as Station)}>
               {STATIONS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
-          </label>
-          <label>
-            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Total (auto)</div>
-            <div style={{ padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#f9fafb', fontWeight: 600 }}>
-              {fmt(totalAmount)}
-            </div>
-          </label>
+          </div>
+          <div className="ic-field">
+            <label className="ic-field-label">Total (auto)</label>
+            <div className="ic-readonly">{fmt(totalAmount)}</div>
+          </div>
         </div>
 
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Staff on duty</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+          <label className="ic-field-label">Staff on duty</label>
+          <div className="ic-staff-chips">
             {staffList.map((s) => (
-              <span key={s} style={{ background: '#eef2ff', color: '#3730a3', padding: '4px 10px', borderRadius: 999, fontSize: 13 }}>
-                {s} <button type="button" onClick={() => removeStaff(s)} style={{ marginLeft: 6, border: 'none', background: 'transparent', color: '#3730a3', cursor: 'pointer' }}>×</button>
+              <span key={s} className="ic-chip">
+                {s}<button type="button" onClick={() => removeStaff(s)} aria-label={`Remove ${s}`}>×</button>
               </span>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="ic-row">
             <input
+              className="ic-input"
               placeholder="Type a staff name and press Enter"
               value={staffInput}
               onChange={(e) => setStaffInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addStaff(); } }}
-              style={{ flex: 1, padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6 }}
             />
-            <button type="button" onClick={addStaff}
-              style={{ padding: '8px 14px', border: '1px solid #4338ca', background: '#4f46e5', color: '#fff', borderRadius: 6, cursor: 'pointer' }}>
+            <button type="button" className="ic-btn ic-btn-primary" onClick={addStaff}>
               Add
             </button>
           </div>
         </div>
 
-        <div style={{ marginTop: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <h3 style={{ margin: 0 }}>Games (camera count)</h3>
-            <button type="button" onClick={addItemRow}
-              style={{ padding: '6px 12px', border: '1px solid #065f46', background: '#059669', color: '#fff', borderRadius: 6, cursor: 'pointer' }}>
-              + Add row
-            </button>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="ic-section-head">
+          <h3>Games (camera count)</h3>
+          <button type="button" className="ic-btn ic-btn-success" onClick={addItemRow}>
+            + Add row
+          </button>
+        </div>
+
+        {/* Desktop table */}
+        <div className="ic-table-wrap">
+          <table className="ic-table">
             <thead>
-              <tr style={{ background: '#f3f4f6' }}>
-                <th style={{ textAlign: 'left', padding: 8, fontSize: 12 }}>Game</th>
-                <th style={{ textAlign: 'right', padding: 8, fontSize: 12 }}>Unit ₦</th>
-                <th style={{ textAlign: 'right', padding: 8, fontSize: 12 }}>Quantity</th>
-                <th style={{ textAlign: 'right', padding: 8, fontSize: 12 }}>Amount</th>
-                <th style={{ padding: 8 }} />
+              <tr>
+                <th>Game</th>
+                <th className="num">Unit ₦</th>
+                <th className="num">Quantity</th>
+                <th className="num">Amount</th>
+                <th />
               </tr>
             </thead>
             <tbody>
               {items.map((it, idx) => (
-                <tr key={idx} style={{ borderTop: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: 6 }}>
-                    <select value={it.game_id ?? ''} onChange={(e) => updateItem(idx, { game_id: e.target.value || null })}
-                      style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6 }}>
+                <tr key={idx}>
+                  <td>
+                    <select
+                      className="ic-select"
+                      value={it.game_id ?? ''}
+                      onChange={(e) => updateItem(idx, { game_id: e.target.value || null })}
+                    >
                       <option value="">-- Select a game --</option>
                       {games.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}
                     </select>
                     {!it.game_id && (
                       <input
+                        className="ic-input"
+                        style={{ marginTop: 4 }}
                         placeholder="Or type a custom title"
                         value={it.game_title}
                         onChange={(e) => updateItem(idx, { game_title: e.target.value })}
-                        style={{ marginTop: 4, width: '100%', padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: 6 }}
                       />
                     )}
                   </td>
-                  <td style={{ padding: 6, textAlign: 'right' }}>
-                    <input type="number" min={0} value={it.unit_price}
+                  <td className="num">
+                    <input
+                      className="ic-input num"
+                      type="number"
+                      min={0}
+                      value={it.unit_price}
                       onChange={(e) => updateItem(idx, { unit_price: Number(e.target.value) || 0 })}
-                      style={{ width: 110, textAlign: 'right', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} />
+                      style={{ maxWidth: 120, textAlign: 'right' }}
+                    />
                   </td>
-                  <td style={{ padding: 6, textAlign: 'right' }}>
-                    <input type="number" min={0} value={it.quantity}
+                  <td className="num">
+                    <input
+                      className="ic-input num"
+                      type="number"
+                      min={0}
+                      value={it.quantity}
                       onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) || 0 })}
-                      style={{ width: 90, textAlign: 'right', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} />
+                      style={{ maxWidth: 100, textAlign: 'right' }}
+                    />
                   </td>
-                  <td style={{ padding: 6, textAlign: 'right', fontWeight: 600 }}>{fmt(it.amount)}</td>
-                  <td style={{ padding: 6, textAlign: 'right' }}>
-                    <button type="button" onClick={() => removeItemRow(idx)}
-                      style={{ border: '1px solid #dc2626', color: '#dc2626', background: '#fff', padding: '4px 10px', borderRadius: 6, cursor: 'pointer' }}>
+                  <td className="num" style={{ fontWeight: 600 }}>{fmt(it.amount)}</td>
+                  <td className="num">
+                    <button type="button" className="ic-btn ic-btn-danger" onClick={() => removeItemRow(idx)}>
                       Remove
                     </button>
                   </td>
                 </tr>
               ))}
               {items.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', color: '#9ca3af' }}>No rows yet. Click "Add row" to start.</td></tr>
+                <tr>
+                  <td colSpan={5} style={{ padding: 20, textAlign: 'center', color: '#9ca3af' }}>
+                    No rows yet. Click "+ Add row" to start.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Notes (optional)</div>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
-            style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6 }} />
+        {/* Mobile item cards */}
+        <div className="ic-item-cards">
+          {items.map((it, idx) => (
+            <div key={idx} className="ic-item-card">
+              <div className="ic-item-card-row">
+                <label>Game</label>
+                <select
+                  className="ic-select"
+                  value={it.game_id ?? ''}
+                  onChange={(e) => updateItem(idx, { game_id: e.target.value || null })}
+                  style={{ maxWidth: '65%' }}
+                >
+                  <option value="">-- Select --</option>
+                  {games.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}
+                </select>
+              </div>
+              {!it.game_id && (
+                <div className="ic-item-card-row">
+                  <label>Custom</label>
+                  <input
+                    className="ic-input"
+                    placeholder="Title"
+                    value={it.game_title}
+                    onChange={(e) => updateItem(idx, { game_title: e.target.value })}
+                    style={{ maxWidth: '65%' }}
+                  />
+                </div>
+              )}
+              <div className="ic-item-card-row">
+                <label>Unit ₦</label>
+                <input
+                  className="ic-input"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  value={it.unit_price}
+                  onChange={(e) => updateItem(idx, { unit_price: Number(e.target.value) || 0 })}
+                  style={{ maxWidth: '45%', textAlign: 'right' }}
+                />
+              </div>
+              <div className="ic-item-card-row">
+                <label>Qty</label>
+                <input
+                  className="ic-input"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  value={it.quantity}
+                  onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) || 0 })}
+                  style={{ maxWidth: '45%', textAlign: 'right' }}
+                />
+              </div>
+              <div className="ic-item-card-row">
+                <label>Amount</label>
+                <span className="value">{fmt(it.amount)}</span>
+              </div>
+              <div className="ic-item-card-row">
+                <button type="button" className="ic-btn ic-btn-danger" onClick={() => removeItemRow(idx)} style={{ width: '100%' }}>
+                  Remove row
+                </button>
+              </div>
+            </div>
+          ))}
+          {items.length === 0 && (
+            <div style={{ padding: 18, textAlign: 'center', color: '#9ca3af' }}>
+              No rows yet. Tap "+ Add row" to start.
+            </div>
+          )}
         </div>
 
-        {message && (
-          <div style={{ marginTop: 12, padding: 10, borderRadius: 6, background: '#f3f4f6', color: '#111827', fontSize: 13 }}>
-            {message}
-          </div>
-        )}
+        <div style={{ marginTop: 16 }}>
+          <label className="ic-field-label">Notes (optional)</label>
+          <textarea className="ic-textarea" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
 
-        <div style={{ marginTop: 16, display: 'flex', gap: 10 }}>
-          <button type="button" onClick={submit} disabled={loading}
-            style={{ padding: '10px 18px', border: '1px solid #1d4ed8', background: '#2563eb', color: '#fff', borderRadius: 6, cursor: loading ? 'not-allowed' : 'pointer' }}>
+        {message && <div className="ic-banner">{message}</div>}
+
+        <div className="ic-row" style={{ marginTop: 16 }}>
+          <button type="button" className="ic-btn ic-btn-primary" onClick={submit} disabled={loading}>
             {loading ? 'Saving...' : editingId ? 'Save Changes' : 'Submit Report'}
           </button>
           {editingId && (
-            <button type="button" onClick={resetForm}
-              style={{ padding: '10px 14px', border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: 6, cursor: 'pointer' }}>
+            <button type="button" className="ic-btn ic-btn-secondary" onClick={resetForm}>
               Cancel Edit
             </button>
           )}
@@ -350,22 +425,24 @@ const InternalControlEntry: React.FC = () => {
           <div style={{ color: '#9ca3af', fontSize: 13 }}>No report filed for this date/station yet.</div>
         )}
         {recent.map((r) => (
-          <div key={r.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 16, marginBottom: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{r.station} — {r.report_date}</div>
-                <div style={{ fontSize: 12, color: '#6b7280' }}>
-                  Staff: {(r.staff_on_duty || []).join(', ') || '—'} · {r.items?.length || 0} rows · {fmt((r.items || []).reduce((s, it) => s + it.amount, 0))}
-                </div>
-                <div style={{ fontSize: 11, color: editable(r) ? '#047857' : '#991b1b' }}>
-                  {editable(r) ? `Editable until ${new Date(r.locked_at).toLocaleString()}` : 'Locked (edit window expired)'}
-                </div>
+          <div key={r.id} className="ic-saved-card">
+            <div>
+              <div className="ic-saved-title">{r.station} — {r.report_date}</div>
+              <div className="ic-saved-meta">
+                Staff: {(r.staff_on_duty || []).join(', ') || '—'} · {r.items?.length || 0} rows · {fmt((r.items || []).reduce((s, it) => s + it.amount, 0))}
               </div>
-              <button type="button" disabled={!editable(r) || savingId === r.id} onClick={() => loadForEdit(r)}
-                style={{ padding: '6px 12px', border: '1px solid #d1d5db', background: editable(r) ? '#fff' : '#f3f4f6', color: editable(r) ? '#111827' : '#9ca3af', borderRadius: 6, cursor: editable(r) ? 'pointer' : 'not-allowed' }}>
-                Edit
-              </button>
+              <div className={`ic-saved-lock ${editable(r) ? 'ok' : 'no'}`}>
+                {editable(r) ? `Editable until ${new Date(r.locked_at).toLocaleString()}` : 'Locked (edit window expired)'}
+              </div>
             </div>
+            <button
+              type="button"
+              className="ic-btn ic-btn-secondary"
+              disabled={!editable(r) || savingId === r.id}
+              onClick={() => loadForEdit(r)}
+            >
+              Edit
+            </button>
           </div>
         ))}
       </div>

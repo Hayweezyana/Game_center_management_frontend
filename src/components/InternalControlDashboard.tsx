@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import './InternalControl.css';
 
 type Station = 'Funstation' | 'Immersia' | 'GKG';
 const STATIONS: Station[] = ['Funstation', 'Immersia', 'GKG'];
@@ -51,90 +52,84 @@ const todayIso = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-const statusMeta: Record<'green' | 'red' | 'blue', { bg: string; color: string; label: string }> = {
-  green: { bg: '#ecfdf5', color: '#047857', label: 'MATCH' },
-  red: { bg: '#fef2f2', color: '#b91c1c', label: 'UNDER' },
-  blue: { bg: '#eff6ff', color: '#1d4ed8', label: 'EXCESS' },
-};
-
-const Badge: React.FC<{ status: 'green' | 'red' | 'blue' }> = ({ status }) => {
-  const s = statusMeta[status];
-  return (
-    <span style={{ background: s.bg, color: s.color, padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>
-      {s.label}
-    </span>
-  );
+const statusBadge = (status: 'green' | 'red' | 'blue') => {
+  const cls = `ic-badge ic-badge-${status}`;
+  const label = status === 'green' ? 'MATCH' : status === 'red' ? 'UNDER' : 'EXCESS';
+  return <span className={cls}>{label}</span>;
 };
 
 const StationBlock: React.FC<{ r: ComparisonResult }> = ({ r }) => (
-  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, marginBottom: 18, overflow: 'hidden' }}>
-    <div style={{ background: '#111827', color: '#fff', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+  <div className="ic-card" style={{ padding: 0, overflow: 'hidden' }}>
+    <div className="ic-station-header">
       <div>
-        <div style={{ fontSize: 16, fontWeight: 700 }}>{r.station} — {r.report_date}</div>
-        <div style={{ fontSize: 12, opacity: 0.8, marginTop: 4 }}>
+        <div className="ic-station-title">{r.station} — {r.report_date}</div>
+        <div className="ic-station-meta">
           {r.report
             ? `Filed by ${r.report.created_by} · Staff: ${(r.report.staff_on_duty || []).join(', ') || '—'}`
             : 'No report filed for this station on this date'}
         </div>
       </div>
-      <Badge status={r.totals.overall_status} />
+      {statusBadge(r.totals.overall_status)}
     </div>
 
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-      <thead>
-        <tr style={{ background: '#f9fafb' }}>
-          <th style={{ textAlign: 'left', padding: 10, fontSize: 12, color: '#374151' }}>Game</th>
-          <th style={{ textAlign: 'right', padding: 10, fontSize: 12, color: '#374151' }}>Rec. Qty</th>
-          <th style={{ textAlign: 'right', padding: 10, fontSize: 12, color: '#374151' }}>Rec. ₦</th>
-          <th style={{ textAlign: 'right', padding: 10, fontSize: 12, color: '#374151' }}>Actual Qty</th>
-          <th style={{ textAlign: 'right', padding: 10, fontSize: 12, color: '#374151' }}>Actual ₦</th>
-          <th style={{ textAlign: 'right', padding: 10, fontSize: 12, color: '#374151' }}>Δ ₦</th>
-          <th style={{ textAlign: 'center', padding: 10, fontSize: 12, color: '#374151' }}>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {r.rows.length === 0 && (
+    <div className="ic-table-wrap" style={{ border: 'none', borderRadius: 0 }}>
+      <table className="ic-table ic-compare-table">
+        <thead>
           <tr>
-            <td colSpan={7} style={{ padding: 18, textAlign: 'center', color: '#9ca3af' }}>
-              No activity and no recorded entries for this station on this date.
-            </td>
+            <th>Game</th>
+            <th className="num">Rec. Qty</th>
+            <th className="num">Rec. ₦</th>
+            <th className="num">Actual Qty</th>
+            <th className="num">Actual ₦</th>
+            <th className="num">Δ ₦</th>
+            <th className="ctr">Status</th>
           </tr>
-        )}
-        {r.rows.map((row, idx) => {
-          const meta = statusMeta[row.status];
-          return (
-            <tr key={row.game_title} style={{ background: idx % 2 === 0 ? '#fff' : '#fafafa', borderLeft: `4px solid ${meta.color}` }}>
-              <td style={{ padding: 10, fontSize: 13 }}>{row.game_title}</td>
-              <td style={{ padding: 10, fontSize: 13, textAlign: 'right' }}>{row.recorded_quantity}</td>
-              <td style={{ padding: 10, fontSize: 13, textAlign: 'right' }}>{fmt(row.recorded_amount)}</td>
-              <td style={{ padding: 10, fontSize: 13, textAlign: 'right' }}>{row.actual_quantity}</td>
-              <td style={{ padding: 10, fontSize: 13, textAlign: 'right' }}>{fmt(row.actual_amount)}</td>
-              <td style={{ padding: 10, fontSize: 13, textAlign: 'right', color: row.variance_amount === 0 ? '#6b7280' : row.variance_amount < 0 ? '#b91c1c' : '#1d4ed8' }}>
+        </thead>
+        <tbody>
+          {r.rows.length === 0 && (
+            <tr>
+              <td colSpan={7} style={{ padding: 18, textAlign: 'center', color: '#9ca3af' }}>
+                No activity and no recorded entries for this station on this date.
+              </td>
+            </tr>
+          )}
+          {r.rows.map((row) => (
+            <tr key={row.game_title} className={`ic-row-${row.status}`}>
+              <td data-label="Game">{row.game_title}</td>
+              <td data-label="Rec. Qty" className="num">{row.recorded_quantity}</td>
+              <td data-label="Rec. ₦" className="num">{fmt(row.recorded_amount)}</td>
+              <td data-label="Actual Qty" className="num">{row.actual_quantity}</td>
+              <td data-label="Actual ₦" className="num">{fmt(row.actual_amount)}</td>
+              <td
+                data-label="Δ ₦"
+                className="num"
+                style={{ color: row.variance_amount === 0 ? '#6b7280' : row.variance_amount < 0 ? '#b91c1c' : '#1d4ed8' }}
+              >
                 {fmt(row.variance_amount)}
               </td>
-              <td style={{ padding: 10, fontSize: 13, textAlign: 'center' }}><Badge status={row.status} /></td>
+              <td data-label="Status" className="ctr">{statusBadge(row.status)}</td>
             </tr>
-          );
-        })}
-        {r.rows.length > 0 && (
-          <tr style={{ background: '#f3f4f6', fontWeight: 700 }}>
-            <td style={{ padding: 10, fontSize: 13 }}>TOTAL</td>
-            <td style={{ padding: 10, fontSize: 13, textAlign: 'right' }}>{r.totals.recorded_quantity}</td>
-            <td style={{ padding: 10, fontSize: 13, textAlign: 'right' }}>{fmt(r.totals.recorded_amount)}</td>
-            <td style={{ padding: 10, fontSize: 13, textAlign: 'right' }}>{r.totals.actual_quantity}</td>
-            <td style={{ padding: 10, fontSize: 13, textAlign: 'right' }}>{fmt(r.totals.actual_amount)}</td>
-            <td style={{ padding: 10, fontSize: 13, textAlign: 'right' }}>{fmt(r.totals.variance_amount)}</td>
-            <td style={{ padding: 10, textAlign: 'center' }}><Badge status={r.totals.overall_status} /></td>
-          </tr>
-        )}
-      </tbody>
-    </table>
+          ))}
+          {r.rows.length > 0 && (
+            <tr style={{ background: '#f3f4f6', fontWeight: 700 }}>
+              <td data-label="Game">TOTAL</td>
+              <td data-label="Rec. Qty" className="num">{r.totals.recorded_quantity}</td>
+              <td data-label="Rec. ₦" className="num">{fmt(r.totals.recorded_amount)}</td>
+              <td data-label="Actual Qty" className="num">{r.totals.actual_quantity}</td>
+              <td data-label="Actual ₦" className="num">{fmt(r.totals.actual_amount)}</td>
+              <td data-label="Δ ₦" className="num">{fmt(r.totals.variance_amount)}</td>
+              <td data-label="Status" className="ctr">{statusBadge(r.totals.overall_status)}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
 
     {r.discounts.length > 0 && (
-      <div style={{ padding: '12px 18px', background: '#fff7ed', borderTop: '1px solid #f59e0b' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#9a3412', marginBottom: 6 }}>Discounts applied ({r.discounts.length})</div>
+      <div className="ic-discount-block">
+        <div className="ic-discount-title">Discounts applied ({r.discounts.length})</div>
         {r.discounts.map((d) => (
-          <div key={d.transaction_id} style={{ fontSize: 12, color: '#7c2d12', margin: '4px 0' }}>
+          <div key={d.transaction_id} className="ic-discount-row">
             {fmt(d.amount)} — {d.description || 'no reason'} · by <strong>{d.given_by || 'unknown'}</strong>
             {d.given_by_role ? ` (${d.given_by_role})` : ''} · customer {d.username}
           </div>
@@ -180,44 +175,42 @@ const InternalControlDashboard: React.FC = () => {
   useEffect(() => { fetchCompare(); /* eslint-disable-next-line */ }, []);
 
   return (
-    <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto', fontFamily: 'system-ui' }}>
-      <h2 style={{ marginBottom: 4 }}>Internal Control — Level 2 Comparison</h2>
-      <p style={{ color: '#6b7280', marginTop: 0 }}>
-        Camera-recorded counts vs actual sales. <strong style={{ color: '#047857' }}>MATCH</strong> = tallied,{' '}
+    <div className="ic-shell">
+      <h2>Internal Control — Level 2 Comparison</h2>
+      <p className="ic-sub">
+        Camera-recorded counts vs actual sales.{' '}
+        <strong style={{ color: '#047857' }}>MATCH</strong> = tallied,{' '}
         <strong style={{ color: '#b91c1c' }}>UNDER</strong> = recorded &lt; actual,{' '}
         <strong style={{ color: '#1d4ed8' }}>EXCESS</strong> = recorded &gt; actual.
       </p>
 
-      <div style={{ display: 'flex', alignItems: 'end', gap: 12, marginTop: 14, marginBottom: 20, background: '#fff', padding: 14, border: '1px solid #e5e7eb', borderRadius: 8 }}>
-        <label>
-          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Date</div>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-            style={{ padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6 }} />
-        </label>
-        <label>
-          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Station</div>
-          <select value={station} onChange={(e) => setStation(e.target.value as any)}
-            style={{ padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6 }}>
-            <option value="ALL">All stations</option>
-            {STATIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </label>
-        <button onClick={fetchCompare} disabled={loading}
-          style={{ padding: '9px 16px', border: '1px solid #1d4ed8', background: '#2563eb', color: '#fff', borderRadius: 6, cursor: loading ? 'not-allowed' : 'pointer' }}>
-          {loading ? 'Loading...' : 'Refresh'}
-        </button>
+      <div className="ic-card">
+        <div className="ic-grid-3">
+          <div className="ic-field">
+            <label className="ic-field-label">Date</label>
+            <input className="ic-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div className="ic-field">
+            <label className="ic-field-label">Station</label>
+            <select className="ic-select" value={station} onChange={(e) => setStation(e.target.value as any)}>
+              <option value="ALL">All stations</option>
+              {STATIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="ic-field" style={{ display: 'flex', alignItems: 'end' }}>
+            <button className="ic-btn ic-btn-primary" onClick={fetchCompare} disabled={loading} style={{ width: '100%' }}>
+              {loading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+        </div>
       </div>
 
-      {err && (
-        <div style={{ padding: 12, background: '#fef2f2', color: '#b91c1c', borderRadius: 6, marginBottom: 14 }}>{err}</div>
-      )}
+      {err && <div className="ic-banner ic-banner-error">{err}</div>}
 
       {results.map((r) => <StationBlock key={`${r.station}-${r.report_date}`} r={r} />)}
 
       {!loading && results.length === 0 && (
-        <div style={{ padding: 30, textAlign: 'center', color: '#9ca3af', background: '#fff', border: '1px dashed #e5e7eb', borderRadius: 8 }}>
-          No data. Pick a date above and click Refresh.
-        </div>
+        <div className="ic-empty">No data. Pick a date above and tap Refresh.</div>
       )}
     </div>
   );
