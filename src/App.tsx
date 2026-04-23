@@ -28,6 +28,8 @@ const DrinkInventory = lazy(() => import('./components/users/DrinkInventory'));
 const OperatorConsumedGames = lazy(() => import('./components/users/OperatorConsumedGames'));
 const AdminTransaction = lazy(() => import('./components/users/Admintransaction'));
 const MarketersReportPage = lazy(() => import('./components/MarketersReportPage'));
+const InternalControlEntry = lazy(() => import('./components/InternalControlEntry'));
+const InternalControlDashboard = lazy(() => import('./components/InternalControlDashboard'));
 const CustomerPortal = lazy(() => import('./components/customer/CustomerPortal'));
 
 const RouteLoader: React.FC = () => (
@@ -322,6 +324,8 @@ const AppShell: React.FC = () => {
         <Route path="/PCLockDashboard"    element={<PrivateRoute element={<Admin />} />} />
         <Route path="/AdminTransaction"   element={<PrivateRoute element={<AdminTransaction />} />} />
         <Route path="/MarketersReportPage" element={<PrivateRoute element={<MarketersReportPage />} />} />
+        <Route path="/InternalControlEntry" element={<PrivateRoute element={<InternalControlEntry />} />} />
+        <Route path="/InternalControlDashboard" element={<PrivateRoute element={<InternalControlDashboard />} />} />
         <Route path="/AdminPcControl"     element={<PrivateRoute element={<Admin />} />} />
         <Route path="/customer-portal" element={<CustomerPortal />} />
       </Routes>

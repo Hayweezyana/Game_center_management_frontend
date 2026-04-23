@@ -152,6 +152,15 @@ const FunstationPaymentPage: React.FC = () => {
           cartItems,
           discount: discountAmount,
           discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
+          discount_given_by: discountAmount > 0 ? username : undefined,
+          discount_given_by_role: discountAmount > 0
+            ? (() => {
+                try {
+                  const a = JSON.parse(sessionStorage.getItem('adminData') || '{}');
+                  return a?.name || a?.slug || null;
+                } catch { return null; }
+              })()
+            : undefined,
           payment_method: 'Funstation_Moniepoint',
         },
       });

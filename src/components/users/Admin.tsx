@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Report from '../report';
+import InternalControlEntry from '../InternalControlEntry';
+import InternalControlDashboard from '../InternalControlDashboard';
 import './Admin.css';
 import {
   getAdminRole,
@@ -17,7 +19,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx';
+type Tab = 'overview' | 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx' | 'ic-entry' | 'ic-dashboard';
 
 interface PcRow {
   id: string;
@@ -82,15 +84,17 @@ interface AdminUser {
 const BACKEND = (process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:2024').replace(/\/+$/, '');
 
 const ALL_TABS: { key: Tab; label: string }[] = [
-  { key: 'overview',  label: 'Overview'                },
-  { key: 'pc',        label: '🖥  PC Control'        },
-  { key: 'queue',     label: '🎮  Operator Queue'     },
-  { key: 'bypasses',  label: '🔑  Bypass Logs'        },
-  { key: 'games',     label: '🕹  Games'              },
-  { key: 'drinks',    label: '🥤  Drinks'             },
-  { key: 'reports',   label: '📊  Reports'            },
-  { key: 'admins',    label: '👤  Admins'             },
-  { key: 'manual-tx', label: '🧾  Manual Transaction' },
+  { key: 'overview',     label: 'Overview'                     },
+  { key: 'pc',           label: '🖥  PC Control'             },
+  { key: 'queue',        label: '🎮  Operator Queue'          },
+  { key: 'bypasses',     label: '🔑  Bypass Logs'             },
+  { key: 'games',        label: '🕹  Games'                   },
+  { key: 'drinks',       label: '🥤  Drinks'                  },
+  { key: 'reports',      label: '📊  Reports'                 },
+  { key: 'admins',       label: '👤  Admins'                  },
+  { key: 'manual-tx',    label: '🧾  Manual Transaction'      },
+  { key: 'ic-entry',     label: '📝  Internal Control — Entry'     },
+  { key: 'ic-dashboard', label: '🔎  Internal Control — Review'    },
 ];
 
 const TAB_SUMMARIES: Record<Exclude<Tab, 'overview'>, string> = {
@@ -102,6 +106,8 @@ const TAB_SUMMARIES: Record<Exclude<Tab, 'overview'>, string> = {
   reports: 'Open sales, customer, and consumed-game reporting.',
   admins: 'Create and manage admin accounts and permissions.',
   'manual-tx': 'Record manual or split transactions from the desk.',
+  'ic-entry': 'File camera-review counts by station (editable for 24 hours).',
+  'ic-dashboard': 'Compare recorded counts against actual sales (green/red/blue).',
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -938,6 +944,8 @@ const Admin: React.FC = () => {
             <option value="manager">Manager</option>
             <option value="supervisor">Supervisor</option>
             <option value="account_audit">Account &amp; Audit</option>
+            <option value="ic1">Internal Control L1</option>
+            <option value="ic2">Internal Control L2</option>
           </select>
           {needsDiscountCap && (
             <input
@@ -969,6 +977,8 @@ const Admin: React.FC = () => {
                         <option value="manager">Manager</option>
                         <option value="supervisor">Supervisor</option>
                         <option value="account_audit">Account &amp; Audit</option>
+                        <option value="ic1">Internal Control L1</option>
+                        <option value="ic2">Internal Control L2</option>
                       </select>
                     ) : (
                       <span className="role-badge">{parseUserRole(u.description)}</span>
@@ -1329,6 +1339,8 @@ const Admin: React.FC = () => {
       case 'reports':   return renderReports();
       case 'admins':    return renderAdmins();
       case 'manual-tx': return renderManualTransaction();
+      case 'ic-entry': return <InternalControlEntry />;
+      case 'ic-dashboard': return <InternalControlDashboard />;
     }
   };
 

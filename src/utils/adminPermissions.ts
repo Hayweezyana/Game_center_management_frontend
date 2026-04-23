@@ -8,13 +8,25 @@
  *
  * Role hierarchy:
  *  site_admin    — full access, create all user types
- *  manager       — supervisor privileges + PC Control, Queue, Bypass Logs, Drinks
+ *  manager       — supervisor privileges + Queue, Bypass Logs, Drinks (no PC Control)
  *  supervisor    — add games, view reports, give discounts (capped by maxDiscount)
  *  account_audit — view reports, bypass logs, operator queue
+ *  ic1           — Internal Control Level 1: camera-check data entry only
+ *  ic2           — Internal Control Level 2: reviews comparison dashboard only
  */
 
-export type RoleType = 'site_admin' | 'manager' | 'supervisor' | 'account_audit';
-export type AdminTab = 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx';
+export type RoleType = 'site_admin' | 'manager' | 'supervisor' | 'account_audit' | 'ic1' | 'ic2';
+export type AdminTab =
+  | 'pc'
+  | 'queue'
+  | 'bypasses'
+  | 'games'
+  | 'drinks'
+  | 'reports'
+  | 'admins'
+  | 'manual-tx'
+  | 'ic-entry'
+  | 'ic-dashboard';
 
 export interface AdminRoleData {
   id: string;
@@ -35,10 +47,12 @@ export interface ParsedAdminRole {
 // ── Tab permissions per role ──────────────────────────────────────────────────
 
 const ROLE_TABS: Record<RoleType, AdminTab[]> = {
-  site_admin:    ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports', 'admins', 'manual-tx'],
-  manager:       ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports'],
+  site_admin:    ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports', 'admins', 'manual-tx', 'ic-entry', 'ic-dashboard'],
+  manager:       ['queue', 'bypasses', 'games', 'drinks', 'reports'],
   supervisor:    ['games', 'reports'],
   account_audit: ['queue', 'bypasses', 'reports'],
+  ic1:           ['ic-entry'],
+  ic2:           ['ic-dashboard', 'reports', 'bypasses', 'drinks', 'queue'],
 };
 
 // ── Discount permissions ──────────────────────────────────────────────────────
@@ -48,6 +62,8 @@ const CAN_DISCOUNT: Record<RoleType, boolean> = {
   manager:       true,
   supervisor:    true,
   account_audit: false,
+  ic1:           false,
+  ic2:           false,
 };
 
 // ── Role display names ────────────────────────────────────────────────────────
@@ -57,6 +73,8 @@ export const ROLE_LABELS: Record<RoleType, string> = {
   manager:       'Manager',
   supervisor:    'Supervisor',
   account_audit: 'Account & Audit',
+  ic1:           'Internal Control L1',
+  ic2:           'Internal Control L2',
 };
 
 // ── Parse adminData from sessionStorage ───────────────────────────────────────
