@@ -258,7 +258,7 @@ const InternalControlEntry: React.FC = () => {
         </div>
 
         {/* Desktop table */}
-        <div className="ic-table-wrap">
+        <div className="ic-table-wrap ic-table-wrap-hidden-mobile">
           <table className="ic-table">
             <thead>
               <tr>

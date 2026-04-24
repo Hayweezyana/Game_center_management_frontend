@@ -266,8 +266,8 @@
   .ic-section-head { flex-wrap: wrap; }
   .ic-section-head .ic-btn { width: auto; }
 
-  /* Hide desktop table, show mobile cards */
-  .ic-table-wrap { display: none; }
+  /* Hide only table-wraps that have a mobile-card fallback */
+  .ic-table-wrap-hidden-mobile { display: none; }
   .ic-item-cards { display: block; }
 
   /* Station header stacks */
@@ -276,12 +276,13 @@
     align-items: flex-start;
   }
 
-  /* Comparison table: convert to stacked rows */
+  /* Comparison table: drop min-width, convert to stacked rows */
+  .ic-compare-table { min-width: 0; }
   .ic-compare-table thead { display: none; }
   .ic-compare-table,
   .ic-compare-table tbody,
   .ic-compare-table tr,
-  .ic-compare-table td { display: block; width: 100%; }
+  .ic-compare-table td { display: block; width: 100%; box-sizing: border-box; }
   .ic-compare-table tr {
     border-top: none;
     border-bottom: 1px solid #e5e7eb;
