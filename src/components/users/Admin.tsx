@@ -33,10 +33,12 @@ interface GameItem {
   id: string;
   game_title: string;
   game_duration: number;
+  game_price: number;
   username: string;
   game_quantity: number;
   transaction_time: string;
   unit_index: number;
+  transaction_id: string;
 }
 
 interface Game {
@@ -374,6 +376,20 @@ const Admin: React.FC = () => {
   const [selectedPcId, setSelectedPcId] = useState('');
   const [queueMsg, setQueueMsg] = useState('');
 
+  // Swap state
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [swapTxId, setSwapTxId] = useState('');
+  const [swapUsername, setSwapUsername] = useState('');
+  const [swapRemoveIds, setSwapRemoveIds] = useState<Set<string>>(new Set());
+  const [swapNewGameId, setSwapNewGameId] = useState('');
+  const [swapStep, setSwapStep] = useState<'select' | 'payment'>('select');
+  const [swapExtra, setSwapExtra] = useState(0);
+  const [swapMethods, setSwapMethods] = useState<string[]>([]);
+  const [swapPayMethod, setSwapPayMethod] = useState('');
+  const [swapPayAmount, setSwapPayAmount] = useState(0);
+  const [swapBusy, setSwapBusy] = useState(false);
+  const [swapError, setSwapError] = useState('');
+
   const fetchQueue = useCallback(async () => {
     setQueueLoading(true);
     const headers = operatorToken ? operatorHeaders : adminHeaders;
@@ -430,6 +446,68 @@ const Admin: React.FC = () => {
     }
   };
 
+  const openSwapModal = (txId: string, username: string) => {
+    setSwapTxId(txId);
+    setSwapUsername(username);
+    setSwapRemoveIds(new Set());
+    setSwapNewGameId('');
+    setSwapStep('select');
+    setSwapExtra(0);
+    setSwapMethods([]);
+    setSwapPayMethod('');
+    setSwapPayAmount(0);
+    setSwapBusy(false);
+    setSwapError('');
+    setSwapOpen(true);
+  };
+
+  const swapContextItems = React.useMemo(() => {
+    const seen = new Set<string>();
+    return queueGames.filter(g => {
+      if (g.transaction_id !== swapTxId) return false;
+      if (seen.has(g.id)) return false;
+      seen.add(g.id);
+      return true;
+    });
+  }, [queueGames, swapTxId]);
+
+  const handleSwapSubmit = async () => {
+    setSwapBusy(true);
+    setSwapError('');
+    const headers = operatorToken ? operatorHeaders : adminHeaders;
+    const body: Record<string, unknown> = {
+      remove_item_ids: Array.from(swapRemoveIds),
+      new_game_id: swapNewGameId,
+    };
+    if (swapStep === 'payment') {
+      body.payment_method = swapPayMethod;
+      body.payment_amount = swapPayAmount;
+    }
+    try {
+      const res = await axios.patch(
+        `${BACKEND}/v1/admin/transactions/${swapTxId}/swap-game`,
+        body,
+        { headers }
+      );
+      const data = res.data?.data ?? res.data;
+      if (data?.needs_payment) {
+        setSwapExtra(data.extra_amount);
+        setSwapMethods(data.station_methods || []);
+        setSwapPayMethod(data.station_methods?.[0] || '');
+        setSwapPayAmount(data.extra_amount);
+        setSwapStep('payment');
+      } else {
+        setSwapOpen(false);
+        setQueueMsg(`Game swapped successfully for ${swapUsername}.`);
+        fetchQueue();
+      }
+    } catch (e: any) {
+      setSwapError(e?.response?.data?.error ?? e?.message ?? 'Swap failed');
+    } finally {
+      setSwapBusy(false);
+    }
+  };
+
   const groupedQueue = React.useMemo(() => {
     const sorted = [...queueGames].sort((a, b) =>
       new Date(b.transaction_time).getTime() - new Date(a.transaction_time).getTime()
@@ -461,9 +539,18 @@ const Admin: React.FC = () => {
                 <div key={username} className="customer-card">
                   <div className="card-header">
                     <strong>👤 {username}</strong>
-                    <span className="text-muted">
-                      Last order: {new Date(games[0].transaction_time).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span className="text-muted">
+                        Last order: {new Date(games[0].transaction_time).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <button
+                        className="btn-secondary"
+                        style={{ fontSize: 12, padding: '3px 10px' }}
+                        onClick={() => openSwapModal(games[0].transaction_id, username)}
+                      >
+                        🔄 Swap Game
+                      </button>
+                    </div>
                   </div>
                   <table className="queue-table">
                     <tbody>
@@ -528,6 +615,140 @@ const Admin: React.FC = () => {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {swapOpen && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 520 }}>
+            <h3 style={{ marginTop: 0 }}>🔄 Swap Game — {swapUsername}</h3>
+
+            {swapStep === 'select' && (
+              <>
+                <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 12px' }}>
+                  Select the game(s) to remove, then pick the replacement.
+                </p>
+
+                <h4 style={{ fontSize: 13, margin: '0 0 8px' }}>Remove from session:</h4>
+                {swapContextItems.length === 0 && (
+                  <p className="no-data">No unconsumed games found for this transaction.</p>
+                )}
+                {swapContextItems.map(item => (
+                  <label key={item.id} style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10, cursor: 'pointer', fontSize: 14 }}>
+                    <input
+                      type="checkbox"
+                      checked={swapRemoveIds.has(item.id)}
+                      onChange={e => {
+                        setSwapRemoveIds(prev => {
+                          const next = new Set(prev);
+                          if (e.target.checked) next.add(item.id);
+                          else next.delete(item.id);
+                          return next;
+                        });
+                      }}
+                    />
+                    <span>
+                      {item.game_title}
+                      <span className="text-muted" style={{ marginLeft: 8 }}>
+                        ₦{Number(item.game_price || 0).toLocaleString()}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+
+                {swapRemoveIds.size > 0 && (
+                  <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 14px' }}>
+                    Total removing: ₦{swapContextItems
+                      .filter(i => swapRemoveIds.has(i.id))
+                      .reduce((s, i) => s + Number(i.game_price || 0), 0)
+                      .toLocaleString()}
+                  </p>
+                )}
+
+                <h4 style={{ fontSize: 13, margin: '0 0 8px' }}>New game:</h4>
+                <select
+                  className="pc-select"
+                  value={swapNewGameId}
+                  onChange={e => setSwapNewGameId(e.target.value)}
+                  style={{ marginBottom: 12 }}
+                >
+                  <option value="">— Pick replacement game —</option>
+                  {games.map(g => (
+                    <option key={g.id} value={g.id}>
+                      {g.title} — ₦{g.price.toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+
+                {swapNewGameId && swapRemoveIds.size > 0 && (() => {
+                  const g = games.find(x => x.id === swapNewGameId);
+                  const removed = swapContextItems.filter(i => swapRemoveIds.has(i.id)).reduce((s, i) => s + Number(i.game_price || 0), 0);
+                  const diff = g ? g.price - removed : 0;
+                  return (
+                    <div style={{ padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13, background: diff > 0 ? '#fef2f2' : '#ecfdf5', color: diff > 0 ? '#b91c1c' : '#047857', fontWeight: 600 }}>
+                      {diff > 0 ? `Extra payment needed: ₦${diff.toLocaleString()}` : diff < 0 ? `Direct swap (₦${Math.abs(diff).toLocaleString()} credit — not refunded)` : 'Direct swap — exact price match'}
+                    </div>
+                  );
+                })()}
+
+                {swapError && <div className="error-banner" style={{ marginBottom: 12 }}>{swapError}</div>}
+
+                <div className="modal-actions">
+                  <button
+                    className="btn-primary"
+                    disabled={swapBusy || swapRemoveIds.size === 0 || !swapNewGameId}
+                    onClick={handleSwapSubmit}
+                  >
+                    {swapBusy ? 'Processing…' : 'Swap Game'}
+                  </button>
+                  <button className="btn-secondary" onClick={() => setSwapOpen(false)}>Cancel</button>
+                </div>
+              </>
+            )}
+
+            {swapStep === 'payment' && (
+              <>
+                <div style={{ padding: '10px 14px', background: '#fef2f2', borderRadius: 8, marginBottom: 14, fontSize: 14 }}>
+                  <strong style={{ color: '#b91c1c' }}>Extra payment required: ₦{swapExtra.toLocaleString()}</strong>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#7c2d12' }}>
+                    Collect the difference then record how it was paid below.
+                  </p>
+                </div>
+
+                <select
+                  className="pc-select"
+                  value={swapPayMethod}
+                  onChange={e => setSwapPayMethod(e.target.value)}
+                  style={{ marginBottom: 10 }}
+                >
+                  <option value="">— Select payment method —</option>
+                  {swapMethods.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+
+                <input
+                  type="number"
+                  placeholder="Amount collected (₦)"
+                  value={swapPayAmount || ''}
+                  onChange={e => setSwapPayAmount(Number(e.target.value))}
+                  style={{ width: '100%', boxSizing: 'border-box', marginBottom: 12 }}
+                  className="admin-input"
+                />
+
+                {swapError && <div className="error-banner" style={{ marginBottom: 12 }}>{swapError}</div>}
+
+                <div className="modal-actions">
+                  <button
+                    className="btn-primary"
+                    disabled={swapBusy || !swapPayMethod || swapPayAmount <= 0}
+                    onClick={handleSwapSubmit}
+                  >
+                    {swapBusy ? 'Completing…' : 'Confirm Swap + Payment'}
+                  </button>
+                  <button className="btn-secondary" onClick={() => setSwapStep('select')}>← Back</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -618,7 +839,7 @@ const Admin: React.FC = () => {
     } catch {}
   }, [gamesLoaded]);
 
-  useEffect(() => { if (activeTab === 'games' || activeTab === 'manual-tx') fetchGames(); }, [activeTab, fetchGames]);
+  useEffect(() => { if (activeTab === 'games' || activeTab === 'manual-tx' || activeTab === 'queue') fetchGames(); }, [activeTab, fetchGames]);
 
   const handleUpdateGame = async (id: string) => {
     const updates = updatedGameFields[id];
