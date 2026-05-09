@@ -27,6 +27,7 @@ const MarketersReportPage = () => {
         <option value="In House">In House</option>
         <option value="Kayode">Kayode</option>
         <option value="O. Judith">O. Judith</option>
+        <option value="Maxwell">Maxwell</option>
       </select>
 
       <select value={range} onChange={(e) => setRange(e.target.value)}>

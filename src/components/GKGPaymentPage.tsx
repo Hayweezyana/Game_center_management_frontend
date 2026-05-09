@@ -8,7 +8,6 @@ import {
   isSuccessPosStatus,
   normalizePosStatus,
 } from './utils/moniepointStatus';
-import './CheckoutExperience.css';
 import { useCartContext } from './hooks/useCart';
 import { parseAdminRole, canGiveDiscount, getMaxDiscount } from '../utils/adminPermissions';
 
@@ -55,7 +54,7 @@ const GKGPaymentPage: React.FC = () => {
 
   const isProcessing = useRef(false);
   const finalAmount = paymentMethod === 'GKG_CASH' ? originalAmount : Math.max(originalAmount - discountAmount, 0);
-  const marketers = ['In House', 'Kayode', 'O. Judith'];
+  const marketers = ['In House', 'Kayode', 'O. Judith', 'Maxwell'];
 
   const savePaymentRecord = async (amount: number, method: string, merchantRef: string) => {
     if (hasSavedPaymentRecord || isProcessing.current) return;

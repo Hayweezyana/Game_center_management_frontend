@@ -8,6 +8,7 @@ import {
   isSuccessPosStatus,
   normalizePosStatus,
 } from './utils/moniepointStatus';
+// @ts-ignore - Side-effect CSS import is handled by the bundler
 import './CheckoutExperience.css';
 import { useCartContext } from './hooks/useCart';
 import { parseAdminRole, canGiveDiscount, getMaxDiscount } from '../utils/adminPermissions';
@@ -56,7 +57,7 @@ const ImmersiaPaymentPage: React.FC = () => {
 
   const isProcessing = useRef(false);
   const finalAmount = paymentMethod === 'Immersia_CASH' ? originalAmount : Math.max(originalAmount - discountAmount, 0);
-  const marketers = ['In House', 'Kayode', 'O. Judith'];
+  const marketers = ['In House', 'Kayode', 'O. Judith', 'Maxwell'];
 
   const savePaymentRecord = async (amount: number, method: string, merchantRef: string) => {
     if (hasSavedPaymentRecord || isProcessing.current) return;

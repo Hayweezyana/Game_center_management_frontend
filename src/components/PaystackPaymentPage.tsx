@@ -2,6 +2,9 @@ import React, { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePaystackPayment } from 'react-paystack';
 import axios from 'axios';
+// TypeScript may not have CSS module declarations in this project setup.
+// Ignore the missing module/type declarations for this side-effect import.
+// @ts-ignore
 import './CheckoutExperience.css';
 import { useCartContext } from './hooks/useCart';
 
@@ -37,7 +40,7 @@ const PaystackPaymentPage: React.FC = () => {
 
   const preventDoubleSubmit = useRef(false);
   const finalAmount = Math.max(originalAmount - discountAmount, 0);
-  const marketers = ['In House', 'O. Timileyin', 'O. Judith', 'Damilola', 'Saviour', 'E. Success', 'K. Ese'];
+  const marketers = ['In House', 'O. Judith', 'Kayode', 'Maxwell'];
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
