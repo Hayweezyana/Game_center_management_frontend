@@ -467,6 +467,53 @@
   margin-bottom: 6px;
 }
 
+/* Live badge with sonar ring */
+.tl-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4ade80;
+  position: relative;
+}
+
+/* Container for the dot + ring */
+.tl-live-badge .tl-live-dot-inner {
+  width: 10px;
+  height: 10px;
+  background: #4ade80;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(74,222,128,0.8);
+  animation: dotBreath 1.4s ease-in-out infinite;
+}
+
+/* Sonar ring that expands outward */
+.tl-live-badge .tl-live-ring {
+  position: absolute;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #4ade80;
+  animation: sonarPing 1.4s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes dotBreath {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%       { transform: scale(0.85); opacity: 0.75; }
+}
+
+@keyframes sonarPing {
+  0%   { transform: scale(1);   opacity: 0.9; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+/* Backward compat if tl-live-dot still used somewhere */
 .tl-live-dot {
   display: inline-flex;
   align-items: center;
@@ -476,14 +523,6 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #4ade80;
-}
-.tl-live-dot::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  background: #4ade80;
-  border-radius: 50%;
-  animation: livePulse 1.2s ease-in-out infinite;
 }
 @keyframes livePulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -519,6 +558,15 @@
   box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
   position: relative;
   z-index: 1;
+}
+
+/* Board flash on score update */
+.tl-board.just-updated {
+  animation: boardFlash 0.7s ease-out forwards;
+}
+@keyframes boardFlash {
+  0%   { box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 2px rgba(74,222,128,0.7), inset 0 1px 0 rgba(255,255,255,0.08); }
+  100% { box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08); }
 }
 
 .tl-scores-row {

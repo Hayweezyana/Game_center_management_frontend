@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
 import './Tennis.css';
 
 const BACKEND = (process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:2024').replace(/\/+$/, '');
+const POLL_INTERVAL = 4000; // fallback poll every 4 s
 
 interface TennisMatch {
   id: string;
@@ -32,40 +33,93 @@ const TennisLiveScore: React.FC = () => {
   const [match, setMatch] = useState<TennisMatch | null>(null);
   const [connected, setConnected] = useState(false);
   const [flashSide, setFlashSide] = useState<'player1' | 'player2' | null>(null);
+  const [justUpdated, setJustUpdated] = useState(false);
   const [recentMatches, setRecentMatches] = useState<TennisMatch[]>([]);
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
+  const matchRef = useRef<TennisMatch | null>(null);
 
-  useEffect(() => {
-    axios.get(`${BACKEND}/v1/admin/tennis/match/live`).then(res => setMatch(res.data?.data ?? null)).catch(() => setMatch(null));
-    axios.get(`${BACKEND}/v1/admin/tennis/matches`).then(res => setRecentMatches(res.data?.data ?? [])).catch(() => {});
+  // Keep ref in sync so polling can compare without stale closure
+  useEffect(() => { matchRef.current = match; }, [match]);
+
+  const applyUpdate = useCallback((updated: TennisMatch) => {
+    const prev = matchRef.current;
+    if (prev) {
+      if (updated.player1_score > prev.player1_score) setFlashSide('player1');
+      else if (updated.player2_score > prev.player2_score) setFlashSide('player2');
+    }
+    setMatch(updated);
+    setJustUpdated(true);
   }, []);
 
+  const fetchLive = useCallback(async () => {
+    try {
+      const res = await axios.get(`${BACKEND}/v1/admin/tennis/match/live`);
+      const incoming: TennisMatch | null = res.data?.data ?? null;
+      const prev = matchRef.current;
+      // Only apply if something actually changed
+      if (!incoming && prev) { setMatch(null); return; }
+      if (!incoming) return;
+      if (!prev || incoming.player1_score !== prev.player1_score || incoming.player2_score !== prev.player2_score || incoming.status !== prev.status) {
+        applyUpdate(incoming);
+      }
+    } catch {}
+  }, [applyUpdate]);
+
+  const fetchRecent = useCallback(async () => {
+    try {
+      const res = await axios.get(`${BACKEND}/v1/admin/tennis/matches`);
+      setRecentMatches(res.data?.data ?? []);
+    } catch {}
+  }, []);
+
+  // Initial fetch
   useEffect(() => {
-    const socket = io(BACKEND, { transports: ['websocket', 'polling'] });
+    fetchLive();
+    fetchRecent();
+  }, [fetchLive, fetchRecent]);
+
+  // Polling fallback — keeps score fresh even if socket drops
+  useEffect(() => {
+    const timer = setInterval(fetchLive, POLL_INTERVAL);
+    return () => clearInterval(timer);
+  }, [fetchLive]);
+
+  // Socket.IO for instant updates
+  useEffect(() => {
+    const socket = io(BACKEND, {
+      transports: ['polling', 'websocket'], // start with polling (always works), upgrade to WS when available
+      upgrade: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+    });
     socketRef.current = socket;
+
     socket.on('connect', () => setConnected(true));
     socket.on('disconnect', () => setConnected(false));
+
     socket.on('tennis:score', (updated: TennisMatch) => {
-      setMatch(prev => {
-        if (prev) {
-          if (updated.player1_score > prev.player1_score) setFlashSide('player1');
-          else if (updated.player2_score > prev.player2_score) setFlashSide('player2');
-        }
-        return updated;
-      });
-      // Refresh recent when match ends
+      applyUpdate(updated);
       if (updated.status === 'ended') {
-        axios.get(`${BACKEND}/v1/admin/tennis/matches`).then(res => setRecentMatches(res.data?.data ?? [])).catch(() => {});
+        fetchRecent();
       }
     });
-    return () => { socket.disconnect(); };
-  }, []);
 
+    return () => { socket.disconnect(); };
+  }, [applyUpdate, fetchRecent]);
+
+  // Clear score-side flash
   useEffect(() => {
     if (!flashSide) return;
     const t = setTimeout(() => setFlashSide(null), 600);
     return () => clearTimeout(t);
   }, [flashSide]);
+
+  // Clear board update flash
+  useEffect(() => {
+    if (!justUpdated) return;
+    const t = setTimeout(() => setJustUpdated(false), 700);
+    return () => clearTimeout(t);
+  }, [justUpdated]);
 
   const isEnded = match?.status === 'ended';
   const noMatch = !match;
@@ -77,13 +131,19 @@ const TennisLiveScore: React.FC = () => {
       <div className="tl-header">
         <div className="tl-title">🏓 Immersia Table Tennis</div>
         {connected && match && !isEnded
-          ? <span className="tl-live-dot">Live</span>
-          : <span className="tl-idle-dot">{isEnded ? 'Match Ended' : 'Waiting for match'}</span>
+          ? <span className="tl-live-badge">
+              <span className="tl-live-ring" />
+              <span className="tl-live-dot-inner" />
+              Live
+            </span>
+          : <span className="tl-idle-dot">
+              {isEnded ? 'Match Ended' : 'Waiting for match'}
+            </span>
         }
       </div>
 
       {/* Scoreboard */}
-      <div className="tl-board">
+      <div className={`tl-board${justUpdated ? ' just-updated' : ''}`}>
         {noMatch ? (
           <div className="tl-idle">
             <div className="tl-idle-icon">🏓</div>
@@ -92,7 +152,7 @@ const TennisLiveScore: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Phase badge (when in tiebreak) */}
+            {/* Phase strip (tiebreaks) */}
             {phase !== 'main' && !isEnded && (
               <div className="tl-phase-strip">
                 <span className="tl-phase-badge">{PHASE_LABELS[phase]}</span>
@@ -111,14 +171,14 @@ const TennisLiveScore: React.FC = () => {
               {/* Player 1 */}
               <div
                 className={['tl-player p1', match.winner === match.player1_name ? 'winner' : ''].join(' ')}
-                style={flashSide === 'player1' ? { background: 'rgba(29,78,216,0.3)' } : {}}
+                style={flashSide === 'player1' ? { background: 'rgba(29,78,216,0.35)' } : {}}
               >
                 {match.winner === match.player1_name && <span className="tl-winner-crown">👑</span>}
                 <span className="tl-player-icon">🏓</span>
                 <span className="tl-player-name">{match.player1_name}</span>
                 <span
                   className="tl-player-score"
-                  style={flashSide === 'player1' ? { transform: 'scale(1.08)', transition: 'transform 0.15s' } : { transition: 'transform 0.15s' }}
+                  style={flashSide === 'player1' ? { transform: 'scale(1.1)', transition: 'transform 0.15s' } : { transition: 'transform 0.25s' }}
                 >
                   {match.player1_score}
                 </span>
@@ -138,14 +198,14 @@ const TennisLiveScore: React.FC = () => {
               {/* Player 2 */}
               <div
                 className={['tl-player p2', match.winner === match.player2_name ? 'winner' : ''].join(' ')}
-                style={flashSide === 'player2' ? { background: 'rgba(185,28,28,0.3)' } : {}}
+                style={flashSide === 'player2' ? { background: 'rgba(185,28,28,0.35)' } : {}}
               >
                 {match.winner === match.player2_name && <span className="tl-winner-crown">👑</span>}
                 <span className="tl-player-icon" style={{ transform: 'scaleX(-1)' }}>🏓</span>
                 <span className="tl-player-name">{match.player2_name}</span>
                 <span
                   className="tl-player-score"
-                  style={flashSide === 'player2' ? { transform: 'scale(1.08)', transition: 'transform 0.15s' } : { transition: 'transform 0.15s' }}
+                  style={flashSide === 'player2' ? { transform: 'scale(1.1)', transition: 'transform 0.15s' } : { transition: 'transform 0.25s' }}
                 >
                   {match.player2_score}
                 </span>
@@ -162,7 +222,7 @@ const TennisLiveScore: React.FC = () => {
               </div>
             </div>
 
-            {/* Draw announcement */}
+            {/* Draw */}
             {isEnded && match.is_draw && (
               <div className="tl-draw-announce">
                 <span className="tl-draw-icon">🤝</span>
@@ -173,7 +233,7 @@ const TennisLiveScore: React.FC = () => {
               </div>
             )}
 
-            {/* Winner announcement */}
+            {/* Winner */}
             {isEnded && !match.is_draw && match.winner && (
               <div className="tl-winner-announce">
                 <span className="tl-trophy">🏆</span>
@@ -207,14 +267,7 @@ const TennisLiveScore: React.FC = () => {
                   <span className={m.winner === m.player2_name ? 'tl-rw' : ''}>{m.player2_name}</span>
                 </div>
                 <span className="tl-recent-result">
-                  {m.status === 'active'
-                    ? '🔴 Live'
-                    : m.is_draw
-                    ? '🤝 Draw'
-                    : m.winner
-                    ? `🏆 ${m.winner}`
-                    : '—'
-                  }
+                  {m.status === 'active' ? '🔴 Live' : m.is_draw ? '🤝 Draw' : m.winner ? `🏆 ${m.winner}` : '—'}
                 </span>
               </div>
             ))}
