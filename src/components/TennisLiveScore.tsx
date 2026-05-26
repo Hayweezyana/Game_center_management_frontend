@@ -152,6 +152,28 @@ const TennisLiveScore: React.FC = () => {
           </div>
         ) : (
           <>
+            {/* Winner banner — at the top of the board when match is over */}
+            {isEnded && !match.is_draw && match.winner && (
+              <div className="tl-winner-banner">
+                <span className="tl-winner-banner-trophy">🏆</span>
+                <span className="tl-winner-banner-name">{match.winner}</span>
+                <span className="tl-winner-banner-sub">
+                  wins &nbsp;·&nbsp; {match.player1_score} — {match.player2_score} &nbsp;·&nbsp; {match.game_type}-point game
+                </span>
+              </div>
+            )}
+
+            {/* Draw banner */}
+            {isEnded && match.is_draw && (
+              <div className="tl-draw-banner">
+                <span className="tl-draw-banner-icon">🤝</span>
+                <span className="tl-draw-banner-text">Draw!</span>
+                <span className="tl-draw-banner-sub">
+                  {match.player1_name} vs {match.player2_name} &nbsp;·&nbsp; {match.game_type}-point game
+                </span>
+              </div>
+            )}
+
             {/* Phase strip (tiebreaks) */}
             {phase !== 'main' && !isEnded && (
               <div className="tl-phase-strip">
@@ -221,28 +243,6 @@ const TennisLiveScore: React.FC = () => {
                 <span className="tl-court-player p2">🧑</span>
               </div>
             </div>
-
-            {/* Draw */}
-            {isEnded && match.is_draw && (
-              <div className="tl-draw-announce">
-                <span className="tl-draw-icon">🤝</span>
-                <p className="tl-draw-text">Match ends in a Draw!</p>
-                <p className="tl-winner-sub">
-                  {match.player1_name} vs {match.player2_name} &nbsp;·&nbsp; {match.game_type}-point game
-                </p>
-              </div>
-            )}
-
-            {/* Winner */}
-            {isEnded && !match.is_draw && match.winner && (
-              <div className="tl-winner-announce">
-                <span className="tl-trophy">🏆</span>
-                <p className="tl-winner-text">{match.winner}</p>
-                <p className="tl-winner-sub">
-                  wins! &nbsp;·&nbsp; Final: {match.player1_score} — {match.player2_score} &nbsp;·&nbsp; {match.game_type}-point game
-                </p>
-              </div>
-            )}
 
             {/* Footer */}
             <div className="tl-footer">
