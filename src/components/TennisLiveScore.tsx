@@ -56,10 +56,15 @@ const TennisLiveScore: React.FC = () => {
       const res = await axios.get(`${BACKEND}/v1/admin/tennis/match/live`);
       const incoming: TennisMatch | null = res.data?.data ?? null;
       const prev = matchRef.current;
-      // Only apply if something actually changed
-      if (!incoming && prev) { setMatch(null); return; }
-      if (!incoming) return;
-      if (!prev || incoming.player1_score !== prev.player1_score || incoming.player2_score !== prev.player2_score || incoming.status !== prev.status) {
+
+      if (!incoming) {
+        // No active match — keep showing an ended match so the winner stays visible.
+        // Only reset to "no match" if we had nothing before.
+        if (!prev) setMatch(null);
+        return;
+      }
+      // New active match or score change — update
+      if (!prev || incoming.id !== prev.id || incoming.player1_score !== prev.player1_score || incoming.player2_score !== prev.player2_score || incoming.status !== prev.status) {
         applyUpdate(incoming);
       }
     } catch {}
