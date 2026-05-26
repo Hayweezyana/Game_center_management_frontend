@@ -31,6 +31,7 @@ const MarketersReportPage = lazy(() => import('./components/MarketersReportPage'
 const InternalControlEntry = lazy(() => import('./components/InternalControlEntry'));
 const InternalControlDashboard = lazy(() => import('./components/InternalControlDashboard'));
 const CustomerPortal = lazy(() => import('./components/customer/CustomerPortal'));
+const TennisLiveScore = lazy(() => import('./components/TennisLiveScore'));
 
 const RouteLoader: React.FC = () => (
   <div className="route-loader" role="status" aria-live="polite">
@@ -328,6 +329,7 @@ const AppShell: React.FC = () => {
         <Route path="/InternalControlDashboard" element={<PrivateRoute element={<InternalControlDashboard />} />} />
         <Route path="/AdminPcControl"     element={<PrivateRoute element={<Admin />} />} />
         <Route path="/customer-portal" element={<CustomerPortal />} />
+        <Route path="/TennisLive" element={<TennisLiveScore />} />
       </Routes>
     </div>
   );

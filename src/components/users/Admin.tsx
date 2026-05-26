@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import Report from '../report';
 import InternalControlEntry from '../InternalControlEntry';
 import InternalControlDashboard from '../InternalControlDashboard';
+import TennisScoreEntry from '../TennisScoreEntry';
 import './Admin.css';
 import {
   getAdminRole,
@@ -19,7 +20,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx' | 'ic-entry' | 'ic-dashboard';
+type Tab = 'overview' | 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx' | 'ic-entry' | 'ic-dashboard' | 'tennis';
 
 interface PcRow {
   id: string;
@@ -97,6 +98,7 @@ const ALL_TABS: { key: Tab; label: string }[] = [
   { key: 'manual-tx',    label: '🧾  Manual Transaction'      },
   { key: 'ic-entry',     label: '📝  Internal Control — Entry'     },
   { key: 'ic-dashboard', label: '🔎  Internal Control — Review'    },
+  { key: 'tennis',       label: '🏓  Table Tennis Score'           },
 ];
 
 const TAB_SUMMARIES: Record<Exclude<Tab, 'overview'>, string> = {
@@ -110,6 +112,7 @@ const TAB_SUMMARIES: Record<Exclude<Tab, 'overview'>, string> = {
   'manual-tx': 'Record manual or split transactions from the desk.',
   'ic-entry': 'File camera-review counts by station (editable for 24 hours).',
   'ic-dashboard': 'Compare recorded counts against actual sales (green/red/blue).',
+  'tennis': 'Record table tennis scores live — customers see the scoreboard in real time.',
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -1562,6 +1565,21 @@ const Admin: React.FC = () => {
       case 'manual-tx': return renderManualTransaction();
       case 'ic-entry': return <InternalControlEntry />;
       case 'ic-dashboard': return <InternalControlDashboard />;
+      case 'tennis': return (
+        <div>
+          <TennisScoreEntry />
+          <div style={{ padding: '0 24px 20px', maxWidth: 900, margin: '0 auto' }}>
+            <a
+              href="/TennisLive"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#1d6ef2', fontWeight: 600, textDecoration: 'none' }}
+            >
+              🔗 Open customer live-score display →
+            </a>
+          </div>
+        </div>
+      );
     }
   };
 
