@@ -169,9 +169,25 @@ const Admin: React.FC = () => {
   const adminHeaders   = adminToken    ? { Authorization: `Bearer ${adminToken}`    } : {};
   const operatorHeaders = operatorToken ? { Authorization: `Bearer ${operatorToken}` } : {};
 
-  // ── Shared PC list (fed by WebSocket) ──────────────────────────────────────
+  // ── Shared PC list (fed by DB seed + WebSocket live updates) ────────────────
   const wsRef = useRef<WebSocket | null>(null);
   const [pcs, setPcs] = useState<PcRow[]>([]);
+
+  // Seed from DB so all registered PCs appear even before any WS connection
+  useEffect(() => {
+    axios.get(`${BACKEND}/v1/admin/pc`, { headers: adminHeaders })
+      .then(res => {
+        const rows: any[] = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+        setPcs(prev => {
+          const liveIds = new Set(prev.map(p => p.id));
+          const seeds = rows
+            .filter(r => !liveIds.has(String(r.id)))
+            .map(r => ({ id: String(r.id), title: String(r.title), isLocked: true, isOnline: false, busyUntil: null }));
+          return [...prev, ...seeds];
+        });
+      })
+      .catch(() => {}); // not critical — WS will populate
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── WebSocket connection (PC Control + Operator Queue both use it) ──────────
   useEffect(() => {
@@ -182,9 +198,9 @@ const Admin: React.FC = () => {
       try {
         const u = new URL(BACKEND);
         u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
-        ws = new WebSocket(u.origin);
+        ws = new WebSocket(u.origin + '/ws');
       } catch {
-        ws = new WebSocket('ws://127.0.0.1:2024');
+        ws = new WebSocket('ws://127.0.0.1:2024/ws');
       }
       wsRef.current = ws;
 
@@ -196,13 +212,30 @@ const Admin: React.FC = () => {
         try {
           const msg = JSON.parse(ev.data);
           if (msg?.type === 'pcs-sync' && Array.isArray(msg.pcs)) {
-            setPcs(msg.pcs.map((pc: any) => ({
+            // WS sync overrides everything — merge with any DB-seeded offline PCs
+            const livePcs: any[] = msg.pcs;
+            const liveById: Record<string, any> = {};
+            livePcs.forEach((pc: any) => { liveById[String(pc.id)] = pc; });
+            const toRow = (pc: any): PcRow => ({
               id: String(pc.id),
               title: String(pc.title),
               isLocked: pc.isLocked ?? pc.status === 'locked',
               isOnline: pc.isOnline ?? false,
               busyUntil: pc.busyUntil ?? null,
-            })));
+            });
+            setPcs(prev => {
+              const merged = prev.map(p => {
+                const live = liveById[p.id];
+                return live ? toRow(live) : p; // keep DB-seeded row as-is if offline
+              });
+              // Add any live PCs not yet in our list
+              livePcs.forEach((live: any) => {
+                if (!merged.find(p => p.id === String(live.id))) {
+                  merged.push(toRow(live));
+                }
+              });
+              return merged;
+            });
           }
           if (msg?.type === 'pc-status' && msg.pc) {
             const p = msg.pc;
@@ -231,7 +264,7 @@ const Admin: React.FC = () => {
       ws?.close();
       wsRef.current = null;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogout = () => {
     sessionStorage.removeItem('token');
