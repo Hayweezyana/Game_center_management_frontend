@@ -325,6 +325,8 @@ const Admin: React.FC = () => {
 
   const [pcUnlockMins, setPcUnlockMins] = useState<Record<string, string>>({});
   const [pcMsg, setPcMsg] = useState('');
+  const [newPcTitle, setNewPcTitle] = useState('');
+  const [addingPc, setAddingPc] = useState(false);
 
   const lockPc = async (id: string) => {
     try {
@@ -345,12 +347,47 @@ const Admin: React.FC = () => {
     }
   };
 
+  const addPc = async () => {
+    const title = newPcTitle.trim();
+    if (!title) return;
+    setAddingPc(true);
+    try {
+      const res = await axios.post(`${BACKEND}/v1/admin/pc`, { title }, { headers: adminHeaders });
+      const created = res.data?.data ?? res.data;
+      setPcs(prev => [...prev, { id: String(created.id), title: String(created.title), isLocked: true, isOnline: false, busyUntil: null }]);
+      setNewPcTitle('');
+      setPcMsg(`PC "${title}" registered. Open the game PC app and enter this name to connect it.`);
+    } catch (e: any) {
+      setPcMsg(`Error: ${e?.response?.data?.error ?? e.message}`);
+    } finally {
+      setAddingPc(false);
+    }
+  };
+
   const renderPcControl = () => (
     <div className="tab-section">
       <h2>PC Control</h2>
       {pcMsg && <div className="info-banner">{pcMsg}</div>}
+
+      {/* Register a new PC */}
+      <div className="pc-register-row">
+        <input
+          className="mins-input"
+          style={{ width: 200, marginRight: 8 }}
+          placeholder="PC name (e.g. Gaming PC 1)"
+          value={newPcTitle}
+          onChange={e => setNewPcTitle(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addPc()}
+        />
+        <button className="btn-unlock" onClick={addPc} disabled={addingPc || !newPcTitle.trim()}>
+          {addingPc ? 'Adding…' : '+ Register PC'}
+        </button>
+      </div>
+
       <div className="pc-grid">
-        {pcs.length === 0 && <p className="no-data">No PCs connected yet.</p>}
+        {pcs.length === 0 && (
+          <p className="no-data">No PCs registered yet. Add one above, then open the game PC app on that machine to connect it.</p>
+        )}
         {pcs.map(pc => {
           const busyUntilStr = pc.busyUntil
             ? new Date(pc.busyUntil).toLocaleTimeString()
@@ -366,6 +403,11 @@ const Admin: React.FC = () => {
                   {pc.isLocked ? 'Locked' : 'Unlocked'}
                 </span>
               </div>
+              {!pc.isOnline && (
+                <div className="pc-card-busy" style={{ color: '#94a3b8', fontSize: 11 }}>
+                  Open the game PC app on this machine to connect
+                </div>
+              )}
               {busyUntilStr && (
                 <div className="pc-card-busy">Free at {busyUntilStr}</div>
               )}
