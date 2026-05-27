@@ -19,17 +19,19 @@ const AdminPcControl: React.FC = () => {
   useEffect(() => {
     fetchPcs();
 
-    // connect to WS
-    const wsUrl = BACKEND.replace(/^http/, "ws"); // http:// → ws://
-    const ws = new WebSocket(`${wsUrl}/ws/admin`); // adjust endpoint if needed
+    const wsUrl = BACKEND.replace(/^http/, "ws");
+    const ws = new WebSocket(`${wsUrl}/ws`); // path must match wsHub's path: '/ws'
 
-    ws.onopen = () => console.log("Admin WS connected ✅");
+    ws.onopen = () => {
+      console.log("Admin WS connected ✅");
+      // Must register as dashboard to receive pc-status broadcasts
+      ws.send(JSON.stringify({ type: "register_dashboard" }));
+    };
 
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
 
-        // Example message: { type: "pc-status", pc: {...} }
         if (msg.type === "pc-status") {
           setPcs((prev) =>
             prev.map((pc) =>
@@ -47,9 +49,8 @@ const AdminPcControl: React.FC = () => {
           );
         }
 
-        // Or if backend emits a full list:
         if (msg.type === "pcs-sync") {
-          const mapped = msg.pcs.map((pc: any) => ({
+          const mapped = (msg.pcs as any[]).map((pc) => ({
             id: pc.id,
             title: pc.title,
             isLocked: pc.isLocked,
@@ -92,13 +93,18 @@ const AdminPcControl: React.FC = () => {
   const toggleLock = async (pcId: string, currentlyLocked: boolean) => {
     try {
       if (currentlyLocked) {
-        await axios.post(`${BACKEND}/v1/admin/pcs/${pcId}/unlock`);
+        const raw = prompt("Unlock duration in minutes:", "60");
+        if (raw === null) return; // cancelled
+        const duration_minutes = Math.max(1, parseInt(raw, 10) || 60);
+        await axios.post(`${BACKEND}/v1/admin/pcs/${pcId}/unlock`, { duration_minutes });
       } else {
         await axios.post(`${BACKEND}/v1/admin/pcs/${pcId}/lock`);
       }
-      // no need to refetch — WS will update state
+      // WS broadcast will update state; refetch as fallback
+      setTimeout(fetchPcs, 500);
     } catch (err) {
       console.error("Failed to toggle lock:", err);
+      fetchPcs();
     }
   };
 
