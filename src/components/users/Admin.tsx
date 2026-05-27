@@ -28,7 +28,10 @@ interface PcRow {
   isLocked?: boolean;
   isOnline?: boolean;
   busyUntil?: number | null;
+  lastSeenAt?: number | null;
 }
+
+const RECENTLY_ONLINE_MS = 2 * 60 * 60 * 1000; // show PCs seen within last 2 hours
 
 interface GameItem {
   id: string;
@@ -173,26 +176,19 @@ const Admin: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const [pcs, setPcs] = useState<PcRow[]>([]);
 
-  // Seed from DB so all registered PCs appear even before any WS connection
-  useEffect(() => {
-    axios.get(`${BACKEND}/v1/admin/pc`, { headers: adminHeaders })
-      .then(res => {
-        const rows: any[] = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
-        setPcs(prev => {
-          const liveIds = new Set(prev.map(p => p.id));
-          const seeds = rows
-            .filter(r => !liveIds.has(String(r.id)))
-            .map(r => ({ id: String(r.id), title: String(r.title), isLocked: true, isOnline: false, busyUntil: null }));
-          return [...prev, ...seeds];
-        });
-      })
-      .catch(() => {}); // not critical — WS will populate
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   // ── WebSocket connection (PC Control + Operator Queue both use it) ──────────
   useEffect(() => {
     let ws: WebSocket;
     let reconnectTimer: ReturnType<typeof setTimeout>;
+
+    const toRow = (pc: any): PcRow => ({
+      id: String(pc.id),
+      title: String(pc.title),
+      isLocked: pc.isLocked ?? pc.status === 'locked',
+      isOnline: pc.isOnline ?? false,
+      busyUntil: pc.busyUntil ?? null,
+      lastSeenAt: pc.lastSeenAt ?? null,
+    });
 
     const connect = () => {
       try {
@@ -212,42 +208,13 @@ const Admin: React.FC = () => {
         try {
           const msg = JSON.parse(ev.data);
           if (msg?.type === 'pcs-sync' && Array.isArray(msg.pcs)) {
-            // WS sync overrides everything — merge with any DB-seeded offline PCs
-            const livePcs: any[] = msg.pcs;
-            const liveById: Record<string, any> = {};
-            livePcs.forEach((pc: any) => { liveById[String(pc.id)] = pc; });
-            const toRow = (pc: any): PcRow => ({
-              id: String(pc.id),
-              title: String(pc.title),
-              isLocked: pc.isLocked ?? pc.status === 'locked',
-              isOnline: pc.isOnline ?? false,
-              busyUntil: pc.busyUntil ?? null,
-            });
-            setPcs(prev => {
-              const merged = prev.map(p => {
-                const live = liveById[p.id];
-                return live ? toRow(live) : p; // keep DB-seeded row as-is if offline
-              });
-              // Add any live PCs not yet in our list
-              livePcs.forEach((live: any) => {
-                if (!merged.find(p => p.id === String(live.id))) {
-                  merged.push(toRow(live));
-                }
-              });
-              return merged;
-            });
+            setPcs((msg.pcs as any[]).map(toRow));
           }
           if (msg?.type === 'pc-status' && msg.pc) {
-            const p = msg.pc;
+            const updated = toRow(msg.pc);
             setPcs(prev => {
-              const exists = prev.find(x => x.id === p.id);
-              const updated: PcRow = {
-                id: p.id, title: p.title,
-                isLocked: p.isLocked ?? p.status === 'locked',
-                isOnline: p.isOnline ?? true,
-                busyUntil: p.busyUntil ?? null,
-              };
-              return exists ? prev.map(x => x.id === p.id ? updated : x) : [...prev, updated];
+              const exists = prev.find(x => x.id === updated.id);
+              return exists ? prev.map(x => x.id === updated.id ? updated : x) : [...prev, updated];
             });
           }
         } catch {}
@@ -364,84 +331,92 @@ const Admin: React.FC = () => {
     }
   };
 
-  const renderPcControl = () => (
-    <div className="tab-section">
-      <h2>PC Control</h2>
-      {pcMsg && <div className="info-banner">{pcMsg}</div>}
+  const renderPcControl = () => {
+    const now = Date.now();
+    const visiblePcs = pcs.filter(pc =>
+      pc.isOnline || (pc.lastSeenAt != null && now - pc.lastSeenAt < RECENTLY_ONLINE_MS)
+    );
 
-      {/* Register a new PC */}
-      <div className="pc-register-row">
-        <input
-          className="mins-input"
-          style={{ width: 200, marginRight: 8 }}
-          placeholder="PC name (e.g. Gaming PC 1)"
-          value={newPcTitle}
-          onChange={e => setNewPcTitle(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && addPc()}
-        />
-        <button className="btn-unlock" onClick={addPc} disabled={addingPc || !newPcTitle.trim()}>
-          {addingPc ? 'Adding…' : '+ Register PC'}
-        </button>
-      </div>
+    return (
+      <div className="tab-section">
+        <h2>PC Control</h2>
+        {pcMsg && <div className="info-banner">{pcMsg}</div>}
 
-      <div className="pc-grid">
-        {pcs.length === 0 && (
-          <p className="no-data">No PCs registered yet. Add one above, then open the game PC app on that machine to connect it.</p>
-        )}
-        {pcs.map(pc => {
-          const busyUntilStr = pc.busyUntil
-            ? new Date(pc.busyUntil).toLocaleTimeString()
-            : null;
-          return (
-            <div key={pc.id} className={`pc-card ${pc.isLocked ? 'pc-locked' : 'pc-unlocked'} ${!pc.isOnline ? 'pc-offline' : ''}`}>
-              <div className="pc-card-title">{pc.title}</div>
-              <div className="pc-card-badges">
-                <span className={`badge ${pc.isOnline ? 'badge-green' : 'badge-red'}`}>
-                  {pc.isOnline ? 'Online' : 'Offline'}
-                </span>
-                <span className={`badge ${pc.isLocked ? 'badge-blue' : 'badge-yellow'}`}>
-                  {pc.isLocked ? 'Locked' : 'Unlocked'}
-                </span>
-              </div>
-              {!pc.isOnline && (
-                <div className="pc-card-busy" style={{ color: '#94a3b8', fontSize: 11 }}>
-                  Open the game PC app on this machine to connect
+        {/* Register a new PC */}
+        <div className="pc-register-row">
+          <input
+            className="mins-input"
+            style={{ width: 200, marginRight: 8 }}
+            placeholder="PC name (e.g. Gaming PC 1)"
+            value={newPcTitle}
+            onChange={e => setNewPcTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addPc()}
+          />
+          <button className="btn-unlock" onClick={addPc} disabled={addingPc || !newPcTitle.trim()}>
+            {addingPc ? 'Adding…' : '+ Register PC'}
+          </button>
+        </div>
+
+        <div className="pc-grid">
+          {visiblePcs.length === 0 && (
+            <p className="no-data">No PCs online or recently seen. Open the game PC app on each machine to connect it.</p>
+          )}
+          {visiblePcs.map(pc => {
+            const busyUntilStr = pc.busyUntil
+              ? new Date(pc.busyUntil).toLocaleTimeString()
+              : null;
+            const lastSeenStr = pc.lastSeenAt && !pc.isOnline
+              ? `Last seen ${Math.round((now - pc.lastSeenAt) / 60000)} min ago`
+              : null;
+            return (
+              <div key={pc.id} className={`pc-card ${pc.isLocked ? 'pc-locked' : 'pc-unlocked'} ${!pc.isOnline ? 'pc-offline' : ''}`}>
+                <div className="pc-card-title">{pc.title}</div>
+                <div className="pc-card-badges">
+                  <span className={`badge ${pc.isOnline ? 'badge-green' : 'badge-red'}`}>
+                    {pc.isOnline ? 'Online' : 'Offline'}
+                  </span>
+                  <span className={`badge ${pc.isLocked ? 'badge-blue' : 'badge-yellow'}`}>
+                    {pc.isLocked ? 'Locked' : 'Unlocked'}
+                  </span>
                 </div>
-              )}
-              {busyUntilStr && (
-                <div className="pc-card-busy">Free at {busyUntilStr}</div>
-              )}
-              <div className="pc-card-actions">
-                <input
-                  type="number"
-                  min={1}
-                  max={120}
-                  placeholder="min"
-                  value={pcUnlockMins[pc.id] || ''}
-                  onChange={e => setPcUnlockMins(prev => ({ ...prev, [pc.id]: e.target.value }))}
-                  className="mins-input"
-                />
-                <button
-                  className="btn-unlock"
-                  disabled={!pc.isOnline}
-                  onClick={() => unlockPc(pc.id)}
-                >
-                  Unlock
-                </button>
-                <button
-                  className="btn-lock"
-                  disabled={!pc.isOnline}
-                  onClick={() => lockPc(pc.id)}
-                >
-                  Lock
-                </button>
+                {lastSeenStr && (
+                  <div className="pc-card-busy">{lastSeenStr}</div>
+                )}
+                {busyUntilStr && (
+                  <div className="pc-card-busy">Free at {busyUntilStr}</div>
+                )}
+                <div className="pc-card-actions">
+                  <input
+                    type="number"
+                    min={1}
+                    max={120}
+                    placeholder="min"
+                    value={pcUnlockMins[pc.id] || ''}
+                    onChange={e => setPcUnlockMins(prev => ({ ...prev, [pc.id]: e.target.value }))}
+                    className="mins-input"
+                  />
+                  <button
+                    className="btn-unlock"
+                    disabled={!pc.isOnline}
+                    onClick={() => unlockPc(pc.id)}
+                  >
+                    Unlock
+                  </button>
+                  <button
+                    className="btn-lock"
+                    disabled={!pc.isOnline}
+                    onClick={() => lockPc(pc.id)}
+                  >
+                    Lock
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TAB: OPERATOR QUEUE
