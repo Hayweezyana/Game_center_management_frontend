@@ -49,10 +49,22 @@ const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) =>
   return element;
 };
 
-const EID_THEME_DATE = (process.env.REACT_APP_EID_THEME_DATE || '').trim() || '2026-03-20';
+// ── Children's Day — May 27 only (disappears at midnight) ────────
+const CHILDRENS_DAY_DATE     = '2026-05-27';
+const CHILDRENS_DAY_END_DATE = '2026-05-28'; // expires at midnight
+const CHILDRENS_DAY_DISMISS_KEY = `childrens-day-dismissed:${CHILDRENS_DAY_DATE}`;
+
+const isChildrensDayActiveAt = (date: Date) => {
+  const start = new Date(2026, 4, 27, 0, 0, 0, 0); // May 27 00:00
+  const end   = new Date(2026, 4, 28, 0, 0, 0, 0); // May 28 00:00
+  return date >= start && date < end;
+};
+
+// ── Eid al-Adha 2026 — May 27 through end of Sunday May 31 ───────
+const EID_THEME_DATE = (process.env.REACT_APP_EID_THEME_DATE || '').trim() || '2026-05-27';
 // Theme is active from EID_THEME_DATE through EID_THEME_END_DATE (exclusive — midnight that day)
-const EID_THEME_END_DATE = (process.env.REACT_APP_EID_THEME_END_DATE || '').trim() || '2026-03-23';
-const EID_BANNER_DISMISS_KEY = `eid-banner-dismissed:${EID_THEME_DATE}`;
+const EID_THEME_END_DATE = (process.env.REACT_APP_EID_THEME_END_DATE || '').trim() || '2026-06-01';
+const EID_BANNER_DISMISS_KEY = `eid-adha-banner-dismissed:${EID_THEME_DATE}`;
 
 // Easter theme: Good Friday → Easter Monday (inclusive)
 const EASTER_START_DATE = (process.env.REACT_APP_EASTER_START_DATE || '').trim() || '2026-04-03';
@@ -89,6 +101,7 @@ const CUSTOMER_FACING_PATHS = new Set([
   '/paystackpaymentpage',
   '/gkgpaymentpage',
   '/customer-portal',
+  '/tennislive',
 ]);
 
 const isValidDateParts = (year: number, month: number, day: number) =>
@@ -117,6 +130,11 @@ const isEidThemeActiveAt = (date: Date) => {
 const AppShell: React.FC = () => {
   const location = useLocation();
 
+  const [isChildrensDayActive, setIsChildrensDayActive] = React.useState<boolean>(() => isChildrensDayActiveAt(new Date()));
+  const [isChildrensDayDismissed, setIsChildrensDayDismissed] = React.useState<boolean>(() => {
+    try { return window.localStorage.getItem(CHILDRENS_DAY_DISMISS_KEY) === '1'; } catch { return false; }
+  });
+
   const [isEidThemeActive, setIsEidThemeActive] = React.useState<boolean>(() => isEidThemeActiveAt(new Date()));
   const [isEidBannerDismissed, setIsEidBannerDismissed] = React.useState<boolean>(() => {
     try {
@@ -138,8 +156,12 @@ const AppShell: React.FC = () => {
 
   const normalizedPath = location.pathname.toLowerCase();
   const isCustomerRoute = CUSTOMER_FACING_PATHS.has(normalizedPath);
-  const applyEidTheme = isCustomerRoute && isEidThemeActive;
-  const showEidBanner = applyEidTheme && !isEidBannerDismissed;
+
+  const applyChildrensDay   = isCustomerRoute && isChildrensDayActive;
+  const showChildrensDayBanner = applyChildrensDay && !isChildrensDayDismissed;
+
+  const applyEidTheme  = isCustomerRoute && isEidThemeActive;
+  const showEidBanner  = applyEidTheme && !isEidBannerDismissed;
   // Easter takes precedence over Eid if both somehow overlap
   const applyEasterTheme = isCustomerRoute && isEasterThemeActive && !applyEidTheme;
   const showEasterBanner = applyEasterTheme && !isEasterBannerDismissed;
@@ -147,6 +169,7 @@ const AppShell: React.FC = () => {
   React.useEffect(() => {
     const timer = window.setInterval(() => {
       const d = new Date();
+      setIsChildrensDayActive(isChildrensDayActiveAt(d));
       setIsEidThemeActive(isEidThemeActiveAt(d));
       setIsEasterThemeActive(isEasterThemeActiveAt(d));
       setIsGoodFriday(isGoodFridayAt(d));
@@ -170,6 +193,11 @@ const AppShell: React.FC = () => {
     };
   }, [applyEasterTheme, isGoodFriday]);
 
+  const closeChildrensDay = React.useCallback(() => {
+    setIsChildrensDayDismissed(true);
+    try { window.localStorage.setItem(CHILDRENS_DAY_DISMISS_KEY, '1'); } catch {}
+  }, []);
+
   const closeEidBanner = React.useCallback(() => {
     setIsEidBannerDismissed(true);
     try {
@@ -188,14 +216,41 @@ const AppShell: React.FC = () => {
     }
   }, []);
 
-  const themeShellClass = applyEasterTheme
-    ? `easter-theme-shell${showEasterBanner ? ' has-easter-banner' : ''}${isGoodFriday ? ' easter-friday-shell' : ''}`
-    : applyEidTheme
-      ? `eid-theme-shell${showEidBanner ? ' has-eid-banner' : ''}`
-      : '';
+  const themeShellClass = [
+    applyChildrensDay ? `cd-theme-shell${showChildrensDayBanner ? ' has-cd-banner' : ''}` : '',
+    applyEidTheme     ? `eid-theme-shell${showEidBanner ? ' has-eid-banner' : ''}` : '',
+    applyEasterTheme  ? `easter-theme-shell${showEasterBanner ? ' has-easter-banner' : ''}${isGoodFriday ? ' easter-friday-shell' : ''}` : '',
+  ].filter(Boolean).join(' ');
 
   return (
     <div className={themeShellClass || undefined}>
+      {/* ── Children's Day decorations (balloons + confetti) ─────── */}
+      {applyChildrensDay ? (
+        <>
+          <div className="cd-balloons" aria-hidden="true">
+            {['🎈','🎈','🎉','🎈','🎊','🎈','🎈','🎉','🎊','🎈','🎈','🎊'].map((em, i) => (
+              <span key={i} className={`cd-balloon cd-balloon-${i + 1}`}>{em}</span>
+            ))}
+          </div>
+          <div className="cd-confetti" aria-hidden="true">
+            {[...Array(20)].map((_, i) => (
+              <span key={i} className={`cd-dot cd-dot-${i + 1}`} />
+            ))}
+          </div>
+        </>
+      ) : null}
+      {/* ── Children's Day banner (prominent — today only) ────────── */}
+      {showChildrensDayBanner ? (
+        <div className="cd-banner" role="note" aria-label="Happy Children's Day">
+          <span className="cd-banner-emoji" aria-hidden="true">🎈🎉🎊</span>
+          <img src={immersiaLogo} alt="Immersia logo" className="cd-banner-logo" />
+          <div className="cd-banner-copy">
+            <strong>Happy Children's Day! 🎈</strong>
+            <span>Wishing all our young visitors a fun-filled day of play and adventure at Immersia!</span>
+          </div>
+          <button type="button" className="cd-banner-close" aria-label="Close" onClick={closeChildrensDay}>×</button>
+        </div>
+      ) : null}
       {applyEidTheme ? (
         <>
           <div className="eid-crescent" aria-hidden="true">
@@ -246,8 +301,8 @@ const AppShell: React.FC = () => {
           <div className="eid-banner-ornament eid-banner-ornament-left" aria-hidden="true">☪</div>
           <img src={immersiaLogo} alt="Immersia logo" className="eid-banner-logo" />
           <div className="eid-banner-copy">
-            <strong>Eid Mubarak! ✨</strong>
-            <span>Wishing you joy, peace, and winning game sessions from everyone at Immersia.</span>
+            <strong>Eid al-Adha Mubarak! ✨</strong>
+            <span>Wishing you blessings, joy, and winning game sessions from everyone at Immersia.</span>
           </div>
           <button type="button" className="eid-banner-close" aria-label="Close Eid greeting" onClick={closeEidBanner}>
             ×

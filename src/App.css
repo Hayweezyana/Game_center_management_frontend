@@ -721,3 +721,233 @@ body.easter-theme [class*="panel"] {
     padding: 10px 12px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Children's Day — May 27 only
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Keyframes ─────────────────────────────────────────────── */
+@keyframes cd-float-up {
+  0%   { transform: translateY(0)   scale(1);    opacity: 0.9; }
+  60%  { opacity: 1; }
+  100% { transform: translateY(-110vh) scale(0.7); opacity: 0; }
+}
+
+@keyframes cd-fall {
+  0%   { transform: translateY(-20px) rotate(0deg);   opacity: 1; }
+  100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+@keyframes cd-banner-shimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes cd-bounce-in {
+  0%   { transform: translateY(-40px); opacity: 0; }
+  60%  { transform: translateY(6px);  opacity: 1; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Shell padding when banner is showing ─────────────────── */
+.cd-theme-shell.has-cd-banner {
+  padding-top: 72px;
+}
+
+/* ── Balloons ──────────────────────────────────────────────── */
+.cd-balloons {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9990;
+  overflow: hidden;
+}
+
+.cd-balloon {
+  position: absolute;
+  bottom: -10%;
+  font-size: 2rem;
+  animation: cd-float-up linear infinite;
+  will-change: transform, opacity;
+}
+
+/* 12 balloons — varied left %, duration, delay */
+.cd-balloon-1  { left:  4%; animation-duration: 9s;  animation-delay: 0s;    }
+.cd-balloon-2  { left: 11%; animation-duration: 11s; animation-delay: 1.2s;  }
+.cd-balloon-3  { left: 18%; animation-duration: 8s;  animation-delay: 2.8s;  font-size: 1.7rem; }
+.cd-balloon-4  { left: 27%; animation-duration: 13s; animation-delay: 0.5s;  }
+.cd-balloon-5  { left: 35%; animation-duration: 10s; animation-delay: 3.5s;  font-size: 2.2rem; }
+.cd-balloon-6  { left: 44%; animation-duration: 9s;  animation-delay: 1.8s;  }
+.cd-balloon-7  { left: 54%; animation-duration: 12s; animation-delay: 4.0s;  font-size: 1.8rem; }
+.cd-balloon-8  { left: 62%; animation-duration: 10s; animation-delay: 0.9s;  }
+.cd-balloon-9  { left: 71%; animation-duration: 8.5s;animation-delay: 2.1s;  font-size: 2.3rem; }
+.cd-balloon-10 { left: 79%; animation-duration: 11s; animation-delay: 3.2s;  }
+.cd-balloon-11 { left: 87%; animation-duration: 9.5s;animation-delay: 1.5s;  font-size: 1.6rem; }
+.cd-balloon-12 { left: 94%; animation-duration: 12s; animation-delay: 4.8s;  }
+
+/* ── Confetti dots ─────────────────────────────────────────── */
+.cd-confetti {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 9989;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.cd-dot {
+  position: absolute;
+  top: -12px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: cd-fall linear infinite;
+  will-change: transform, opacity;
+}
+
+/* 20 dots — varied colors, positions, durations, delays */
+.cd-dot-1  { left:  3%; background: #ff6b9d; width:8px;  height:8px;  animation-duration: 5s;  animation-delay: 0s;    }
+.cd-dot-2  { left:  8%; background: #ffd93d; width:12px; height:12px; animation-duration: 7s;  animation-delay: 1.1s;  }
+.cd-dot-3  { left: 14%; background: #6bcb77; width:9px;  height:9px;  animation-duration: 6s;  animation-delay: 2.3s;  }
+.cd-dot-4  { left: 20%; background: #4d96ff; width:11px; height:11px; animation-duration: 8s;  animation-delay: 0.7s;  }
+.cd-dot-5  { left: 27%; background: #ff6b9d; width:7px;  height:7px;  animation-duration: 5.5s;animation-delay: 3.0s;  }
+.cd-dot-6  { left: 33%; background: #ffd93d; width:10px; height:10px; animation-duration: 9s;  animation-delay: 1.6s;  }
+.cd-dot-7  { left: 39%; background: #ff922b; width:8px;  height:8px;  animation-duration: 6.5s;animation-delay: 4.1s;  }
+.cd-dot-8  { left: 45%; background: #6bcb77; width:13px; height:13px; animation-duration: 7.5s;animation-delay: 0.3s;  }
+.cd-dot-9  { left: 51%; background: #4d96ff; width:9px;  height:9px;  animation-duration: 5s;  animation-delay: 2.9s;  }
+.cd-dot-10 { left: 57%; background: #ff6b9d; width:11px; height:11px; animation-duration: 8s;  animation-delay: 1.4s;  }
+.cd-dot-11 { left: 63%; background: #ffd93d; width:8px;  height:8px;  animation-duration: 6s;  animation-delay: 3.7s;  }
+.cd-dot-12 { left: 69%; background: #ff922b; width:10px; height:10px; animation-duration: 9s;  animation-delay: 0.5s;  }
+.cd-dot-13 { left: 74%; background: #6bcb77; width:7px;  height:7px;  animation-duration: 5.5s;animation-delay: 2.0s;  }
+.cd-dot-14 { left: 79%; background: #4d96ff; width:12px; height:12px; animation-duration: 7s;  animation-delay: 4.5s;  }
+.cd-dot-15 { left: 84%; background: #ff6b9d; width:9px;  height:9px;  animation-duration: 6.5s;animation-delay: 1.0s;  }
+.cd-dot-16 { left: 88%; background: #ffd93d; width:11px; height:11px; animation-duration: 8s;  animation-delay: 3.3s;  }
+.cd-dot-17 { left: 91%; background: #ff922b; width:8px;  height:8px;  animation-duration: 5s;  animation-delay: 2.5s;  }
+.cd-dot-18 { left: 94%; background: #6bcb77; width:10px; height:10px; animation-duration: 7.5s;animation-delay: 0.8s;  }
+.cd-dot-19 { left: 97%; background: #4d96ff; width:7px;  height:7px;  animation-duration: 6s;  animation-delay: 4.0s;  }
+.cd-dot-20 { left: 99%; background: #ff6b9d; width:12px; height:12px; animation-duration: 9s;  animation-delay: 1.9s;  }
+
+/* ── Children's Day banner ─────────────────────────────────── */
+.cd-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9995;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  min-height: 64px;
+  background: linear-gradient(
+    270deg,
+    #ff6b9d, #ff922b, #ffd93d, #6bcb77, #4d96ff, #c77dff, #ff6b9d
+  );
+  background-size: 400% 400%;
+  animation: cd-banner-shimmer 6s ease infinite, cd-bounce-in 0.5s ease both;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  color: #1a1a1a;
+}
+
+.cd-banner-emoji {
+  font-size: 1.7rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.cd-banner-logo {
+  height: 36px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.25));
+}
+
+.cd-banner-copy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cd-banner-copy strong {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+  white-space: nowrap;
+}
+
+.cd-banner-copy span {
+  font-size: 0.78rem;
+  color: #2a2a2a;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cd-banner-close {
+  background: rgba(0,0,0,0.15);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #1a1a1a;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.cd-banner-close:hover {
+  background: rgba(0,0,0,0.3);
+}
+
+/* ── Reduce-motion ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cd-balloon,
+  .cd-dot {
+    animation: none;
+    display: none;
+  }
+
+  .cd-banner {
+    animation: cd-bounce-in 0.3s ease both;
+    background-size: 100% 100%;
+  }
+}
+
+/* ── Mobile ────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .cd-banner {
+    gap: 8px;
+    padding: 8px 12px;
+    min-height: 58px;
+  }
+
+  .cd-banner-logo { height: 28px; }
+  .cd-banner-emoji { font-size: 1.3rem; }
+  .cd-banner-copy strong { font-size: 0.88rem; }
+  .cd-banner-copy span { display: none; }
+
+  .cd-theme-shell.has-cd-banner { padding-top: 60px; }
+
+  /* Fewer balloons on mobile */
+  .cd-balloon-3,
+  .cd-balloon-5,
+  .cd-balloon-8,
+  .cd-balloon-10,
+  .cd-balloon-12 { display: none; }
+
+  /* Fewer confetti on mobile */
+  .cd-dot-3, .cd-dot-6, .cd-dot-9, .cd-dot-12,
+  .cd-dot-15, .cd-dot-18 { display: none; }
+}
