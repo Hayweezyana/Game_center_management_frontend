@@ -54,7 +54,7 @@ const ROLE_TABS: Record<RoleType, AdminTab[]> = {
   supervisor:    ['games', 'reports', 'tennis'],
   account_audit: ['queue', 'bypasses', 'reports', 'tennis', 'credit'],
   ic1:           ['ic-entry', 'tennis'],
-  ic2:           ['ic-dashboard', 'reports', 'bypasses', 'drinks', 'queue', 'tennis'],
+  ic2:           ['ic-dashboard', 'reports', 'bypasses', 'drinks', 'queue', 'tennis', 'credit'],
 };
 
 // ── Discount permissions ──────────────────────────────────────────────────────
