@@ -24,7 +24,11 @@ interface Game {
   title: string;
   price: number;
   time_slot?: string;
+  category?: string | null;
 }
+
+const CATEGORIES = ['All', 'Scary', 'Roam Free', 'Adventure', 'Sports', 'Wheels', 'Racing', 'Music', 'Console', 'Kids'] as const;
+type Category = typeof CATEGORIES[number];
 
 interface Drink {
   id: string;
@@ -66,6 +70,7 @@ const getYouTubeVideoId = (rawUrl: string) => {
 
 const GameSelection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<Category>('All');
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,10 +90,15 @@ const GameSelection: React.FC = () => {
   const navigate = useNavigate();
   const { addToCart, cartItems, updateCartItem } = useCartContext();
 
-  const filteredGames = useMemo(
-    () => games.filter((game) => game.title.toLowerCase().includes(searchTerm.toLowerCase())),
-    [searchTerm, games]
-  );
+  const filteredGames = useMemo(() => {
+    return games.filter((game) => {
+      const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        selectedCategory === 'All' ||
+        (game.category ?? '').toLowerCase() === selectedCategory.toLowerCase();
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchTerm, selectedCategory, games]);
   const visibleGames = useMemo(() => filteredGames.slice(0, visibleGameCount), [filteredGames, visibleGameCount]);
   const hasMoreGames = filteredGames.length > visibleGames.length;
 
@@ -105,13 +115,24 @@ const GameSelection: React.FC = () => {
   useEffect(() => {
     const fetchGames = async () => {
       try {
-        const response = await axios.get<{ status: boolean; data: Game[] }>(
-          `${process.env.REACT_APP_BACKEND_URL}/v1/admin/games`
-        );
-        if (!response.data.status) {
-          throw new Error(`Unexpected response format: ${JSON.stringify(response.data)}`);
+        const [gamesRes, popularRes] = await Promise.all([
+          axios.get<{ status: boolean; data: Game[] }>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/games`),
+          axios.get<{ status: boolean; data: Array<{ game_title: string; play_count: number }> }>(
+            `${process.env.REACT_APP_BACKEND_URL}/v1/admin/games/popular`
+          ).catch(() => ({ data: { status: true, data: [] } })),
+        ]);
+        if (!gamesRes.data.status) {
+          throw new Error(`Unexpected response format: ${JSON.stringify(gamesRes.data)}`);
         }
-        setGames(response.data.data);
+        const counts: Record<string, number> = {};
+        for (const row of popularRes.data.data ?? []) {
+          counts[row.game_title] = row.play_count;
+        }
+        // Sort most-played first
+        const sorted = [...gamesRes.data.data].sort(
+          (a, b) => (counts[b.title] ?? 0) - (counts[a.title] ?? 0)
+        );
+        setGames(sorted);
       } catch (fetchError) {
         console.error('Error loading games:', fetchError instanceof Error ? fetchError.message : String(fetchError));
         setError('Failed to load games. Please try again later.');
@@ -321,6 +342,18 @@ const GameSelection: React.FC = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
+        <div className={styles.categoryPills}>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              className={`${styles.categoryPill}${selectedCategory === cat ? ` ${styles.categoryPillActive}` : ''}`}
+              onClick={() => { setSelectedCategory(cat); setVisibleGameCount(isMobileView ? MOBILE_INITIAL_GAMES : DESKTOP_INITIAL_GAMES); }}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (

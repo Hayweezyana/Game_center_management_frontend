@@ -27,7 +27,8 @@ export type AdminTab =
   | 'manual-tx'
   | 'ic-entry'
   | 'ic-dashboard'
-  | 'tennis';
+  | 'tennis'
+  | 'credit';
 
 export interface AdminRoleData {
   id: string;
@@ -48,10 +49,10 @@ export interface ParsedAdminRole {
 // ── Tab permissions per role ──────────────────────────────────────────────────
 
 const ROLE_TABS: Record<RoleType, AdminTab[]> = {
-  site_admin:    ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports', 'admins', 'manual-tx', 'ic-entry', 'ic-dashboard', 'tennis'],
-  manager:       ['queue', 'bypasses', 'games', 'drinks', 'reports', 'tennis'],
+  site_admin:    ['pc', 'queue', 'bypasses', 'games', 'drinks', 'reports', 'admins', 'manual-tx', 'ic-entry', 'ic-dashboard', 'tennis', 'credit'],
+  manager:       ['queue', 'bypasses', 'games', 'drinks', 'reports', 'tennis', 'credit'],
   supervisor:    ['games', 'reports', 'tennis'],
-  account_audit: ['queue', 'bypasses', 'reports', 'tennis'],
+  account_audit: ['queue', 'bypasses', 'reports', 'tennis', 'credit'],
   ic1:           ['ic-entry', 'tennis'],
   ic2:           ['ic-dashboard', 'reports', 'bypasses', 'drinks', 'queue', 'tennis'],
 };

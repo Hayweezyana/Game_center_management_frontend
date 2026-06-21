@@ -20,7 +20,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx' | 'ic-entry' | 'ic-dashboard' | 'tennis';
+type Tab = 'overview' | 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx' | 'ic-entry' | 'ic-dashboard' | 'tennis' | 'credit';
 
 interface PcRow {
   id: string;
@@ -51,7 +51,21 @@ interface Game {
   price: number;
   url: string;
   time_slot: number;
+  category?: string | null;
 }
+
+interface CreditEntry {
+  transaction_id: string;
+  username: string;
+  phone: string;
+  created_at: string;
+  total_amount: number;
+  discount: number | null;
+  discount_description: string | null;
+  games: string;
+}
+
+const GAME_CATEGORIES = ['Scary', 'Roam Free', 'Adventure', 'Sports', 'Wheels', 'Racing', 'Music', 'Console', 'Kids'];
 
 interface Drink {
   id: string;
@@ -102,6 +116,7 @@ const ALL_TABS: { key: Tab; label: string }[] = [
   { key: 'ic-entry',     label: '📝  Internal Control — Entry'     },
   { key: 'ic-dashboard', label: '🔎  Internal Control — Review'    },
   { key: 'tennis',       label: '🏓  Table Tennis Score'           },
+  { key: 'credit',       label: '📋  Credit Report'                },
 ];
 
 const TAB_SUMMARIES: Record<Exclude<Tab, 'overview'>, string> = {
@@ -116,6 +131,7 @@ const TAB_SUMMARIES: Record<Exclude<Tab, 'overview'>, string> = {
   'ic-entry': 'File camera-review counts by station (editable for 24 hours).',
   'ic-dashboard': 'Compare recorded counts against actual sales (green/red/blue).',
   'tennis': 'Record table tennis scores live — customers see the scoreboard in real time.',
+  'credit': 'View all outstanding credit balances and mark them as cleared when customers pay.',
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -915,11 +931,213 @@ const Admin: React.FC = () => {
     } catch { alert('Failed to add game'); }
   };
 
+  const handleSetCategory = async (gameId: string, category: string) => {
+    try {
+      await axios.patch(`${BACKEND}/v1/admin/games/${gameId}/category`, { category });
+      setGames(prev => prev.map(g => g.id === gameId ? { ...g, category } : g));
+    } catch { alert('Failed to update category'); }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TAB: CREDIT REPORT
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const [creditReport, setCreditReport] = useState<CreditEntry[]>([]);
+  const [creditLoaded, setCreditLoaded] = useState(false);
+  const [creditMsg, setCreditMsg] = useState('');
+
+  // Manual eligible customers
+  const [creditCustomers, setCreditCustomers] = useState<{ phone: string; notes: string; added_by: string; created_at: string }[]>([]);
+  const [creditCustomersLoaded, setCreditCustomersLoaded] = useState(false);
+  const [newCreditPhone, setNewCreditPhone] = useState('');
+  const [newCreditNotes, setNewCreditNotes] = useState('');
+
+  const fetchCreditReport = useCallback(async () => {
+    const token = sessionStorage.getItem('token') || '';
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    try {
+      const res = await axios.get(`${BACKEND}/v1/admin/credit/report`, { headers });
+      setCreditReport(res.data?.data ?? []);
+      setCreditLoaded(true);
+    } catch { setCreditMsg('Failed to load credit report'); setCreditLoaded(true); }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (activeTab === 'credit') {
+      fetchCreditReport();
+      fetchCreditCustomers();
+    }
+  }, [activeTab, fetchCreditReport]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchCreditCustomers = async () => {
+    const token = sessionStorage.getItem('token') || '';
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    try {
+      const res = await axios.get(`${BACKEND}/v1/admin/credit/customers`, { headers });
+      setCreditCustomers(res.data?.data ?? []);
+      setCreditCustomersLoaded(true);
+    } catch { setCreditCustomersLoaded(true); }
+  };
+
+  const handleAddCreditCustomer = async () => {
+    const phone = newCreditPhone.trim();
+    if (!phone) return alert('Phone number required');
+    const token = sessionStorage.getItem('token') || '';
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    try {
+      await axios.post(`${BACKEND}/v1/admin/credit/customers`, {
+        phone,
+        notes: newCreditNotes.trim(),
+        added_by: (() => { try { return JSON.parse(sessionStorage.getItem('adminData') || '{}')?.name || ''; } catch { return ''; } })(),
+      }, { headers });
+      setNewCreditPhone('');
+      setNewCreditNotes('');
+      fetchCreditCustomers();
+      setCreditMsg(`${phone} added to credit eligibility list.`);
+    } catch (e: any) {
+      setCreditMsg(e?.response?.data?.error ?? 'Failed to add customer');
+    }
+  };
+
+  const handleRemoveCreditCustomer = async (phone: string) => {
+    if (!window.confirm(`Remove ${phone} from the credit eligibility list?`)) return;
+    const token = sessionStorage.getItem('token') || '';
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    try {
+      await axios.delete(`${BACKEND}/v1/admin/credit/customers/${encodeURIComponent(phone)}`, { headers });
+      setCreditCustomers(prev => prev.filter(c => c.phone !== phone));
+      setCreditMsg(`${phone} removed from eligibility list.`);
+    } catch (e: any) {
+      setCreditMsg(e?.response?.data?.error ?? 'Failed to remove customer');
+    }
+  };
+
+  const handleClearCredit = async (transactionId: string, customerName: string) => {
+    if (!window.confirm(`Mark credit for ${customerName} as cleared (paid)?`)) return;
+    const token = sessionStorage.getItem('token') || '';
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    try {
+      await axios.post(`${BACKEND}/v1/admin/credit/${transactionId}/clear`, {}, { headers });
+      setCreditReport(prev => prev.filter(c => c.transaction_id !== transactionId));
+      setCreditMsg('Credit marked as cleared.');
+    } catch (e: any) {
+      setCreditMsg(e?.response?.data?.error ?? 'Failed to clear credit');
+    }
+  };
+
+  const renderCreditReport = () => {
+    const totalOwed = creditReport.reduce((sum, c) => sum + (c.total_amount - (c.discount ?? 0)), 0);
+    return (
+      <div className="tab-section">
+        <h2>Credit Report</h2>
+        <p style={{ color: '#83a6bc', marginBottom: 16 }}>
+          Customers who played on credit. Total outstanding: <strong style={{ color: '#ffd84d' }}>₦{totalOwed.toLocaleString()}</strong>
+        </p>
+        {creditMsg && <div className="info-banner">{creditMsg}</div>}
+        {!creditLoaded ? (
+          <p>Loading...</p>
+        ) : creditReport.length === 0 ? (
+          <p className="no-data">No outstanding credit balances.</p>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Games</th>
+                <th>Date</th>
+                <th>Amount Owed (₦)</th>
+                <th>Discount</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {creditReport.map(entry => {
+                const owed = entry.total_amount - (entry.discount ?? 0);
+                return (
+                  <tr key={entry.transaction_id}>
+                    <td>{entry.username}</td>
+                    <td>{entry.phone}</td>
+                    <td style={{ fontSize: '0.85em', maxWidth: 200 }}>{entry.games || '—'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{new Date(entry.created_at).toLocaleDateString()}</td>
+                    <td><strong>₦{owed.toLocaleString()}</strong></td>
+                    <td>{entry.discount ? `₦${entry.discount.toLocaleString()}` : '—'}</td>
+                    <td>
+                      <button className="btn-unlock" onClick={() => handleClearCredit(entry.transaction_id, entry.username)}>
+                        Mark Cleared
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        <button className="btn-unlock" style={{ marginTop: 16 }} onClick={() => { setCreditLoaded(false); fetchCreditReport(); }}>
+          Refresh
+        </button>
+
+        {/* ── Manual eligibility management ─────────────────────────────── */}
+        <h3 style={{ marginTop: 32 }}>Manual Credit Eligibility</h3>
+        <p style={{ color: '#83a6bc', marginBottom: 12 }}>
+          Customers added here will always see the "Record on Credit" option, regardless of their spend history.
+        </p>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          <input
+            className="mins-input"
+            style={{ width: 160 }}
+            placeholder="Phone (e.g. 0801234567)"
+            value={newCreditPhone}
+            onChange={e => setNewCreditPhone(e.target.value)}
+          />
+          <input
+            className="mins-input"
+            style={{ width: 220 }}
+            placeholder="Notes (optional)"
+            value={newCreditNotes}
+            onChange={e => setNewCreditNotes(e.target.value)}
+          />
+          <button className="btn-unlock" onClick={handleAddCreditCustomer}>
+            + Add Customer
+          </button>
+        </div>
+
+        {!creditCustomersLoaded ? (
+          <p>Loading eligibility list...</p>
+        ) : creditCustomers.length === 0 ? (
+          <p className="no-data">No customers manually added yet.</p>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr><th>Phone</th><th>Notes</th><th>Added By</th><th>Date</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              {creditCustomers.map(c => (
+                <tr key={c.phone}>
+                  <td>{c.phone}</td>
+                  <td>{c.notes || '—'}</td>
+                  <td>{c.added_by || '—'}</td>
+                  <td>{new Date(c.created_at).toLocaleDateString()}</td>
+                  <td>
+                    <button className="btn-lock" onClick={() => handleRemoveCreditCustomer(c.phone)}>
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    );
+  };
+
   const renderGames = () => (
     <div className="tab-section">
       <h2>Game Management</h2>
       <table className="admin-table">
-        <thead><tr><th>Title</th><th>Duration (min)</th><th>Price (₦)</th><th>URL</th><th>Action</th></tr></thead>
+        <thead><tr><th>Title</th><th>Duration (min)</th><th>Price (₦)</th><th>URL</th><th>Category</th><th>Action</th></tr></thead>
         <tbody>
           {games.map(game => (
             <tr key={game.id}>
@@ -938,6 +1156,16 @@ const Admin: React.FC = () => {
               <td>
                 <input type="text" defaultValue={game.url}
                   onChange={e => setUpdatedGameFields(p => ({ ...p, [game.id]: { ...p[game.id], url: e.target.value } }))} />
+              </td>
+              <td>
+                <select
+                  value={game.category ?? ''}
+                  onChange={e => handleSetCategory(game.id, e.target.value)}
+                  style={{ padding: '4px 6px', borderRadius: 6, background: '#0d1f2d', color: '#cce8f5', border: '1px solid rgba(108,184,220,0.3)' }}
+                >
+                  <option value="">— None —</option>
+                  {GAME_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
               </td>
               <td><button onClick={() => handleUpdateGame(game.id)}>Save</button></td>
             </tr>
@@ -1630,6 +1858,7 @@ const Admin: React.FC = () => {
           </div>
         </div>
       );
+      case 'credit':  return renderCreditReport();
     }
   };
 

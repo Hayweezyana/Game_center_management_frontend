@@ -94,6 +94,37 @@
   box-shadow: 0 0 0 2px rgba(36, 214, 255, 0.2);
 }
 
+.categoryPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.categoryPill {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(108, 184, 220, 0.3);
+  background: rgba(1, 12, 23, 0.6);
+  color: #83a6bc;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.categoryPill:hover {
+  border-color: rgba(36, 214, 255, 0.6);
+  color: #cce8f5;
+}
+
+.categoryPillActive {
+  border-color: rgba(36, 214, 255, 0.85);
+  background: rgba(36, 214, 255, 0.12);
+  color: #24d6ff;
+  font-weight: 600;
+}
+
 .stateText {
   text-align: center;
   color: var(--gs-muted);

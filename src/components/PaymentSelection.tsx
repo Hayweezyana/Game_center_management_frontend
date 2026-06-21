@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './PaymentSelection.css';
 import './CheckoutExperience.css';
@@ -60,17 +61,41 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
   const navigate = useNavigate();
   const discountedAmount = cartTotal - (discount || 0);
 
+  const [creditEligible, setCreditEligible] = useState(false);
+  const [creditChecked, setCreditChecked] = useState(false);
+
+  useEffect(() => {
+    const phone = userDetails?.phone;
+    if (!phone || phone.length < 10) {
+      setCreditChecked(true);
+      return;
+    }
+    axios
+      .get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/credit/eligible?phone=${encodeURIComponent(phone)}`)
+      .then((res) => {
+        setCreditEligible(res.data?.data?.eligible === true);
+      })
+      .catch(() => {
+        setCreditEligible(false);
+      })
+      .finally(() => setCreditChecked(true));
+  }, [userDetails?.phone]);
+
+  const navState = {
+    finalAmount: discountedAmount,
+    userDetails,
+    cartItems,
+    discount,
+    discountReason,
+    isAdmin,
+  };
+
   const handleSelectPayment = (terminal: Terminal) => {
-    navigate(`/${terminal}paymentpage`, {
-      state: {
-        finalAmount: discountedAmount,
-        userDetails,
-        cartItems,
-        discount,
-        discountReason,
-        isAdmin,
-      },
-    });
+    navigate(`/${terminal}paymentpage`, { state: navState });
+  };
+
+  const handleCreditPayment = () => {
+    navigate('/creditpaymentpage', { state: navState });
   };
 
   return (
@@ -98,6 +123,15 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
             <p>{terminal.description}</p>
           </button>
         ))}
+
+        {creditChecked && creditEligible && (
+          <button className="payment-option terminal-card credit-card-option" onClick={handleCreditPayment}>
+            <div className="terminal-icon credit-icon" aria-hidden="true">📋</div>
+            <span className="terminal-pill credit-pill">Deferred Payment</span>
+            <h3>Record on Credit</h3>
+            <p>Play now, pay later — available for regular customers</p>
+          </button>
+        )}
       </div>
 
       <div className="checkout-actions">

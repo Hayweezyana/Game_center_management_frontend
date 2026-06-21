@@ -46,3 +46,27 @@
 .paystack-icon {
   background-image: url('../../public/paystack.PNG');
 }
+
+.credit-card-option {
+  border-color: rgba(255, 195, 0, 0.45);
+}
+
+.credit-card-option:hover {
+  border-color: rgba(255, 195, 0, 0.85);
+  box-shadow: 0 14px 24px rgba(255, 195, 0, 0.15);
+}
+
+.credit-icon {
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 195, 0, 0.12);
+  border-color: rgba(255, 195, 0, 0.3);
+}
+
+.terminal-pill.credit-pill {
+  background: rgba(255, 195, 0, 0.2);
+  color: #ffd84d;
+  border: 1px solid rgba(255, 195, 0, 0.35);
+}
