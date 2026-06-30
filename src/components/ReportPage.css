@@ -228,7 +228,7 @@
 
 .send-report-buttons {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 10px;
 }
 
@@ -279,6 +279,47 @@
   background: rgba(220, 38, 38, 0.2);
   border-color: rgba(248, 113, 113, 0.4);
   color: #fca5a5;
+}
+
+.send-report-btn--custom {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(167, 139, 250, 0.45);
+  color: #c4b5fd;
+}
+
+.send-report-custom-picker {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  border-radius: 10px;
+}
+
+.send-report-custom-picker label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: #c4b5fd;
+  font-weight: 600;
+}
+
+.send-report-custom-picker input[type="date"] {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  border-radius: 7px;
+  color: #e8e0ff;
+  padding: 7px 10px;
+  font-size: 0.84rem;
+  outline: none;
+}
+
+.send-report-custom-picker input[type="date"]:focus {
+  border-color: rgba(167, 139, 250, 0.8);
 }
 
 .send-report-spinner {

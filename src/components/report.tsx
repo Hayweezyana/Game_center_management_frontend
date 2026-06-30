@@ -126,6 +126,7 @@ const Report: React.FC<ReportProps> = ({ onBack }) => {
   // State for loading and AI
   const [loading, setLoading] = useState<boolean>(false);
   const [isFetching, setIsFetching] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
   const [prompt, setPrompt] = useState<string>('');
   const [response, setResponse] = useState<string>('');
   const [insights, setAIInsights] = useState<InsightData | null>(null);
@@ -137,6 +138,9 @@ const Report: React.FC<ReportProps> = ({ onBack }) => {
   // Send-report state
   const [sendingReport, setSendingReport] = useState<string | null>(null);
   const [reportSendResult, setReportSendResult] = useState<{ period: string; ok: boolean; msg: string } | null>(null);
+  const [customReportStart, setCustomReportStart] = useState('');
+  const [customReportEnd, setCustomReportEnd] = useState('');
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
 
 const filteredRecords = useMemo(() => {
   return records.filter((record) => {
@@ -488,49 +492,71 @@ const totalSales = useMemo(() => {
 
   // Export to Excel
   const exportToExcel = () => {
-    const worksheetData = filteredRecords.map((r) => ({
-      'Username': r.username,
-      'Phone': r.phone,
-      'Email': r.email || 'N/A',
-      'Total Amount': r.amount.toFixed(2),
-      'Discount': r.discount.toFixed(2),
-      'Discount Description': r.discount_description || 'N/A',
-      'Reference': r.reference,
-      'Merchant Reference': r.merchantReference,
-      'Game Title': r.game_title,
-      'Quantity': r.game_quantity,
-      'Amount': r.amount,
-      'Payment Method': r.payment_methods,
-      'Date': r.created_at,
-    }));
+    if (isExporting) return;
+    setIsExporting(true);
+    setTimeout(() => {
+      try {
+        const worksheetData = filteredRecords.map((r) => ({
+          'Username': r.username,
+          'Phone': r.phone,
+          'Email': r.email || 'N/A',
+          'Total Amount': r.amount.toFixed(2),
+          'Discount': r.discount.toFixed(2),
+          'Discount Description': r.discount_description || 'N/A',
+          'Reference': r.reference,
+          'Merchant Reference': r.merchantReference,
+          'Game Title': r.game_title,
+          'Quantity': r.game_quantity,
+          'Amount': r.amount,
+          'Payment Method': r.payment_methods,
+          'Date': r.created_at,
+        }));
 
-    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
+        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
 
-    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `Report_${startDate}_to_${endDate}.xlsx`);
+        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, `Report_${startDate}_to_${endDate}.xlsx`);
+      } catch (err) {
+        console.error('Excel export failed:', err);
+        alert('Export failed. The dataset may be too large — try a shorter date range.');
+      } finally {
+        setIsExporting(false);
+      }
+    }, 50);
   };
 
   const exportItemSalesToExcel = () => {
-  const worksheet = XLSX.utils.json_to_sheet(
-    itemSales.map(i => ({
-      Game: i.game,
-      Quantity: i.quantity,
-      Revenue: i.revenue,
-    }))
-  );
+    if (isExporting) return;
+    setIsExporting(true);
+    setTimeout(() => {
+      try {
+        const worksheet = XLSX.utils.json_to_sheet(
+          itemSales.map(i => ({
+            Game: i.game,
+            Quantity: i.quantity,
+            Revenue: i.revenue,
+          }))
+        );
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, worksheet, 'Item Sales');
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, worksheet, 'Item Sales');
 
-  const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  saveAs(
-    new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-    `Item_Sales_${startDate}_to_${endDate}.xlsx`
-  );
-};
+        const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        saveAs(
+          new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+          `Item_Sales_${startDate}_to_${endDate}.xlsx`
+        );
+      } catch (err) {
+        console.error('Item sales export failed:', err);
+        alert('Export failed. Try a shorter date range.');
+      } finally {
+        setIsExporting(false);
+      }
+    }, 50);
+  };
 
 
   // Handle print
@@ -573,11 +599,20 @@ const totalSales = useMemo(() => {
     }
   };
 
-  const handleSendReport = async (period: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
+  const handleSendReport = async (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom') => {
+    if (period === 'custom') {
+      if (!customReportStart || !customReportEnd) return alert('Select both a start and end date.');
+      if (customReportStart > customReportEnd) return alert('Start date must be before end date.');
+    }
     setSendingReport(period);
     setReportSendResult(null);
     try {
-      const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/reports/send`, { period });
+      const body: Record<string, string> = { period };
+      if (period === 'custom') {
+        body.customStart = new Date(customReportStart + 'T00:00:00').toISOString();
+        body.customEnd   = new Date(customReportEnd   + 'T23:59:59').toISOString();
+      }
+      const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/reports/send`, body);
       setReportSendResult({
         period,
         ok: true,
@@ -929,7 +964,35 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
                 </button>
               );
             })}
+            <button
+              className="send-report-btn send-report-btn--custom"
+              onClick={() => setShowCustomPicker(p => !p)}
+              disabled={!!sendingReport}
+            >
+              <span>🗃</span>
+              Custom
+            </button>
           </div>
+
+          {showCustomPicker && (
+            <div className="send-report-custom-picker">
+              <label>
+                From
+                <input type="date" value={customReportStart} onChange={e => setCustomReportStart(e.target.value)} />
+              </label>
+              <label>
+                To
+                <input type="date" value={customReportEnd} onChange={e => setCustomReportEnd(e.target.value)} max={new Date().toISOString().split('T')[0]} />
+              </label>
+              <button
+                className="send-report-btn send-report-btn--custom"
+                onClick={() => handleSendReport('custom')}
+                disabled={!!sendingReport || !customReportStart || !customReportEnd}
+              >
+                {sendingReport === 'custom' ? <><span className="send-report-spinner" /> Sending…</> : '📤 Send Custom Report'}
+              </button>
+            </div>
+          )}
 
           {reportSendResult && (
             <div className={`send-report-result ${reportSendResult.ok ? 'send-report-result--ok' : 'send-report-result--err'}`}>
@@ -1109,17 +1172,19 @@ const GameSalesChart = ({ data }: { data: { name: string; totalSales: number }[]
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-xl font-semibold">End of Day Sales Summary</h2>
               <div className="report-action-row flex gap-2">
-                <button 
+                <button
                   onClick={exportToExcel}
+                  disabled={isExporting}
                   className="report-btn report-btn-success px-3 py-1 bg-green-100 text-green-800 rounded hover:bg-green-200"
                 >
-                  Export to Excel
+                  {isExporting ? 'Preparing...' : 'Export to Excel'}
                 </button>
-                <button 
+                <button
                   onClick={exportItemSalesToExcel}
+                  disabled={isExporting}
                   className="report-btn report-btn-success px-3 py-1 bg-green-100 text-green-800 rounded hover:bg-green-200"
                 >
-                  Export Item Sales
+                  {isExporting ? 'Preparing...' : 'Export Item Sales'}
                 </button>
                 <button 
                   onClick={handlePrint}
