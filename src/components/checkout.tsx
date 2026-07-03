@@ -13,6 +13,7 @@ export interface UserInfo {
   username: string;
   phone: string;
   email?: string;
+  birthday?: string;
 }
 
 const Checkout: React.FC = () => {
@@ -30,7 +31,7 @@ const Checkout: React.FC = () => {
 
   const [currentStep, setCurrentStep] = useState<'cart' | 'user' | 'paymentSelection'>('cart');
   const [payment_methods, setPaymentMethods] = useState<{ method: 'Moniepoint'; amount: number }[]>([{ method: 'Moniepoint', amount: 0 }]);
-  const [userDetails, setUserDetails] = useState<UserInfo>({ username: '', phone: '', email: '' });
+  const [userDetails, setUserDetails] = useState<UserInfo>({ username: '', phone: '', email: '', birthday: '' });
   const [merchantReference, setMerchantReference] = useState<string | null>(null);
 
   const steps = ['Cart & Payment', 'User Details', 'Payment Selection'];

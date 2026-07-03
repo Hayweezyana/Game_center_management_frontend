@@ -3,15 +3,15 @@ import { debounce } from 'lodash';
 import './CheckoutExperience.css';
 
 interface UserDetailsProps {
-  userDetails: { id?: string; username: string; phone: string; email?: string };
-  setUserDetails: (details: { id?: string; username: string; phone: string; email?: string }) => void;
+  userDetails: { id?: string; username: string; phone: string; email?: string; birthday?: string };
+  setUserDetails: (details: { id?: string; username: string; phone: string; email?: string; birthday?: string }) => void;
   onNext: () => void;
 }
 
 const commonDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'];
 
 const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, onNext }) => {
-  const [errors, setErrors] = useState<{ username?: string; phone?: string; email?: string }>({});
+  const [errors, setErrors] = useState<{ username?: string; phone?: string; email?: string; birthday?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isExistingUser, setIsExistingUser] = useState(false);
@@ -61,6 +61,7 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
             username: result.data.username,
             phone: result.data.phone,
             email: result.data.email || '',
+            birthday: result.data.birthday || '',
           });
           setIsExistingUser(true);
         } else {
@@ -106,6 +107,8 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
           ? 'Username must be at least 3 characters'
           : name === 'email' && value && !/\S+@\S+\.\S+/.test(value)
           ? 'Invalid email format'
+          : name === 'birthday' && value && new Date(value) > new Date()
+          ? 'Birthday cannot be in the future'
           : undefined,
     }));
   };
@@ -229,6 +232,22 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
             </ul>
           )}
           {errors.email && <p className="checkout-error">{errors.email}</p>}
+        </div>
+
+        <div className="checkout-field">
+          <label>Birthday (optional) 🎂</label>
+          <input
+            className="checkout-input"
+            type="date"
+            name="birthday"
+            value={userDetails.birthday || ''}
+            onChange={handleChange}
+            max={new Date().toISOString().split('T')[0]}
+          />
+          {errors.birthday && <p className="checkout-error">{errors.birthday}</p>}
+          <p style={{ fontSize: '0.75rem', color: '#83a6bc', marginTop: 4 }}>
+            We'll send you a birthday treat every year 🎁
+          </p>
         </div>
       </div>
 

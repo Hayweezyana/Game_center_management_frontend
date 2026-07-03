@@ -490,42 +490,60 @@ const totalSales = useMemo(() => {
     }
   };
 
-  // Export to Excel
-  const exportToExcel = () => {
+  // Export to Excel — uses backend CSV for large datasets, in-browser XLSX for small ones
+  const exportToExcel = async () => {
     if (isExporting) return;
+    if (!startDate || !endDate) { alert('Please select a date range first.'); return; }
     setIsExporting(true);
-    setTimeout(() => {
-      try {
-        const worksheetData = filteredRecords.map((r) => ({
-          'Username': r.username,
-          'Phone': r.phone,
-          'Email': r.email || 'N/A',
-          'Total Amount': r.amount.toFixed(2),
-          'Discount': r.discount.toFixed(2),
-          'Discount Description': r.discount_description || 'N/A',
-          'Reference': r.reference,
-          'Merchant Reference': r.merchantReference,
-          'Game Title': r.game_title,
-          'Quantity': r.game_quantity,
-          'Amount': r.amount,
-          'Payment Method': r.payment_methods,
-          'Date': r.created_at,
-        }));
-
-        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
-
-        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        saveAs(blob, `Report_${startDate}_to_${endDate}.xlsx`);
-      } catch (err) {
-        console.error('Excel export failed:', err);
-        alert('Export failed. The dataset may be too large — try a shorter date range.');
-      } finally {
-        setIsExporting(false);
+    try {
+      if (filteredRecords.length > 2000) {
+        // Large dataset: stream from backend to avoid browser memory limits
+        const url = `${process.env.REACT_APP_BACKEND_URL}/v1/admin/reports/export?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Report_${startDate}_to_${endDate}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        // Small dataset: generate XLSX in browser
+        await new Promise<void>((resolve, reject) => {
+          setTimeout(() => {
+            try {
+              const worksheetData = filteredRecords.map((r) => ({
+                'Username': r.username,
+                'Phone': r.phone,
+                'Email': r.email || 'N/A',
+                'Total Amount': r.amount.toFixed(2),
+                'Discount': r.discount.toFixed(2),
+                'Discount Description': r.discount_description || 'N/A',
+                'Reference': r.reference,
+                'Merchant Reference': r.merchantReference,
+                'Game Title': r.game_title,
+                'Quantity': r.game_quantity,
+                'Amount': r.amount,
+                'Payment Method': r.payment_methods,
+                'Date': r.created_at,
+              }));
+              const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+              const workbook = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
+              const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+              const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+              saveAs(blob, `Report_${startDate}_to_${endDate}.xlsx`);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          }, 50);
+        });
       }
-    }, 50);
+    } catch (err) {
+      console.error('Excel export failed:', err);
+      alert('Export failed. Try using the backend CSV export or a shorter date range.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const exportItemSalesToExcel = () => {
