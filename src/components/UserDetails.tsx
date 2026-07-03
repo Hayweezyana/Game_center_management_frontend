@@ -10,8 +10,24 @@ interface UserDetailsProps {
 
 const commonDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'];
 
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+const daysInMonth = (month: number) => new Date(2000, month, 0).getDate(); // uses leap year for Feb
+
+const parseBirthday = (val?: string): { month: string; day: string } => {
+  if (!val) return { month: '', day: '' };
+  const parts = val.split('-');
+  if (parts.length < 3) return { month: '', day: '' };
+  return { month: String(parseInt(parts[1], 10)), day: String(parseInt(parts[2], 10)) };
+};
+
 const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, onNext }) => {
-  const [errors, setErrors] = useState<{ username?: string; phone?: string; email?: string; birthday?: string }>({});
+  const [errors, setErrors] = useState<{ username?: string; phone?: string; email?: string }>({});
+  const [birthMonth, setBirthMonth] = useState(() => parseBirthday(userDetails.birthday).month);
+  const [birthDay, setBirthDay] = useState(() => parseBirthday(userDetails.birthday).day);
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isExistingUser, setIsExistingUser] = useState(false);
@@ -56,6 +72,9 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
 
         const result = await response.json();
         if (result.success && result.data) {
+          const parsed = parseBirthday(result.data.birthday || '');
+          setBirthMonth(parsed.month);
+          setBirthDay(parsed.day);
           setUserDetails({
             id: result.data.id,
             username: result.data.username,
@@ -107,10 +126,18 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
           ? 'Username must be at least 3 characters'
           : name === 'email' && value && !/\S+@\S+\.\S+/.test(value)
           ? 'Invalid email format'
-          : name === 'birthday' && value && new Date(value) > new Date()
-          ? 'Birthday cannot be in the future'
           : undefined,
     }));
+  };
+
+  const handleBirthdayChange = (newMonth: string, newDay: string) => {
+    if (newMonth && newDay) {
+      const mm = newMonth.padStart(2, '0');
+      const dd = newDay.padStart(2, '0');
+      setUserDetails({ ...userDetails, birthday: `2000-${mm}-${dd}` });
+    } else {
+      setUserDetails({ ...userDetails, birthday: '' });
+    }
   };
 
   const handleSubmit = async () => {
@@ -236,15 +263,42 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
 
         <div className="checkout-field">
           <label>Birthday (optional) 🎂</label>
-          <input
-            className="checkout-input"
-            type="date"
-            name="birthday"
-            value={userDetails.birthday || ''}
-            onChange={handleChange}
-            max={new Date().toISOString().split('T')[0]}
-          />
-          {errors.birthday && <p className="checkout-error">{errors.birthday}</p>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <select
+              className="checkout-input"
+              style={{ flex: 2 }}
+              value={birthMonth}
+              onChange={(e) => {
+                const m = e.target.value;
+                const maxDay = m ? daysInMonth(Number(m)) : 31;
+                const clampedDay = birthDay && Number(birthDay) > maxDay ? '' : birthDay;
+                setBirthMonth(m);
+                setBirthDay(clampedDay);
+                handleBirthdayChange(m, clampedDay);
+              }}
+            >
+              <option value="">Month</option>
+              {MONTHS.map((name, i) => (
+                <option key={name} value={String(i + 1)}>{name}</option>
+              ))}
+            </select>
+            <select
+              className="checkout-input"
+              style={{ flex: 1 }}
+              value={birthDay}
+              disabled={!birthMonth}
+              onChange={(e) => {
+                const d = e.target.value;
+                setBirthDay(d);
+                handleBirthdayChange(birthMonth, d);
+              }}
+            >
+              <option value="">Day</option>
+              {Array.from({ length: birthMonth ? daysInMonth(Number(birthMonth)) : 31 }, (_, i) => i + 1).map((d) => (
+                <option key={d} value={String(d)}>{d}</option>
+              ))}
+            </select>
+          </div>
           <p style={{ fontSize: '0.75rem', color: '#83a6bc', marginTop: 4 }}>
             We'll send you a birthday treat every year 🎁
           </p>
