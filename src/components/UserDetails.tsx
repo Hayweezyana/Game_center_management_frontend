@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { debounce } from 'lodash';
 import './CheckoutExperience.css';
 
@@ -92,8 +92,10 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
   }, []);
 
   // ── Search across username AND phone ──────────────────────────────────────
-  const runSearch = useCallback(
-    debounce(async (term: string, field: 'phone' | 'username') => {
+  // useMemo, not useCallback: the debounced wrapper is built by an inline
+  // factory, so the exhaustive-deps rule can actually see what it closes over.
+  const runSearch = useMemo(
+    () => debounce(async (term: string, field: 'phone' | 'username') => {
       const trimmed = term.trim();
       if (trimmed.length < 2) {
         setMatches([]);
@@ -122,6 +124,9 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
     }, 300),
     []
   );
+
+  // Cancel any in-flight debounce when the form unmounts mid-typing.
+  useEffect(() => () => runSearch.cancel(), [runSearch]);
 
   /** Fills every field from a picked record, so nothing has to be retyped. */
   const applyCustomer = useCallback(
@@ -161,8 +166,8 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
     setSubmitError(null);
   };
 
-  const fetchUserDetails = useCallback(
-    debounce(async (phone: string) => {
+  const fetchUserDetails = useMemo(
+    () => debounce(async (phone: string) => {
       if (!/^0\d{10}$/.test(phone)) return;
 
       setIsLoading(true);

@@ -5,7 +5,9 @@ import { useCartContext } from './hooks/useCart';
 import './PC.css';
 import { UUID } from 'crypto';
 
-interface PC {
+/** A machine on the floor. Named apart from the `PC` component below, which
+ *  would otherwise shadow it. */
+interface PcStatus {
   id: UUID;
   title: string;
   game_id: string;
@@ -39,7 +41,7 @@ const PC: React.FC<PCProps> = ({ cart }) => {
   // Debug logs for initial rendering
   console.log('[PC Component] Rendered with cartItems:', cartItems);
 
-  const [pcData, setPCData] = useState<PC[]>([]);
+  const [pcData, setPCData] = useState<PcStatus[]>([]);
   const [waitingTimes, setWaitingTimes] = useState<{ [game_id: string]: number }>({});
 
   useEffect(() => {
@@ -54,7 +56,7 @@ const PC: React.FC<PCProps> = ({ cart }) => {
     const fetchPCs = async () => {
       try {
         console.log('[API Call] Fetching PC data...');
-        const response = await axios.get<{ status: boolean; data: PC[] }>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/pc`);
+        const response = await axios.get<{ status: boolean; data: PcStatus[] }>(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/pc`);
         if (response.data && Array.isArray(response.data.data)) {
           console.log('[API Response] PC Data:', response.data.data);
           setPCData(response.data.data);
