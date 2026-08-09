@@ -1,10 +1,9 @@
-import React, { useState, useEffect, ChangeEvent, SetStateAction } from 'react';
+import React, { useState, useEffect, SetStateAction } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
 import UserDetails from '../UserDetails';
 import CartAndPayment from '../CartAndPayment';
-import Admin from './Admin';
 
 interface Game {
   id: string;
@@ -35,11 +34,7 @@ interface CartItem {
 // }
 
 const AdminTransaction = () => {
-const [errors, setErrors] = useState<{ id?: string; username?: string; phone?: string; email?: string }>({});
-const [userDetails, setUserDetails] = useState<UserInfo>({ username: '', phone: '', email: '' }); 
-const [isLoading, setIsLoading] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isExistingUser, setIsExistingUser] = useState(false);
+const [userDetails, setUserDetails] = useState<UserInfo>({ username: '', phone: '', email: '' });
   const [selectedMethod, setSelectedMethod] = useState<string>('');
   const [status, setStatus] = useState<string | null>(null);
   const [payment_methods, setPaymentMethods] = useState<{ method: "Moniepoint"; amount: number }[]>([]);
@@ -150,11 +145,6 @@ const [isLoading, setIsLoading] = useState(false);
       console.error('❌ Transaction save failed:', err.response?.data || err.message);
       setStatus('Failed to record transaction.');
     }
-  };
-
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target;
-    setUserDetails({ ...userDetails, [name]: value });
   };
 
   // ✅ Enable transaction button only if valid

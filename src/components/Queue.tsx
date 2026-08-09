@@ -23,7 +23,8 @@ const socket = io(`${process.env.REACT_APP_BACKEND_URL}`, {
 const QueuePage: React.FC = () => {
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [timeLeft, setTimeLeft] = useState<{ [key: string]: string }>({});
+  // Value is unread — the ticking state exists to re-render the countdown cells.
+  const [, setTimeLeft] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     fetchQueueData();

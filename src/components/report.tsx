@@ -123,17 +123,16 @@ const Report: React.FC<ReportProps> = ({ onBack }) => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [transactionPaymentsRaw, setTransactionPaymentsRaw] = useState<TransactionPayment[]>([]);
   
-  // State for loading and AI
-  const [loading, setLoading] = useState<boolean>(false);
+  // State for loading and AI.
+  // The four below are write-only: the AI fetch stores what came back, but the
+  // panel renders from `insights`, so only their setters are referenced.
   const [isFetching, setIsFetching] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [prompt, setPrompt] = useState<string>('');
-  const [response, setResponse] = useState<string>('');
   const [insights, setAIInsights] = useState<InsightData | null>(null);
-  const [summary, setSummary] = useState('');
-  const [topGames, setTopGames] = useState([]);
-  const [salesTrend, setSalesTrend] = useState([]);
-  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [, setSummary] = useState('');
+  const [, setTopGames] = useState([]);
+  const [, setSalesTrend] = useState([]);
+  const [, setTotalRevenue] = useState(0);
 
   // Send-report state
   const [sendingReport, setSendingReport] = useState<string | null>(null);
@@ -592,31 +591,6 @@ const totalSales = useMemo(() => {
     }
   };
 
-  // Handle AI prompt submission
-  const handleSend = async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    event.preventDefault();
-    if (!prompt.trim()) return;
-
-    setLoading(true);
-    try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/ai-insights/prompt`, {
-        prompt,
-        period: 'custom',
-        startDate,
-        endDate,
-        gameTitle: selectedGame,
-        paymentMethod: selectedMethod,
-      });
-      setResponse(response.data.response || 'No response from AI');
-    } catch (error) {
-      console.error('Error getting AI response:', error);
-      setResponse('Sorry, there was an error processing your request.');
-    } finally {
-      setLoading(false);
-      setPrompt('');
-    }
-  };
-
   const handleSendReport = async (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom') => {
     if (period === 'custom') {
       if (!customReportStart || !customReportEnd) return alert('Select both a start and end date.');
@@ -735,44 +709,6 @@ const totalSales = useMemo(() => {
     );
   };
 
-  const SalesByItemTable = () => (
-    <div className="bg-white p-4 rounded shadow mt-6">
-      <h2 className="text-xl font-semibold mb-3">
-        Sales by Item (Selected Period)
-      </h2>
-
-      <div className="overflow-x-auto">
-        <table className="min-w-full border">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-2 text-left">Game</th>
-              <th className="px-4 py-2 text-right">Quantity Sold</th>
-              <th className="px-4 py-2 text-right">Revenue</th>
-            </tr>
-          </thead>
-          <tbody>
-            {itemSales.length > 0 ? (
-              itemSales.map(item => (
-                <tr key={item.game}>
-                  <td className="px-4 py-2">{item.game}</td>
-                  <td className="px-4 py-2 text-right">{item.quantity}</td>
-                  <td className="px-4 py-2 text-right">
-                    ₦{item.revenue.toLocaleString()}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={3} className="px-4 py-4 text-center text-gray-500">
-                  No data for selected period
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
 
 
   // Insight card component

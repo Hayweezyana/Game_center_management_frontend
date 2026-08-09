@@ -25,6 +25,8 @@ interface CartItem {
 interface UserDetails {
   id: string;
   username: string;
+  /** Optional — when present it is hashed server-side to improve Meta match quality. */
+  phone?: string;
 }
 
 interface LocationState {
@@ -53,35 +55,24 @@ const Ticket: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const { setCart } = useCartContext(); // Adjust based on your hook/contexts
 
-  // 🔥 META PURCHASE TRACKING
-useEffect(() => {
-  if (!finalAmount || finalAmount <= 0) return;
+  // ── Meta Purchase tracking ────────────────────────────────────────────────
+  // Fires exactly once per reference. Without the guard, a re-render that
+  // changes finalAmount (or a revisit to this ticket) reports the same sale to
+  // Meta twice and inflates reported conversions.
+  const purchaseTrackedRef = React.useRef<string | null>(null);
 
-  if (window.fbq) {
-    window.fbq('track', 'Purchase', {
-      value: finalAmount,
-      currency: 'NGN',
-      content_type: 'product',
-      transaction_id: reference || undefined,
-      contents: cartItems.map(item => ({
-        id: item.id,
-        quantity: item.quantity
-      })),
-      num_items: cartItems.reduce((acc, item) => acc + item.quantity, 0)
+  useEffect(() => {
+    if (!finalAmount || finalAmount <= 0 || !cartItems.length) return;
+
+    const key = reference || `${finalAmount}:${cartItems.length}`;
+    if (purchaseTrackedRef.current === key) return;
+    purchaseTrackedRef.current = key;
+
+    trackPurchase(finalAmount, cartItems, reference || undefined, {
+      phone: userDetails?.phone,
+      externalId: userDetails?.id,
     });
-
-    console.log('✅ Meta Purchase Fired:', finalAmount);
-  } else {
-    console.warn('⚠️ fbq not available');
-  }
-}, [finalAmount]);
-
-useEffect(() => {
-  if (!finalAmount || !cartItems.length) return;
-
-  trackPurchase(finalAmount, cartItems, reference || undefined);
-
-}, [finalAmount]);
+  }, [finalAmount, cartItems, reference, userDetails]);
 
   useEffect(() => {
     const state = location.state as LocationState | null;

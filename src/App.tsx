@@ -3,6 +3,7 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import './App.css';
 import immersiaLogo from './components/logo/immersia.png';
+import { trackPageView } from './utils/metaPixel';
 
 const WelcomePage = lazy(() => import('./components/WelcomePage'));
 const Checkout = lazy(() => import('./components/checkout'));
@@ -52,7 +53,6 @@ const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) =>
 
 // ── Children's Day — May 27 only (disappears at midnight) ────────
 const CHILDRENS_DAY_DATE     = '2026-05-27';
-const CHILDRENS_DAY_END_DATE = '2026-05-28'; // expires at midnight
 const CHILDRENS_DAY_DISMISS_KEY = `childrens-day-dismissed:${CHILDRENS_DAY_DATE}`;
 
 const isChildrensDayActiveAt = (date: Date) => {
@@ -157,6 +157,13 @@ const AppShell: React.FC = () => {
 
   const normalizedPath = location.pathname.toLowerCase();
   const isCustomerRoute = CUSTOMER_FACING_PATHS.has(normalizedPath);
+
+  // This is a SPA, so a hard page load happens once. index.html only loads the
+  // pixel — every route change has to report its own PageView or the funnel
+  // shows a single view per session.
+  React.useEffect(() => {
+    trackPageView();
+  }, [location.pathname]);
 
   const applyChildrensDay   = isCustomerRoute && isChildrensDayActive;
   const showChildrensDayBanner = applyChildrensDay && !isChildrensDayDismissed;

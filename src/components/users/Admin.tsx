@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Report from '../report';
+import AdminAnalytics from './AdminAnalytics';
 import InternalControlEntry from '../InternalControlEntry';
 import InternalControlDashboard from '../InternalControlDashboard';
 import TennisScoreEntry from '../TennisScoreEntry';
@@ -125,7 +126,7 @@ const TAB_SUMMARIES: Record<Exclude<Tab, 'overview'>, string> = {
   bypasses: 'Review emergency bypass actions across the center.',
   games: 'Manage the game catalog, pricing, and time slots.',
   drinks: 'Track drink stock levels and update inventory.',
-  reports: 'Open sales, customer, and consumed-game reporting.',
+  reports: 'Analytics dashboard plus sales, customer, and consumed-game reporting.',
   admins: 'Create and manage admin accounts and permissions.',
   'manual-tx': 'Record manual or split transactions from the desk.',
   'ic-entry': 'File camera-review counts by station (editable for 24 hours).',
@@ -1274,11 +1275,15 @@ const Admin: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const [reportSubTab, setReportSubTab] = useState<'full' | 'consumed'>('full');
+  const [reportSubTab, setReportSubTab] = useState<'analytics' | 'full' | 'consumed'>('analytics');
 
   const renderReports = () => (
     <div className="tab-section">
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <button
+          className={`tab-btn${reportSubTab === 'analytics' ? ' active' : ''}`}
+          onClick={() => setReportSubTab('analytics')}
+        >📊 Analytics</button>
         <button
           className={`tab-btn${reportSubTab === 'full' ? ' active' : ''}`}
           onClick={() => setReportSubTab('full')}
@@ -1288,6 +1293,8 @@ const Admin: React.FC = () => {
           onClick={() => setReportSubTab('consumed')}
         >🎮 Consumed Games</button>
       </div>
+
+      {reportSubTab === 'analytics' && <AdminAnalytics />}
 
       {reportSubTab === 'full' && <Report onBack={() => { setActiveTab('overview'); window.scrollTo({ top: 0 }); }} />}
 

@@ -34,7 +34,7 @@ socket.on('connect', () => {
 });
 
 const PC: React.FC<PCProps> = ({ cart }) => {
-  const { cartItems, setCart }: { cartItems: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>> } = useCartContext();
+  const { cartItems }: { cartItems: CartItem[] } = useCartContext();
   
   // Debug logs for initial rendering
   console.log('[PC Component] Rendered with cartItems:', cartItems);

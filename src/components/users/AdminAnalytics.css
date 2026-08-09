@@ -1,0 +1,357 @@
+/* ── Analytics dashboard ──────────────────────────────────────────────────────
+   Light-only, to match the rest of the admin shell. Chart colors live here as
+   tokens so the series palette is defined once and referenced by role.
+   Categorical slots are a validated CVD-safe order — do not reorder or add a
+   9th; fold extras into "Other" instead.
+--------------------------------------------------------------------------- */
+
+.analytics {
+  --surface: #ffffff;
+  --plane: #f6f8fc;
+  --ink-primary: #0b0b0b;
+  --ink-secondary: #52514e;
+  --ink-muted: #898781;
+  --grid: #e8e9ec;
+  --axis: #c3c2b7;
+  --hairline: rgba(11, 11, 11, 0.1);
+
+  --delta-up: #006300;
+  --delta-down: #d03b3b;
+
+  /* Categorical slots (validated order) */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+
+  /* Emphasis pair from the blue ramp — recessive base, accented peak */
+  --bar-base: #86b6ef;
+  --bar-peak: #1c5cab;
+
+  color: var(--ink-primary);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* ── Filter row — one row above everything it scopes ──────────────────────── */
+
+.analytics-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+}
+
+.analytics-period {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.analytics-pill {
+  padding: 6px 14px;
+  min-height: 32px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-secondary);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.analytics-pill:hover { background: var(--plane); }
+
+.analytics-pill.active {
+  color: #ffffff;
+  background: var(--series-1);
+  border-color: var(--series-1);
+}
+
+.analytics-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+.analytics-custom input {
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-primary);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+}
+
+.analytics-actions { margin-left: auto; display: inline-flex; gap: 8px; }
+
+.analytics-btn {
+  padding: 6px 14px;
+  min-height: 32px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-secondary);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.analytics-btn:hover:not(:disabled) { background: var(--plane); }
+.analytics-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Refetch holds the previous render rather than flashing a skeleton. */
+.analytics-body { transition: opacity 0.15s ease; }
+.analytics-body.is-refetching { opacity: 0.55; }
+
+/* ── Hero + KPI row ───────────────────────────────────────────────────────── */
+
+.analytics-hero {
+  padding: 20px 22px;
+  margin-bottom: 14px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+}
+
+.analytics-hero-label {
+  font-size: 13px;
+  color: var(--ink-secondary);
+  margin: 0 0 6px;
+}
+
+.analytics-hero-value {
+  font-size: 52px;
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.analytics-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.analytics-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.analytics-tile {
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+}
+
+.analytics-tile-label {
+  font-size: 12px;
+  color: var(--ink-secondary);
+  margin: 0 0 6px;
+}
+
+.analytics-tile-value {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.analytics-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.analytics-delta.up   { color: var(--delta-up); }
+.analytics-delta.down { color: var(--delta-down); }
+.analytics-delta.flat { color: var(--ink-muted); }
+
+/* ── Chart cards ──────────────────────────────────────────────────────────── */
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  /* Cards size to their own content — otherwise a short card (customer mix)
+     stretches to match a tall neighbour (top games) and trails dead space. */
+  align-items: start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.analytics-card {
+  padding: 16px 18px 10px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.analytics-card.full { grid-column: 1 / -1; }
+
+.analytics-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.analytics-card h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.analytics-card-sub {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  color: var(--ink-secondary);
+}
+
+.analytics-card-tools { margin-left: auto; display: inline-flex; gap: 6px; }
+
+.analytics-toggle {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.analytics-toggle.active {
+  color: var(--ink-primary);
+  background: var(--plane);
+  border-color: var(--axis);
+}
+
+/* ── Legend — identity is never color-alone ───────────────────────────────── */
+
+.analytics-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 12px 0 2px;
+  font-size: 12.5px;
+  color: var(--ink-secondary);
+}
+
+.analytics-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+.analytics-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+
+/* ── Tooltip ──────────────────────────────────────────────────────────────── */
+
+.analytics-tooltip {
+  padding: 8px 10px;
+  font-size: 12.5px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(11, 11, 11, 0.1);
+}
+
+.analytics-tooltip-label {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.analytics-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+}
+
+.analytics-tooltip-row strong {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--ink-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Tables (the table-view twin every chart carries) ─────────────────────── */
+
+.analytics-table-wrap { overflow-x: auto; margin-bottom: 6px; }
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.analytics-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  border-bottom: 1px solid var(--grid);
+  white-space: nowrap;
+}
+
+.analytics-table td {
+  padding: 8px 10px;
+  color: var(--ink-primary);
+  border-bottom: 1px solid var(--grid);
+}
+
+.analytics-table td.num,
+.analytics-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.analytics-table tbody tr:last-child td { border-bottom: none; }
+
+.analytics-empty {
+  padding: 28px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.analytics-error {
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+}
+
+@media (max-width: 640px) {
+  .analytics-hero-value { font-size: 38px; }
+  .analytics-grid { grid-template-columns: 1fr; }
+  .analytics-actions { margin-left: 0; }
+}

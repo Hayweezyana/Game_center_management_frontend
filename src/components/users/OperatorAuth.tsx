@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { io, Socket } from 'socket.io-client';
 
 interface User {
   id: string;
@@ -19,7 +18,6 @@ const OperatorAuth = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [message, setMessage] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const socket = io('http://127.0.0.1:2024');
 
   // Form states
   const [registerData, setRegisterData] = useState({
@@ -119,17 +117,6 @@ const OperatorAuth = () => {
       fetchUsers();
     }
   }, [mode]);
-
-  // Handle user deletion
-  const handleDeleteUser = async (id: string) => {
-    try {
-      await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/operators/${id}`);
-      socket.emit('deleteUser', id);
-      setUsers(prevUsers => prevUsers.filter(user => user.id !== id));
-    } catch (err) {
-      console.error('Error deleting user:', err);
-    }
-  };
 
   return (
     <div className="auth-container">

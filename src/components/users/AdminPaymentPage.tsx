@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCartContext } from '../hooks/useCart';
 import { getAdminRole, canGiveDiscount, getMaxDiscount } from '../../utils/adminPermissions';
 
 
@@ -37,7 +36,6 @@ const AdminPaymentPage: React.FC<AdminPaymentPageProps> = ({
   const [otherReasonError, setOtherReasonError] = useState('');
 
   const navigate = useNavigate();
-  const { setCart } = useCartContext();
 
   const adminRole = getAdminRole();
   const discountAllowed = isAdmin && adminRole ? canGiveDiscount(adminRole) : isAdmin;

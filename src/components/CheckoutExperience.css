@@ -123,6 +123,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative; /* anchors the customer picker overlay */
 }
 
 .checkout-field label {
@@ -168,6 +169,127 @@
 
 .checkout-suggestion:hover {
   background: rgba(38, 217, 255, 0.13);
+}
+
+/* ── Customer picker ────────────────────────────────────────────────────────
+   Results always show the phone beside the name: usernames are not unique, so
+   the phone is what tells two identically-named players apart.
+   Fallback colours keep this readable when the panel renders outside
+   .checkout-shell (the standalone /UserDetails route), where the vars are unset.
+--------------------------------------------------------------------------- */
+
+.checkout-recent {
+  margin: 0 0 14px;
+}
+
+.checkout-recent-label {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  color: var(--cx-subtle, #8eb8cf);
+}
+
+.checkout-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.checkout-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 7px 12px;
+  min-height: 44px; /* comfortable touch target on the counter tablet */
+  font: inherit;
+  text-align: left;
+  color: var(--cx-text, #e6f5ff);
+  background: rgba(38, 217, 255, 0.08);
+  border: 1px solid var(--cx-line, rgba(108, 184, 220, 0.28));
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.checkout-chip:hover,
+.checkout-chip:focus-visible {
+  background: rgba(38, 217, 255, 0.16);
+  border-color: rgba(38, 217, 255, 0.65);
+  outline: none;
+}
+
+.checkout-chip-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.checkout-chip-meta {
+  font-size: 0.78rem;
+  color: var(--cx-subtle, #8eb8cf);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Overlays the fields below instead of pushing them down the page — an operator
+   mid-search should not watch the form jump around under their hand. */
+.checkout-picker {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid var(--cx-line, rgba(108, 184, 220, 0.28));
+  background: #061626;
+  border-radius: 10px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+  max-height: 268px;
+  overflow: auto;
+}
+
+.checkout-picker-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 12px;
+  min-height: 44px;
+  font: inherit;
+  text-align: left;
+  color: var(--cx-text, #e6f5ff);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.checkout-picker li + li .checkout-picker-row {
+  border-top: 1px solid var(--cx-line, rgba(108, 184, 220, 0.28));
+}
+
+.checkout-picker-row:hover,
+.checkout-picker-row:focus-visible {
+  background: rgba(38, 217, 255, 0.13);
+  outline: none;
+}
+
+.checkout-picker-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.checkout-picker-meta {
+  font-size: 0.79rem;
+  color: var(--cx-subtle, #8eb8cf);
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-hint {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: var(--cx-subtle, #8eb8cf);
 }
 
 .checkout-error {

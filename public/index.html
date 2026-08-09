@@ -15,25 +15,38 @@
 
     <title>Immersia POS</title>
 
-    <!-- ✅ Meta Pixel Code (ADD HERE) -->
+    <!-- ── Meta Pixel ──────────────────────────────────────────────────────
+         The pixel ID comes from REACT_APP_META_PIXEL_ID at build time, so dev
+         and staging builds (which leave it unset) never pollute production
+         data. Only the loader lives here — PageView is fired from React on
+         every route change, since this is a SPA and a hard load happens once.
+    -->
     <script>
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '1439533274467423');
-    fbq('track', 'PageView');
+      (function () {
+        var pixelId = '%REACT_APP_META_PIXEL_ID%';
+        // CRA leaves the placeholder untouched when the variable is not set.
+        if (!pixelId || pixelId.charAt(0) === '%') return;
+
+        window.__META_PIXEL_ID__ = pixelId;
+
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+
+        fbq('init', pixelId);
+      })();
     </script>
 
     <noscript>
-      <img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=1439533274467423&ev=PageView&noscript=1"/>
+      <img height="1" width="1" style="display:none" alt=""
+      src="https://www.facebook.com/tr?id=%REACT_APP_META_PIXEL_ID%&ev=PageView&noscript=1"/>
     </noscript>
-    <!-- ✅ End Meta Pixel Code -->
+    <!-- ── End Meta Pixel ─────────────────────────────────────────────────── -->
 
   </head>
 
