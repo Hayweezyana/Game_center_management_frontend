@@ -7,6 +7,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -29,7 +30,12 @@ const BACKEND = (process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:2024').r
 const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300'];
 const BAR_BASE = '#86b6ef';
 const BAR_PEAK = '#1c5cab';
+
+// Ordinal ramp for the funnel — one hue, light→dark, matching stage order.
+// Validated: monotone lightness, ΔL gaps clear, light end 2.11:1 on white.
+const FUNNEL_RAMP = ['#86b6ef', '#3987e5', '#256abf', '#184f95'];
 const INK_MUTED = '#898781';
+const INK_SECONDARY = '#52514e';
 const GRID = '#e8e9ec';
 const AXIS = '#c3c2b7';
 const SURFACE = '#ffffff';
@@ -107,6 +113,42 @@ interface AnalyticsData {
     topSpenders: { username: string; phone: string; revenue: number; visits: number }[];
   };
   basket: { avgItemsPerTransaction: number; drinkAttachRate: number };
+  traffic: TrafficSummary | null;
+}
+
+interface FunnelStage {
+  key: string;
+  label: string;
+  count: number;
+  shareOfVisits: number;
+  stepRate: number;
+}
+
+interface TrafficSource {
+  name: string;
+  visits: number;
+  visitors: number;
+  reachedGames: number;
+  reachedPayment: number;
+  conversions: number;
+  conversionRate: number;
+}
+
+interface TrafficSummary {
+  uniqueVisitors: number;
+  visits: number;
+  newVisitors: number;
+  returningVisitors: number;
+  adVisits: number;
+  adVisitors: number;
+  adConversions: number;
+  adConversionRate: number;
+  overallConversionRate: number;
+  funnel: FunnelStage[];
+  adFunnel: FunnelStage[];
+  sources: TrafficSource[];
+  devices: { name: string; visits: number }[];
+  campaigns: { name: string; visits: number; conversions: number }[];
 }
 
 // ── Formatting ──────────────────────────────────────────────────────────────
@@ -157,6 +199,15 @@ const Tile: React.FC<{
     <p className="analytics-tile-label">{label}</p>
     <p className="analytics-tile-value">{value}</p>
     <Delta metric={metric} upIsGood={upIsGood} />
+  </div>
+);
+
+/** Traffic has no like-for-like prior window yet, so it carries a note, not a delta. */
+const PlainTile: React.FC<{ label: string; value: string; note?: string }> = ({ label, value, note }) => (
+  <div className="analytics-tile">
+    <p className="analytics-tile-label">{label}</p>
+    <p className="analytics-tile-value">{value}</p>
+    {note ? <p className="analytics-tile-note">{note}</p> : null}
   </div>
 );
 
@@ -258,6 +309,7 @@ const AdminAnalytics: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [trendMetric, setTrendMetric] = useState<'revenue' | 'transactions'>('revenue');
+  const [funnelScope, setFunnelScope] = useState<'all' | 'ads'>('all');
 
   // Guards against an earlier slow response overwriting a later fast one.
   const requestRef = useRef(0);
@@ -306,6 +358,11 @@ const AdminAnalytics: React.FC = () => {
     if (!data?.weekday?.length) return -1;
     return data.weekday.reduce((best, d, i, arr) => (d.revenue > arr[best].revenue ? i : best), 0);
   }, [data]);
+
+  const activeFunnel: FunnelStage[] = useMemo(() => {
+    if (!data?.traffic) return [];
+    return funnelScope === 'ads' ? data.traffic.adFunnel : data.traffic.funnel;
+  }, [data, funnelScope]);
 
   /** Trading hours are noisy across a closed night — show only hours with activity. */
   const activeHours = useMemo(
@@ -462,6 +519,188 @@ const AdminAnalytics: React.FC = () => {
               upIsGood={false}
             />
           </div>
+
+          {/* ── Traffic: who reached the site and how far they got ───────── */}
+          {data.traffic ? (
+            <>
+              <div className="analytics-section-head">
+                <h2>Traffic</h2>
+                <p>Who reached the site, where from, and how far they got</p>
+              </div>
+
+              <div className="analytics-kpis">
+                <PlainTile
+                  label="Unique visitors"
+                  value={count(data.traffic.uniqueVisitors)}
+                  note={`${count(data.traffic.visits)} session${data.traffic.visits === 1 ? '' : 's'}`}
+                />
+                <PlainTile
+                  label="New visitors"
+                  value={count(data.traffic.newVisitors)}
+                  note={`${count(data.traffic.returningVisitors)} returning`}
+                />
+                <PlainTile
+                  label="Visits from ads"
+                  value={count(data.traffic.adVisits)}
+                  note={
+                    data.traffic.visits > 0
+                      ? `${percent(data.traffic.adVisits / data.traffic.visits)} of all traffic`
+                      : undefined
+                  }
+                />
+                <PlainTile
+                  label="Ad visits that paid"
+                  value={count(data.traffic.adConversions)}
+                  note={`${percent(data.traffic.adConversionRate)} of ad visits`}
+                />
+                <PlainTile
+                  label="Overall conversion"
+                  value={percent(data.traffic.overallConversionRate)}
+                  note="visit → payment confirmed"
+                />
+              </div>
+
+              <div className="analytics-grid">
+                <ChartCard
+                  title="Checkout funnel"
+                  subtitle={
+                    funnelScope === 'ads'
+                      ? 'Sessions that arrived from a Meta ad'
+                      : 'All sessions, however they arrived'
+                  }
+                  tools={
+                    <>
+                      <button
+                        type="button"
+                        className={`analytics-toggle${funnelScope === 'all' ? ' active' : ''}`}
+                        onClick={() => setFunnelScope('all')}
+                        aria-pressed={funnelScope === 'all'}
+                      >
+                        All traffic
+                      </button>
+                      <button
+                        type="button"
+                        className={`analytics-toggle${funnelScope === 'ads' ? ' active' : ''}`}
+                        onClick={() => setFunnelScope('ads')}
+                        aria-pressed={funnelScope === 'ads'}
+                      >
+                        From ads
+                      </button>
+                    </>
+                  }
+                  chart={
+                    activeFunnel.length === 0 || activeFunnel[0].count === 0 ? (
+                      <p className="analytics-empty">
+                        No {funnelScope === 'ads' ? 'ad ' : ''}sessions recorded in this period.
+                      </p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={Math.max(180, activeFunnel.length * 52)}>
+                        <BarChart
+                          layout="vertical"
+                          data={activeFunnel}
+                          margin={{ top: 4, right: 60, bottom: 4, left: 4 }}
+                        >
+                          <CartesianGrid stroke={GRID} strokeWidth={1} horizontal={false} />
+                          <XAxis
+                            type="number"
+                            tick={{ fill: INK_MUTED, fontSize: 11 }}
+                            tickLine={false}
+                            axisLine={{ stroke: AXIS }}
+                            allowDecimals={false}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="label"
+                            tick={{ fill: INK_MUTED, fontSize: 11 }}
+                            tickLine={false}
+                            axisLine={false}
+                            /* Wide enough that "Payment confirmed" sits on one line */
+                            width={148}
+                          />
+                          <Tooltip
+                            cursor={{ fill: 'rgba(11,11,11,0.04)' }}
+                            content={({ active, payload }: any) =>
+                              active && payload?.length ? (
+                                <ChartTooltip
+                                  title={payload[0].payload.label}
+                                  rows={[
+                                    { label: 'Sessions', value: count(payload[0].payload.count) },
+                                    { label: 'Of all visits', value: percent(payload[0].payload.shareOfVisits) },
+                                    { label: 'From previous step', value: percent(payload[0].payload.stepRate) },
+                                  ]}
+                                />
+                              ) : null
+                            }
+                          />
+                          {/* Ordinal ramp: stages are ordered, so colour darkens
+                              with depth. The count rides the bar end. */}
+                          <Bar dataKey="count" maxBarSize={22} radius={[0, 4, 4, 0]}>
+                            {activeFunnel.map((stage, i) => (
+                              <Cell key={stage.key} fill={FUNNEL_RAMP[Math.min(i, FUNNEL_RAMP.length - 1)]} />
+                            ))}
+                            <LabelList
+                              dataKey="count"
+                              position="right"
+                              style={{ fill: INK_SECONDARY, fontSize: 11 }}
+                            />
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )
+                  }
+                  table={
+                    <DataTable
+                      columns={[
+                        { key: 'stage', label: 'Stage' },
+                        { key: 'sessions', label: 'Sessions', numeric: true },
+                        { key: 'share', label: 'Of all visits', numeric: true },
+                        { key: 'step', label: 'From previous', numeric: true },
+                      ]}
+                      rows={activeFunnel.map(s => ({
+                        stage: s.label,
+                        sessions: count(s.count),
+                        share: percent(s.shareOfVisits),
+                        step: percent(s.stepRate),
+                      }))}
+                      empty="No sessions recorded in this period."
+                    />
+                  }
+                />
+
+                <section className="analytics-card">
+                  <div className="analytics-card-head">
+                    <h3>Where visitors came from</h3>
+                  </div>
+                  <p className="analytics-card-sub">
+                    Meta appends a click id to every ad click, so paid traffic is identified even
+                    without campaign tags
+                  </p>
+                  <DataTable
+                    columns={[
+                      { key: 'source', label: 'Source' },
+                      { key: 'visitors', label: 'Visitors', numeric: true },
+                      { key: 'visits', label: 'Visits', numeric: true },
+                      { key: 'paid', label: 'Paid', numeric: true },
+                      { key: 'rate', label: 'Rate', numeric: true },
+                    ]}
+                    rows={data.traffic.sources.map(s => ({
+                      source: s.name,
+                      visitors: count(s.visitors),
+                      visits: count(s.visits),
+                      paid: count(s.conversions),
+                      rate: percent(s.conversionRate),
+                    }))}
+                    empty="No visits recorded yet."
+                  />
+                </section>
+              </div>
+            </>
+          ) : (
+            <div className="analytics-error">
+              Visitor tracking is not active yet — run the <code>site_visits</code> migration on the
+              backend, then redeploy the storefront. Sales figures below are unaffected.
+            </div>
+          )}
 
           {/* ── Trend ────────────────────────────────────────────────────── */}
           <div className="analytics-grid">

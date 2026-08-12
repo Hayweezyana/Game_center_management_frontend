@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Route, Routes, useLocation, Navigate } from 'r
 import './App.css';
 import immersiaLogo from './components/logo/immersia.png';
 import { trackPageView } from './utils/metaPixel';
+import { trackRoute } from './utils/visitTracking';
 
 const WelcomePage = lazy(() => import('./components/WelcomePage'));
 const Checkout = lazy(() => import('./components/checkout'));
@@ -163,6 +164,9 @@ const AppShell: React.FC = () => {
   // shows a single view per session.
   React.useEffect(() => {
     trackPageView();
+    // First-party funnel tracking — counts the visitors ad blockers hide from
+    // the pixel, and records which stage of checkout each session reached.
+    trackRoute(location.pathname);
   }, [location.pathname]);
 
   const applyChildrensDay   = isCustomerRoute && isChildrensDayActive;

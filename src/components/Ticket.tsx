@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logo from './logo/immersia.png';
 import { trackPurchase } from '../utils/metaPixel';
+import { recordStep } from '../utils/visitTracking';
 import  {useCartContext}  from './hooks/useCart'; // Adjust the import based on your project structure
 
 declare global {
@@ -72,6 +73,10 @@ const Ticket: React.FC = () => {
       phone: userDetails?.phone,
       externalId: userDetails?.id,
     });
+
+    // Close the funnel. This page only renders once a sale has gone through,
+    // so this marks a confirmed payment rather than an intent to pay.
+    recordStep('paid', reference || undefined);
   }, [finalAmount, cartItems, reference, userDetails]);
 
   useEffect(() => {
