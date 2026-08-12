@@ -1153,3 +1153,414 @@
   .tl-trophy       { font-size: 48px; }
   .tl-winner-text  { font-size: 20px; }
 }
+
+/* ─── Live score: header controls (mute + LAN hub status) ────── */
+
+.tl-header-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tl-mute-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 5px 10px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.tl-mute-btn:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.25);
+}
+
+/* Lit when the local hub is answering — points are recording on the LAN */
+.tl-hub-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(56,189,248,0.15);
+  border: 1px solid rgba(56,189,248,0.3);
+  color: #38bdf8;
+}
+
+/* ─── Live score: sets + service strip ───────────────────────── */
+
+.tl-set-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-wrap: wrap;
+}
+
+.tl-set-badge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.65);
+}
+.tl-set-tally {
+  color: rgba(255,255,255,0.4);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.tl-serve-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.75);
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(34,197,94,0.12);
+  border: 1px solid rgba(34,197,94,0.28);
+}
+.tl-serve-badge b { color: #4ade80; font-weight: 800; }
+
+.tl-serve-ball {
+  font-size: 14px;
+  animation: serveBounce 1.4s ease-in-out infinite;
+}
+@keyframes serveBounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+.tl-serve-count {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  padding-left: 8px;
+  border-left: 1px solid rgba(255,255,255,0.15);
+}
+
+/* Who served first this set — small, permanent marker */
+.tl-first-server {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.55);
+  vertical-align: middle;
+}
+
+/* The side currently holding service */
+.tl-player.serving {
+  box-shadow: inset 0 0 0 2px rgba(74,222,128,0.45);
+}
+
+.tl-serving-dot {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4ade80;
+  margin-top: 6px;
+  animation: deuceFlash 1.2s ease infinite alternate;
+}
+
+.tl-player-sets {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  margin-top: 2px;
+}
+
+/* ─── Live score: per-set results in a series ────────────────── */
+
+.tl-sets-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 20px 0;
+}
+
+.tl-set-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+}
+.tl-set-chip.active {
+  color: #fff;
+  background: rgba(34,197,94,0.14);
+  border-color: rgba(34,197,94,0.3);
+}
+.tl-set-chip-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+}
+
+@media (max-width: 640px) {
+  .tl-set-strip   { flex-direction: column; align-items: stretch; gap: 8px; }
+  .tl-serve-badge { justify-content: center; }
+  .tl-set-badge   { text-align: center; }
+}
+
+/* ─── Score entry: first-server picker ───────────────────────── */
+
+.ts-server-picker {
+  margin-top: 14px;
+}
+
+.ts-server-picker-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.ts-server-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ts-server-btn {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 2px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ts-server-btn:hover { border-color: #cbd5e1; }
+.ts-server-btn.p1.active {
+  border-color: #1d4ed8;
+  background: rgba(29,78,216,0.08);
+  color: #1d4ed8;
+}
+.ts-server-btn.p2.active {
+  border-color: #b91c1c;
+  background: rgba(185,28,28,0.08);
+  color: #b91c1c;
+}
+
+/* ─── Score entry: series continuation toggle ────────────────── */
+
+.ts-series-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+}
+.ts-series-toggle input { margin-top: 3px; flex-shrink: 0; }
+.ts-series-toggle span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+.ts-series-toggle em {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  font-style: normal;
+  color: #6b7280;
+}
+
+/* ─── Score entry: sets + service ────────────────────────────── */
+
+.ts-set-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+}
+
+.ts-set-badge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #374151;
+}
+.ts-set-tally { color: #6b7280; font-weight: 700; }
+
+.ts-serve-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #166534;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(34,197,94,0.1);
+  border: 1px solid rgba(34,197,94,0.25);
+}
+.ts-serve-badge b { font-weight: 800; }
+
+.ts-serve-count {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+  padding-left: 8px;
+  border-left: 1px solid rgba(0,0,0,0.12);
+}
+
+.ts-first-server {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.2);
+  vertical-align: middle;
+}
+
+.ts-player-side.serving {
+  box-shadow: inset 0 0 0 2px rgba(34,197,94,0.5);
+}
+
+.ts-serving-dot {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 4px;
+  opacity: 0.9;
+}
+
+.ts-player-sets {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.ts-sets-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 16px 0;
+}
+
+.ts-set-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4b5563;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+.ts-set-chip.active {
+  color: #166534;
+  background: rgba(34,197,94,0.1);
+  border-color: rgba(34,197,94,0.3);
+}
+.ts-set-chip-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+/* ─── Score entry: end-of-set actions ────────────────────────── */
+
+.ts-end-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 16px;
+}
+.ts-end-actions .ts-ctrl-btn {
+  font-size: 15px;
+  padding: 12px 24px;
+}
+
+.ts-ctrl-btn.next-set {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+.ts-ctrl-btn.next-set:hover:not(:disabled) {
+  background: #15803d;
+  border-color: #15803d;
+}
+
+.ts-series-tally {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.75);
+}
+
+@media (max-width: 640px) {
+  .ts-server-options { grid-template-columns: 1fr; }
+  .ts-set-strip      { flex-direction: column; align-items: stretch; gap: 8px; }
+  .ts-serve-badge    { justify-content: center; }
+  .ts-set-badge      { text-align: center; }
+}

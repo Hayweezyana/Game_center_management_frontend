@@ -4,6 +4,41 @@ import './Tennis.css';
 
 const BACKEND = (process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:2024').replace(/\/+$/, '');
 
+type PlayerKey = 'player1' | 'player2';
+
+interface PointEvent {
+  id: string;
+  player: PlayerKey;
+  ts: number;
+  source?: string;
+  undone?: boolean;
+}
+
+interface ServiceState {
+  first_server: PlayerKey;
+  server: PlayerKey;
+  next_server: PlayerKey;
+  serves_taken_this_turn: number;
+  serves_until_switch: number;
+  total_serves: number;
+}
+
+interface SetsSummary {
+  series_id: string;
+  set_number: number;
+  player1_sets_won: number;
+  player2_sets_won: number;
+  sets_played: number;
+  sets: Array<{
+    set_number: number;
+    player1_score: number;
+    player2_score: number;
+    winner: string | null;
+    is_draw: boolean;
+    status: 'active' | 'ended';
+  }>;
+}
+
 interface TennisMatch {
   id: string;
   player1_name: string;
@@ -16,10 +51,28 @@ interface TennisMatch {
   is_deuce: boolean;
   is_draw: boolean;
   phase: 'main' | 'tb7' | 'tb5';
-  score_history: Array<{ player: 'player1' | 'player2' }>;
+  score_history: PointEvent[];
   phase_history: Array<{ phase: string; player1_score: number; player2_score: number }>;
+  series_id?: string;
+  set_number?: number;
+  first_server?: PlayerKey;
+  service?: ServiceState;
+  sets?: SetsSummary;
   created_at?: string;
 }
+
+/** Undone points remain in the log as tombstones — filter them for display. */
+const livePoints = (history?: PointEvent[]): PointEvent[] =>
+  (history ?? []).filter((e) => !e.undone);
+
+/**
+ * Client-generated id so a retried or duplicated request scores the point once.
+ * The backend keys idempotency on this.
+ */
+const newEventId = (): string =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 const PHASE_LABELS: Record<string, string> = {
   main: 'Main Game',
@@ -44,6 +97,10 @@ const TennisScoreEntry: React.FC = () => {
   const [p2Name, setP2Name] = useState('Player 2');
   const [gameType, setGameType] = useState<11 | 21>(11);
   const [showSetup, setShowSetup] = useState(false);
+  const [firstServer, setFirstServer] = useState<PlayerKey>('player1');
+  // Off by default: a rematch between the same two players continues the series
+  // as the next set. Tick this to break that and start a fresh series.
+  const [newSeries, setNewSeries] = useState(false);
 
   const getHeaders = () => {
     const token = sessionStorage.getItem('token') || localStorage.getItem('operatorToken');
@@ -81,7 +138,13 @@ const TennisScoreEntry: React.FC = () => {
     try {
       const res = await axios.post(
         `${BACKEND}/v1/admin/tennis/match`,
-        { player1_name: p1Name.trim(), player2_name: p2Name.trim(), game_type: gameType },
+        {
+          player1_name: p1Name.trim(),
+          player2_name: p2Name.trim(),
+          game_type: gameType,
+          first_server: firstServer,
+          new_series: newSeries,
+        },
         { headers: getHeaders() }
       );
       setMatch(res.data?.data);
@@ -107,7 +170,7 @@ const TennisScoreEntry: React.FC = () => {
     try {
       const res = await axios.post(
         `${BACKEND}/v1/admin/tennis/match/${match.id}/point`,
-        { player },
+        { player, event_id: newEventId(), ts: Date.now() },
         { headers: getHeaders() }
       );
       setMatch(res.data?.data);
@@ -155,6 +218,29 @@ const TennisScoreEntry: React.FC = () => {
     }
   };
 
+  /**
+   * Next set of the same series — same players, same game type, service handed
+   * to the other side. Saves re-entering names for every game of a session.
+   */
+  const handleNextSet = async () => {
+    if (!match || busy) return;
+    setBusy(true); setError('');
+    try {
+      const res = await axios.post(
+        `${BACKEND}/v1/admin/tennis/match/${match.id}/next-set`,
+        {},
+        { headers: getHeaders() }
+      );
+      setMatch(res.data?.data);
+      setShowSetup(false);
+      fetchRecent();
+    } catch (e: any) {
+      setError(e?.response?.data?.error ?? 'Failed to start next set');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="ts-shell">
@@ -166,6 +252,13 @@ const TennisScoreEntry: React.FC = () => {
   const isEnded = match?.status === 'ended';
   const hasActiveMatch = match && !isEnded;
   const phase = match?.phase ?? 'main';
+  const service = match?.service;
+  const sets = match?.sets;
+  const isSeries = (sets?.sets.length ?? 0) > 1;
+  const serverName =
+    service && match
+      ? (service.server === 'player1' ? match.player1_name : match.player2_name)
+      : null;
 
   const centerLabel = () => {
     if (isEnded) return 'ENDED';
@@ -225,8 +318,43 @@ const TennisScoreEntry: React.FC = () => {
               onKeyDown={e => e.key === 'Enter' && handleStartMatch()}
             />
           </div>
+
+          {/* Who serves first — shown on the display and used to derive the
+              rotation, which changes hands every 5 services. */}
+          <div className="ts-server-picker">
+            <span className="ts-server-picker-label">First to serve</span>
+            <div className="ts-server-options">
+              <button
+                className={`ts-server-btn p1${firstServer === 'player1' ? ' active' : ''}`}
+                onClick={() => setFirstServer('player1')}
+              >
+                🏓 {p1Name.trim() || 'Player 1'}
+              </button>
+              <button
+                className={`ts-server-btn p2${firstServer === 'player2' ? ' active' : ''}`}
+                onClick={() => setFirstServer('player2')}
+              >
+                🏓 {p2Name.trim() || 'Player 2'}
+              </button>
+            </div>
+          </div>
+
+          <label className="ts-series-toggle">
+            <input
+              type="checkbox"
+              checked={newSeries}
+              onChange={e => setNewSeries(e.target.checked)}
+            />
+            <span>
+              Start a fresh series
+              <em>
+                Leave unticked to keep scoring against the same pair as the next set.
+              </em>
+            </span>
+          </label>
+
           <button className="ts-start-btn" onClick={handleStartMatch} disabled={busy}>
-            {busy ? 'Starting…' : `Start ${gameType}-Point Match`}
+            {busy ? 'Starting…' : `Start ${gameType}-Point ${newSeries ? 'Match' : 'Set'}`}
           </button>
         </div>
       )}
@@ -234,13 +362,52 @@ const TennisScoreEntry: React.FC = () => {
       {/* Active Game Arena */}
       {match && (
         <div className="ts-arena">
+          {/* Set + service strip */}
+          <div className="ts-set-strip">
+            {sets && (
+              <span className="ts-set-badge">
+                Set {sets.set_number}
+                {isSeries && (
+                  <span className="ts-set-tally">
+                    &nbsp;·&nbsp; sets {sets.player1_sets_won} – {sets.player2_sets_won}
+                  </span>
+                )}
+              </span>
+            )}
+            {service && !isEnded && (
+              <span className="ts-serve-badge">
+                🏓 <b>{serverName}</b> to serve
+                <span className="ts-serve-count">
+                  {service.serves_until_switch} of 5 left
+                </span>
+              </span>
+            )}
+          </div>
+
           {/* Score header */}
           <div className="ts-score-header">
-            <div className={`ts-player-side p1${match.winner === match.player1_name ? ' winner' : ''}`}>
+            <div
+              className={[
+                'ts-player-side p1',
+                match.winner === match.player1_name ? 'winner' : '',
+                service?.server === 'player1' && !isEnded ? 'serving' : '',
+              ].join(' ')}
+            >
               {match.winner === match.player1_name && <span className="ts-winner-crown">👑</span>}
               <span className="ts-player-icon">🏓</span>
-              <span className="ts-player-name">{match.player1_name}</span>
+              <span className="ts-player-name">
+                {match.player1_name}
+                {service?.first_server === 'player1' && (
+                  <span className="ts-first-server" title="Served first this set">1st</span>
+                )}
+              </span>
+              {isSeries && sets && (
+                <span className="ts-player-sets">{sets.player1_sets_won} {sets.player1_sets_won === 1 ? 'set' : 'sets'}</span>
+              )}
               <span className="ts-player-score">{match.player1_score}</span>
+              {service?.server === 'player1' && !isEnded && (
+                <span className="ts-serving-dot">● serving</span>
+              )}
             </div>
 
             <div className="ts-score-center">
@@ -251,11 +418,28 @@ const TennisScoreEntry: React.FC = () => {
               )}
             </div>
 
-            <div className={`ts-player-side p2${match.winner === match.player2_name ? ' winner' : ''}`}>
+            <div
+              className={[
+                'ts-player-side p2',
+                match.winner === match.player2_name ? 'winner' : '',
+                service?.server === 'player2' && !isEnded ? 'serving' : '',
+              ].join(' ')}
+            >
               {match.winner === match.player2_name && <span className="ts-winner-crown">👑</span>}
               <span className="ts-player-icon" style={{ transform: 'scaleX(-1)' }}>🏓</span>
-              <span className="ts-player-name">{match.player2_name}</span>
+              <span className="ts-player-name">
+                {match.player2_name}
+                {service?.first_server === 'player2' && (
+                  <span className="ts-first-server" title="Served first this set">1st</span>
+                )}
+              </span>
+              {isSeries && sets && (
+                <span className="ts-player-sets">{sets.player2_sets_won} {sets.player2_sets_won === 1 ? 'set' : 'sets'}</span>
+              )}
               <span className="ts-player-score">{match.player2_score}</span>
+              {service?.server === 'player2' && !isEnded && (
+                <span className="ts-serving-dot">● serving</span>
+              )}
             </div>
           </div>
 
@@ -295,13 +479,21 @@ const TennisScoreEntry: React.FC = () => {
                 ))}
                 <span>{PHASE_LABELS[match.phase]}: {match.player1_score}–{match.player2_score}</span>
               </div>
-              <button
-                className="ts-ctrl-btn new-game"
-                style={{ fontSize: 15, padding: '12px 24px', marginTop: 16 }}
-                onClick={() => { setShowSetup(true); setMatch(null); }}
-              >
-                + Start New Match
-              </button>
+              <div className="ts-end-actions">
+                <button
+                  className="ts-ctrl-btn next-set"
+                  onClick={handleNextSet}
+                  disabled={busy}
+                >
+                  ▶ Next Set (same players)
+                </button>
+                <button
+                  className="ts-ctrl-btn new-game"
+                  onClick={() => { setShowSetup(true); setNewSeries(true); setMatch(null); }}
+                >
+                  + New Match
+                </button>
+              </div>
             </div>
           ) : isEnded ? (
             <div className="ts-winner-overlay">
@@ -313,13 +505,26 @@ const TennisScoreEntry: React.FC = () => {
                 <span style={{ color: 'rgba(255,255,255,0.3)', margin: '0 12px' }}>:</span>
                 <span className="s2">{match.player2_score}</span>
               </div>
-              <button
-                className="ts-ctrl-btn new-game"
-                style={{ fontSize: 15, padding: '12px 24px' }}
-                onClick={() => { setShowSetup(true); setMatch(null); }}
-              >
-                + Start New Match
-              </button>
+              {isSeries && sets && (
+                <div className="ts-series-tally">
+                  Series: {match.player1_name} {sets.player1_sets_won} – {sets.player2_sets_won} {match.player2_name}
+                </div>
+              )}
+              <div className="ts-end-actions">
+                <button
+                  className="ts-ctrl-btn next-set"
+                  onClick={handleNextSet}
+                  disabled={busy}
+                >
+                  ▶ Next Set (same players)
+                </button>
+                <button
+                  className="ts-ctrl-btn new-game"
+                  onClick={() => { setShowSetup(true); setNewSeries(true); setMatch(null); }}
+                >
+                  + New Match
+                </button>
+              </div>
             </div>
           ) : (
             <>
@@ -346,7 +551,7 @@ const TennisScoreEntry: React.FC = () => {
                 <button
                   className="ts-ctrl-btn undo"
                   onClick={handleUndo}
-                  disabled={busy || !match.score_history?.length}
+                  disabled={busy || livePoints(match.score_history).length === 0}
                 >
                   ↩ Undo Last Point
                 </button>
@@ -360,11 +565,23 @@ const TennisScoreEntry: React.FC = () => {
             </>
           )}
 
-          {/* Score history dots */}
-          {(match.score_history?.length ?? 0) > 0 && (
+          {/* Per-set results in this series */}
+          {isSeries && sets && (
+            <div className="ts-sets-row">
+              {sets.sets.map((s) => (
+                <span key={s.set_number} className={`ts-set-chip${s.status === 'active' ? ' active' : ''}`}>
+                  <span className="ts-set-chip-label">S{s.set_number}</span>
+                  {s.player1_score}–{s.player2_score}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Score history dots — undone points are dropped, not shown greyed */}
+          {livePoints(match.score_history).length > 0 && (
             <div className="ts-history" title="Score history (blue = player 1, red = player 2)">
-              {match.score_history.map((h, i) => (
-                <span key={i} className={`ts-history-dot ${h.player === 'player1' ? 'p1' : 'p2'}`} />
+              {livePoints(match.score_history).map((h) => (
+                <span key={h.id} className={`ts-history-dot ${h.player === 'player1' ? 'p1' : 'p2'}`} />
               ))}
             </div>
           )}
