@@ -697,8 +697,12 @@ const AdminAnalytics: React.FC = () => {
             </>
           ) : (
             <div className="analytics-error">
-              Visitor tracking is not active yet — run the <code>site_visits</code> migration on the
-              backend, then redeploy the storefront. Sales figures below are unaffected.
+              <strong>Visitor tracking is not reporting.</strong> This API response contains no
+              traffic data, which means the backend is running a release without visit tracking —
+              check <code>GET /v1/meta/status</code> responds and{' '}
+              <code>POST /v1/analytics/visit</code> does not 404, then redeploy the backend if it
+              does. If the backend is current, the <code>site_visits</code> migration has not run.
+              Sales figures below are unaffected.
             </div>
           )}
 
