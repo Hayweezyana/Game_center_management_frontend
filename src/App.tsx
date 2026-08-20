@@ -5,6 +5,7 @@ import './App.css';
 import immersiaLogo from './components/logo/immersia.png';
 import { trackPageView } from './utils/metaPixel';
 import { trackRoute } from './utils/visitTracking';
+import WhatsAppButton from './components/WhatsAppButton';
 
 const WelcomePage = lazy(() => import('./components/WelcomePage'));
 const Checkout = lazy(() => import('./components/checkout'));
@@ -399,6 +400,8 @@ const AppShell: React.FC = () => {
         <Route path="/TennisLive" element={<TennisLiveScore />} />
         <Route path="/creditpaymentpage" element={<CreditPaymentPage />} />
       </Routes>
+      {/* Customer support shortcut — hidden on admin/operator routes */}
+      {isCustomerRoute ? <WhatsAppButton /> : null}
     </div>
   );
 };
