@@ -17,6 +17,14 @@
 
 const BACKEND = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/+$/, '');
 
+/**
+ * Identifies this storefront to the backend, so the dashboard can report on it
+ * separately from the standalone online booking site. Must match the backend's
+ * SITES list; 'main' is also the backend default, so an older build that omits
+ * this keeps reporting here.
+ */
+const SITE = 'main';
+
 const VISITOR_KEY = 'immersia_visitor_id';   // localStorage — persists across sessions
 const SESSION_KEY = 'immersia_session_id';   // sessionStorage — one browsing session
 const RECORDED_KEY = 'immersia_visit_sent';
@@ -143,6 +151,7 @@ export function recordVisit(pathname: string): void {
   post('/v1/analytics/visit', {
     visitorId: getVisitorId(),
     sessionId: getSessionId(),
+    site: SITE,
     landingPath: pathname,
     referrer: typeof document !== 'undefined' ? document.referrer || undefined : undefined,
     source: params.get('utm_source') || undefined,

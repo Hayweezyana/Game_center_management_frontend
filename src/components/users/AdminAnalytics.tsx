@@ -113,7 +113,10 @@ interface AnalyticsData {
     topSpenders: { username: string; phone: string; revenue: number; visits: number }[];
   };
   basket: { avgItemsPerTransaction: number; drinkAttachRate: number };
+  /** Combined across every storefront. */
   traffic: TrafficSummary | null;
+  /** The same breakdown per storefront. null on a backend without the site column. */
+  trafficBySite: Record<SiteKey, TrafficSummary> | null;
 }
 
 interface FunnelStage {
@@ -134,7 +137,26 @@ interface TrafficSource {
   conversionRate: number;
 }
 
+/**
+ * The two storefronts reporting into visit tracking. They are kept apart
+ * because their traffic is nothing alike: the in-house app is staff-assisted at
+ * the counter and converts near 100%, while the booking site is cold ad traffic
+ * — a blended conversion rate describes neither.
+ */
+type SiteKey = 'main' | 'booking';
+
+/** 'all' is the combined view; the rest select one storefront. */
+type TrafficScope = 'all' | SiteKey;
+
+const SITE_TABS: { key: TrafficScope; label: string; blurb: string }[] = [
+  { key: 'all', label: 'All sites', blurb: 'Every storefront combined' },
+  { key: 'main', label: 'In-house app', blurb: 'Counter tablets and the main site' },
+  { key: 'booking', label: 'Online booking', blurb: 'The standalone online booking site' },
+];
+
 interface TrafficSummary {
+  site: SiteKey | null;
+  siteLabel: string;
   uniqueVisitors: number;
   visits: number;
   newVisitors: number;
@@ -310,6 +332,7 @@ const AdminAnalytics: React.FC = () => {
   const [error, setError] = useState('');
   const [trendMetric, setTrendMetric] = useState<'revenue' | 'transactions'>('revenue');
   const [funnelScope, setFunnelScope] = useState<'all' | 'ads'>('all');
+  const [trafficScope, setTrafficScope] = useState<TrafficScope>('all');
 
   // Guards against an earlier slow response overwriting a later fast one.
   const requestRef = useRef(0);
@@ -359,10 +382,23 @@ const AdminAnalytics: React.FC = () => {
     return data.weekday.reduce((best, d, i, arr) => (d.revenue > arr[best].revenue ? i : best), 0);
   }, [data]);
 
+  /**
+   * The traffic block reads from whichever storefront is selected. Falls back
+   * to the combined figures when the backend predates the per-site split, so
+   * the section keeps working rather than emptying out.
+   */
+  const activeTraffic: TrafficSummary | null = useMemo(() => {
+    if (!data?.traffic) return null;
+    if (trafficScope === 'all') return data.traffic;
+    return data.trafficBySite?.[trafficScope] ?? null;
+  }, [data, trafficScope]);
+
+  const perSiteAvailable = Boolean(data?.trafficBySite);
+
   const activeFunnel: FunnelStage[] = useMemo(() => {
-    if (!data?.traffic) return [];
-    return funnelScope === 'ads' ? data.traffic.adFunnel : data.traffic.funnel;
-  }, [data, funnelScope]);
+    if (!activeTraffic) return [];
+    return funnelScope === 'ads' ? activeTraffic.adFunnel : activeTraffic.funnel;
+  }, [activeTraffic, funnelScope]);
 
   /** Trading hours are noisy across a closed night — show only hours with activity. */
   const activeHours = useMemo(
@@ -421,6 +457,60 @@ const AdminAnalytics: React.FC = () => {
     push('');
     push('Game', 'Quantity', 'Revenue');
     data.topGames.forEach(g => push(g.name, g.quantity, Math.round(g.revenue)));
+
+    // Traffic, split per storefront. Blending the counter app with the online
+    // booking site would make the conversion column meaningless, so each gets
+    // its own row and the combined total is labelled as such.
+    if (data.traffic) {
+      const trafficRows: [string, TrafficSummary][] = [];
+      SITE_TABS.filter(t => t.key !== 'all').forEach(tab => {
+        const summary = data.trafficBySite?.[tab.key as SiteKey];
+        if (summary) trafficRows.push([tab.label, summary]);
+      });
+      trafficRows.push(['All sites', data.traffic]);
+
+      push('');
+      push('Storefront', 'Visitors', 'Visits', 'New visitors', 'Ad visits', 'Paid', 'Conversion %');
+      trafficRows.forEach(([label, t]) =>
+        push(
+          label,
+          t.uniqueVisitors,
+          t.visits,
+          t.newVisitors,
+          t.adVisits,
+          t.funnel[3]?.count ?? 0,
+          (t.overallConversionRate * 100).toFixed(1),
+        ),
+      );
+
+      push('');
+      push('Storefront', 'Campaign', 'Visits', 'Paid', 'Rate %');
+      trafficRows.forEach(([label, t]) =>
+        t.campaigns.forEach(c =>
+          push(
+            label,
+            c.name,
+            c.visits,
+            c.conversions,
+            ((c.visits > 0 ? c.conversions / c.visits : 0) * 100).toFixed(1),
+          ),
+        ),
+      );
+
+      push('');
+      push('Storefront', 'Funnel stage', 'Sessions', 'Of all visits %', 'From previous %');
+      trafficRows.forEach(([label, t]) =>
+        t.funnel.forEach(stage =>
+          push(
+            label,
+            stage.label,
+            stage.count,
+            (stage.shareOfVisits * 100).toFixed(1),
+            (stage.stepRate * 100).toFixed(1),
+          ),
+        ),
+      );
+    }
 
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -525,37 +615,81 @@ const AdminAnalytics: React.FC = () => {
             <>
               <div className="analytics-section-head">
                 <h2>Traffic</h2>
-                <p>Who reached the site, where from, and how far they got</p>
+                <p>
+                  {SITE_TABS.find(t => t.key === trafficScope)?.blurb} — who reached it, where
+                  from, and how far they got
+                </p>
               </div>
 
+              {/* Storefront selector. The in-house app and the online booking
+                  site are separate businesses in practice, so every number
+                  below is scoped to whichever is selected. */}
+              {perSiteAvailable ? (
+                <div
+                  className="analytics-site-tabs"
+                  role="group"
+                  aria-label="Storefront"
+                >
+                  {SITE_TABS.map(tab => {
+                    const summary =
+                      tab.key === 'all' ? data.traffic : data.trafficBySite?.[tab.key] ?? null;
+                    return (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        className={`analytics-site-tab${trafficScope === tab.key ? ' active' : ''}`}
+                        onClick={() => setTrafficScope(tab.key)}
+                        aria-pressed={trafficScope === tab.key}
+                      >
+                        <span className="analytics-site-tab-label">{tab.label}</span>
+                        <span className="analytics-site-tab-count">
+                          {summary ? `${count(summary.visits)} visits` : 'No data'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="analytics-card-sub">
+                  Showing all storefronts combined. Run the <code>site</code> column migration on
+                  the backend to split the in-house app from the online booking site.
+                </p>
+              )}
+
+              {activeTraffic === null ? (
+                <p className="analytics-empty">
+                  No traffic recorded for this storefront in this period.
+                </p>
+              ) : (
+                <>
               <div className="analytics-kpis">
                 <PlainTile
                   label="Unique visitors"
-                  value={count(data.traffic.uniqueVisitors)}
-                  note={`${count(data.traffic.visits)} session${data.traffic.visits === 1 ? '' : 's'}`}
+                  value={count(activeTraffic.uniqueVisitors)}
+                  note={`${count(activeTraffic.visits)} session${activeTraffic.visits === 1 ? '' : 's'}`}
                 />
                 <PlainTile
                   label="New visitors"
-                  value={count(data.traffic.newVisitors)}
-                  note={`${count(data.traffic.returningVisitors)} returning`}
+                  value={count(activeTraffic.newVisitors)}
+                  note={`${count(activeTraffic.returningVisitors)} returning`}
                 />
                 <PlainTile
                   label="Visits from ads"
-                  value={count(data.traffic.adVisits)}
+                  value={count(activeTraffic.adVisits)}
                   note={
-                    data.traffic.visits > 0
-                      ? `${percent(data.traffic.adVisits / data.traffic.visits)} of all traffic`
+                    activeTraffic.visits > 0
+                      ? `${percent(activeTraffic.adVisits / activeTraffic.visits)} of all traffic`
                       : undefined
                   }
                 />
                 <PlainTile
                   label="Ad visits that paid"
-                  value={count(data.traffic.adConversions)}
-                  note={`${percent(data.traffic.adConversionRate)} of ad visits`}
+                  value={count(activeTraffic.adConversions)}
+                  note={`${percent(activeTraffic.adConversionRate)} of ad visits`}
                 />
                 <PlainTile
                   label="Overall conversion"
-                  value={percent(data.traffic.overallConversionRate)}
+                  value={percent(activeTraffic.overallConversionRate)}
                   note="visit → payment confirmed"
                 />
               </div>
@@ -683,7 +817,7 @@ const AdminAnalytics: React.FC = () => {
                       { key: 'paid', label: 'Paid', numeric: true },
                       { key: 'rate', label: 'Rate', numeric: true },
                     ]}
-                    rows={data.traffic.sources.map(s => ({
+                    rows={activeTraffic.sources.map(s => ({
                       source: s.name,
                       visitors: count(s.visitors),
                       visits: count(s.visits),
@@ -693,7 +827,75 @@ const AdminAnalytics: React.FC = () => {
                     empty="No visits recorded yet."
                   />
                 </section>
+
+                {/* Campaign-level breakdown. Only populated for traffic that
+                    arrived with utm_campaign set, so it stays empty until the
+                    ads carry URL parameters — which is the point: an untagged
+                    campaign is one you cannot tell apart from the rest. */}
+                <section className="analytics-card">
+                  <div className="analytics-card-head">
+                    <h3>Campaigns</h3>
+                  </div>
+                  <p className="analytics-card-sub">
+                    Tag ad links with <code>utm_campaign</code> to break paid traffic down by
+                    campaign; untagged visits still count under their source above
+                  </p>
+                  <DataTable
+                    columns={[
+                      { key: 'campaign', label: 'Campaign' },
+                      { key: 'visits', label: 'Visits', numeric: true },
+                      { key: 'paid', label: 'Paid', numeric: true },
+                      { key: 'rate', label: 'Rate', numeric: true },
+                    ]}
+                    rows={activeTraffic.campaigns.map(c => ({
+                      campaign: c.name,
+                      visits: count(c.visits),
+                      paid: count(c.conversions),
+                      rate: percent(c.visits > 0 ? c.conversions / c.visits : 0),
+                    }))}
+                    empty="No tagged campaigns in this period."
+                  />
+                </section>
+
+                {/* Side-by-side, so the two storefronts can be compared at a
+                    glance without switching tabs. */}
+                {perSiteAvailable ? (
+                  <section className="analytics-card full">
+                    <div className="analytics-card-head">
+                      <h3>Storefront comparison</h3>
+                    </div>
+                    <p className="analytics-card-sub">
+                      The in-house app is staff-assisted at the counter, so it converts far higher
+                      than cold ad traffic — compare each against itself over time, not against
+                      the other
+                    </p>
+                    <DataTable
+                      columns={[
+                        { key: 'site', label: 'Storefront' },
+                        { key: 'visitors', label: 'Visitors', numeric: true },
+                        { key: 'visits', label: 'Visits', numeric: true },
+                        { key: 'adVisits', label: 'From ads', numeric: true },
+                        { key: 'paid', label: 'Paid', numeric: true },
+                        { key: 'rate', label: 'Conversion', numeric: true },
+                      ]}
+                      rows={SITE_TABS.filter(t => t.key !== 'all').map(tab => {
+                        const s = data.trafficBySite?.[tab.key as SiteKey];
+                        return {
+                          site: tab.label,
+                          visitors: s ? count(s.uniqueVisitors) : '—',
+                          visits: s ? count(s.visits) : '—',
+                          adVisits: s ? count(s.adVisits) : '—',
+                          paid: s ? count(s.funnel[3]?.count ?? 0) : '—',
+                          rate: s ? percent(s.overallConversionRate) : '—',
+                        };
+                      })}
+                      empty="No visits recorded yet."
+                    />
+                  </section>
+                ) : null}
               </div>
+                </>
+              )}
             </>
           ) : (
             <div className="analytics-error">

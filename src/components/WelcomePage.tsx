@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import logo from './logo/immersia.png';
 import './WelcomePage.css';
 import { getRoutePrefetchProps } from '../utils/routePrefetch';
+import ComingSoonModal from './ComingSoonModal';
 
 const useBodyTheme = () => {
   const get = () => ({
@@ -23,6 +24,12 @@ const WelcomePage: React.FC = () => {
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const { isEid: isEidTheme, isEaster: isEasterTheme, isGoodFriday } = useBodyTheme();
+  const [showComingSoon, setShowComingSoon] = React.useState(false);
+
+  const goToGames = React.useCallback(() => {
+    setShowComingSoon(false);
+    navigate('/GameSelection');
+  }, [navigate]);
 
   return (
     <div className="welcome-page">
@@ -75,7 +82,7 @@ const WelcomePage: React.FC = () => {
             </button>
             <button
               className="welcome-button customer-button"
-              onClick={() => navigate('/GameSelection')}
+              onClick={() => setShowComingSoon(true)}
               {...getRoutePrefetchProps('/gameselection')}
             >
               <span className="button-icon">PLY</span>
@@ -87,6 +94,12 @@ const WelcomePage: React.FC = () => {
             </button>
           </div>
         </div>
+
+      <ComingSoonModal
+        open={showComingSoon}
+        onClose={() => setShowComingSoon(false)}
+        onContinue={goToGames}
+      />
 
       <footer className="welcome-footer">
         <p>&copy; {currentYear} Immersia. All rights reserved.</p>
