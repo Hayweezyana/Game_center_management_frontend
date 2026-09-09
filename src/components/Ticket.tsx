@@ -6,6 +6,9 @@ import logo from './logo/immersia.png';
 import { trackPurchase } from '../utils/metaPixel';
 import { recordStep } from '../utils/visitTracking';
 import { starFill, useRatings } from './hooks/useRatings';
+// SVG, not the canvas renderer: printing copies innerHTML into a new window and
+// a canvas does not survive that — it would print as a blank square.
+import { QRCodeSVG } from 'qrcode.react';
 import { useCartContext } from './hooks/useCart';
 import './Ticket.css';
 
@@ -294,6 +297,11 @@ const Ticket: React.FC = () => {
       setSaving((prev) => ({ ...prev, [key]: false }));
     }
   };
+
+  /** Absolute so a scanned code works from any device, not just this one. */
+  const ticketUrl = reference
+    ? `${window.location.origin}/t/${encodeURIComponent(reference)}`
+    : null;
 
   const printTicket = () => {
     const content = document.getElementById('printable-area')?.innerHTML;
@@ -616,6 +624,15 @@ const Ticket: React.FC = () => {
           </p>
         )}
 
+        {ticketUrl && (
+          <div style={styles.qrBlock}>
+            <QRCodeSVG value={ticketUrl} size={132} level="M" marginSize={2} />
+            <p style={styles.qrCaption}>
+              Scan to follow your games live — we will show you when each one is ready.
+            </p>
+          </div>
+        )}
+
         <div style={styles.footer}>
           <p style={styles.thankYou}>Thank you for choosing Immersia VR!</p>
         </div>
@@ -702,6 +719,21 @@ const styles = {
   td: {
     border: '1px solid #ddd',
     padding: '8px'
+  },
+  // Inline, like the rest of this sheet: the print window is opened with no
+  // stylesheet, so anything class-based would come out unstyled.
+  qrBlock: {
+    textAlign: 'center' as const,
+    marginTop: '18px',
+    paddingTop: '14px',
+    borderTop: '1px dashed #ccc',
+  },
+  qrCaption: {
+    margin: '8px auto 0',
+    maxWidth: '260px',
+    fontSize: '12px',
+    lineHeight: 1.4,
+    color: '#555',
   },
   footer: {
     textAlign: 'center' as const,
