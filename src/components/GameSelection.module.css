@@ -160,6 +160,64 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  /* The availability line takes a row of its own under the title and price. */
+  flex-wrap: wrap;
+}
+
+/* ── Next-available time ─────────────────────────────────────────────────── */
+
+.availability {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  color: var(--gs-muted);
+}
+
+.availabilityDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.availability_free {
+  color: #5ce6a4;
+}
+
+.availability_short {
+  color: var(--gs-warm);
+}
+
+.availability_long {
+  color: var(--gs-accent-soft);
+}
+
+/* No stations online for this experience — say so rather than quote a time. */
+.availability_none {
+  color: var(--gs-muted);
+  opacity: 0.75;
+}
+
+/* Shown in place of the quantity stepper when an experience is off the menu. */
+.notOffered {
+  margin: 12px 0 0;
+  padding: 9px 12px;
+  border: 1px dashed var(--gs-line);
+  border-radius: 999px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--gs-muted);
+}
+
+.availabilityAhead {
+  margin-left: auto;
+  color: var(--gs-muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
 }
 
 .gameTitle {

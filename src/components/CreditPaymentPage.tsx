@@ -68,9 +68,13 @@ const CreditPaymentPage: React.FC = () => {
       setLoading(true);
       setStatus('Recording credit transaction...');
 
+      // Held in a variable so the ticket page can be opened at /t/<reference>
+      // and subscribe to its own live updates.
+      const reference = uuidv4();
+
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/transaction`, {
         ...userDetails,
-        reference: uuidv4(),
+        reference,
         merchantReference: uuidv4(),
         cartItems,
         discount: discountAmount,
@@ -91,6 +95,7 @@ const CreditPaymentPage: React.FC = () => {
           finalAmount,
           userDetails,
           cartItems,
+          reference,
           dateTime: new Date().toISOString(),
           discount: discountAmount,
           paymentNote: 'Recorded on credit — payment due later',

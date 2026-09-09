@@ -7,6 +7,7 @@ import { UUID } from 'crypto';
 import { useCartContext } from './hooks/useCart';
 import { trackAddToCart, trackInitiateCheckout } from '../utils/metaPixel';
 import { getRoutePrefetchProps } from '../utils/routePrefetch';
+import { formatWait, useAvailability, waitTone } from './hooks/useAvailability';
 import styles from './GameSelection.module.css';
 
 interface CartItem {
@@ -89,6 +90,8 @@ const GameSelection: React.FC = () => {
 
   const navigate = useNavigate();
   const { addToCart, cartItems, updateCartItem } = useCartContext();
+  // Next-available time per experience, so the wait is visible before choosing.
+  const { byGameId: availability, now: availabilityNow } = useAvailability();
 
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
@@ -368,6 +371,15 @@ const GameSelection: React.FC = () => {
             const cardStyle = { ['--stagger' as any]: `${index * 55}ms` } as CSSProperties;
             const videoId = getYouTubeVideoId(game.url);
             const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
+            // "Drinks" is a catalogue row with no session length, not something
+            // anyone queues for — a wait time on it would be nonsense.
+            const isTimedExperience = Number(game.time_slot) > 0;
+            const slot = availability[String(game.id)];
+            const waitLabel = isTimedExperience ? formatWait(slot, availabilityNow) : null;
+            const tone = waitTone(slot, availabilityNow);
+            // Deliberately not on offer — selling it would create a ticket
+            // nobody can honour. A station that is merely offline stays sellable.
+            const notOffered = isTimedExperience && slot ? !slot.bookable : false;
 
             return (
               <article key={game.id} className={styles.videoCard} style={cardStyle}>
@@ -377,6 +389,17 @@ const GameSelection: React.FC = () => {
                     <span className={styles.priceTag}>{formatNaira(game.price)}</span>
                     <span className={styles.durationTag}>{game.time_slot || '10 min'}</span>
                   </div>
+                  {waitLabel && (
+                    <div className={`${styles.availability} ${styles[`availability_${tone}`]}`}>
+                      <span className={styles.availabilityDot} aria-hidden="true" />
+                      <span>{waitLabel}</span>
+                      {slot && slot.units_ahead > 0 && tone !== 'none' && (
+                        <span className={styles.availabilityAhead}>
+                          {slot.units_ahead} ahead
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -414,21 +437,25 @@ const GameSelection: React.FC = () => {
                   )}
                 </button>
 
-                <div className={styles.quantityControls}>
-                  <button className={styles.qtyButton} onClick={() => handleQuantityChange(game, currentQty - 1)} disabled={currentQty === 0}>
-                    <FaMinus />
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={currentQty}
-                    onChange={(e) => handleQuantityChange(game, Number(e.target.value))}
-                    className={styles.quantityInput}
-                  />
-                  <button className={styles.qtyButton} onClick={() => handleQuantityChange(game, currentQty + 1)}>
-                    <FaPlus />
-                  </button>
-                </div>
+                {notOffered ? (
+                  <p className={styles.notOffered}>Not available right now</p>
+                ) : (
+                  <div className={styles.quantityControls}>
+                    <button className={styles.qtyButton} onClick={() => handleQuantityChange(game, currentQty - 1)} disabled={currentQty === 0}>
+                      <FaMinus />
+                    </button>
+                    <input
+                      type="number"
+                      min="0"
+                      value={currentQty}
+                      onChange={(e) => handleQuantityChange(game, Number(e.target.value))}
+                      className={styles.quantityInput}
+                    />
+                    <button className={styles.qtyButton} onClick={() => handleQuantityChange(game, currentQty + 1)}>
+                      <FaPlus />
+                    </button>
+                  </div>
+                )}
 
                 {isOpen && (!game.time_slot || Number(game.time_slot) === 0) && (
                   <div className={styles.drinkList}>

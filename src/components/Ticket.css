@@ -1,19 +1,237 @@
+/* Printing.
+   The old rules here hid every element and then re-showed `.ticketContainer` —
+   a class the component never had, since it styles that element inline. The
+   file was not imported anywhere, so it was inert; now that it is, blanking the
+   body would print an empty sheet. These rules target what actually exists:
+   #printable-area is the receipt, and the screen-only chrome is hidden. */
 @media print {
-    body * {
-      visibility: hidden;
-    }
-    .ticketContainer, .ticketContainer * {
-      visibility: visible;
-    }
-    .ticketContainer {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      box-shadow: none;
-      border: none;
-    }
-    .printButton {
-      display: none;
-    }
+  body * {
+    visibility: hidden;
   }
+
+  #printable-area,
+  #printable-area * {
+    visibility: visible;
+  }
+
+  #printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}
+/* ── Live waiting board ─────────────────────────────────────────────────
+   The receipt below stays print-friendly; this block is the screen-only
+   half that turns the ticket into a live status page. */
+
+.wait-board {
+  margin: -8px 0 24px;
+  padding: 18px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #041828, #0a3450);
+  color: #e8f6ff;
+  box-shadow: 0 16px 30px rgba(2, 18, 32, 0.24);
+}
+
+.wait-headline {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.wait-headline h2 {
+  margin: 0;
+  font-size: 1.18rem;
+  line-height: 1.35;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.wait-pulse {
+  width: 9px;
+  height: 9px;
+  margin-top: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: #5ce6a4;
+  box-shadow: 0 0 0 0 rgba(92, 230, 164, 0.6);
+  animation: waitPulse 2s ease-out infinite;
+}
+
+@keyframes waitPulse {
+  70% { box-shadow: 0 0 0 9px rgba(92, 230, 164, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(92, 230, 164, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wait-pulse { animation: none; }
+}
+
+.wait-sub {
+  margin: 6px 0 14px 19px;
+  font-size: 0.82rem;
+  color: #9cbad0;
+}
+
+.wait-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wait-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 3px solid rgba(255, 255, 255, 0.14);
+}
+
+.wait-row--ready { border-left-color: #5ce6a4; background: rgba(92, 230, 164, 0.12); }
+.wait-row--playing { border-left-color: #24d6ff; background: rgba(36, 214, 255, 0.1); }
+.wait-row--next { border-left-color: #ffbf59; }
+.wait-row--done { opacity: 0.62; }
+.wait-row--expired { border-left-color: #ff9d8a; }
+
+.wait-row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.wait-game {
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.wait-rounds {
+  font-size: 0.75rem;
+  color: #9cbad0;
+  white-space: nowrap;
+}
+
+.wait-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+}
+
+.wait-pill {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.1);
+  color: #cfe6f5;
+  white-space: nowrap;
+}
+
+.wait-pill--ready { background: rgba(92, 230, 164, 0.2); color: #7cf0bb; }
+.wait-pill--playing { background: rgba(36, 214, 255, 0.18); color: #7fe6ff; }
+.wait-pill--next { background: rgba(255, 191, 89, 0.18); color: #ffd08f; }
+.wait-pill--expired { background: rgba(255, 157, 138, 0.18); color: #ffb3a5; }
+
+.wait-position { color: #cfe6f5; white-space: nowrap; }
+
+.wait-time {
+  color: #9cbad0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.wait-time--live { color: #e8f6ff; font-weight: 600; }
+
+/* ── Ratings ────────────────────────────────────────────────────────── */
+
+.wait-feedback {
+  margin-top: 12px;
+  padding: 13px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.wait-feedback--overall { border-color: rgba(255, 191, 89, 0.35); }
+
+.wait-feedback--saved {
+  font-size: 0.85rem;
+  color: #7cf0bb;
+}
+
+.wait-feedback-q {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.wait-stars { display: flex; gap: 4px; }
+
+.wait-star {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  transition: color 0.12s ease, transform 0.12s ease;
+}
+
+.wait-star:hover { transform: scale(1.1); }
+.wait-star--on { color: #ffbf59; }
+
+.wait-star:focus-visible {
+  outline: 2px solid #24d6ff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.wait-comment {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(2, 16, 33, 0.75);
+  color: #e8f6ff;
+  font-size: 0.88rem;
+}
+
+.wait-send {
+  margin-top: 9px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #24d6ff;
+  color: #041828;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.wait-send:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.wait-google {
+  display: inline-block;
+  margin-top: 12px;
+  color: #ffd08f;
+  font-size: 0.88rem;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 208, 143, 0.4);
+}
+
+/* The board is a screen affordance — a printed ticket should not carry it. */
+@media print {
+  .wait-board { display: none !important; }
+}

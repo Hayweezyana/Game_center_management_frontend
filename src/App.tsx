@@ -9,7 +9,6 @@ import WhatsAppButton from './components/WhatsAppButton';
 
 const WelcomePage = lazy(() => import('./components/WelcomePage'));
 const Checkout = lazy(() => import('./components/checkout'));
-const Queue = lazy(() => import('./components/Queue'));
 const GameSelection = lazy(() => import('./components/GameSelection'));
 const PC = lazy(() => import('./components/PC'));
 const Ticket = lazy(() => import('./components/Ticket'));
@@ -29,6 +28,7 @@ const AdminPaymentPage = lazy(() => import('./components/users/AdminPaymentPage'
 const OperatorAuth = lazy(() => import('./components/users/OperatorAuth'));
 const DrinkInventory = lazy(() => import('./components/users/DrinkInventory'));
 const OperatorConsumedGames = lazy(() => import('./components/users/OperatorConsumedGames'));
+const PlayflowInsights = lazy(() => import('./components/users/PlayflowInsights'));
 const AdminTransaction = lazy(() => import('./components/users/Admintransaction'));
 const MarketersReportPage = lazy(() => import('./components/MarketersReportPage'));
 const InternalControlEntry = lazy(() => import('./components/InternalControlEntry'));
@@ -95,7 +95,6 @@ const CUSTOMER_FACING_PATHS = new Set([
   '/checkout',
   '/userdetails',
   '/cartandpayment',
-  '/queue',
   '/pc',
   '/ticket',
   '/paymentselection',
@@ -158,7 +157,10 @@ const AppShell: React.FC = () => {
   });
 
   const normalizedPath = location.pathname.toLowerCase();
-  const isCustomerRoute = CUSTOMER_FACING_PATHS.has(normalizedPath);
+  // /t/<reference> is the shareable ticket — a customer-facing path with a
+  // variable segment, so it can't be matched by the exact-path set.
+  const isCustomerRoute =
+    CUSTOMER_FACING_PATHS.has(normalizedPath) || normalizedPath.startsWith('/t/');
 
   // This is a SPA, so a hard page load happens once. index.html only loads the
   // pixel — every route change has to report its own PageView or the funnel
@@ -353,9 +355,11 @@ const AppShell: React.FC = () => {
           path="/CartAndPayment"
           element={<CartAndPayment cartItems={[]} cartTotal={0} payment_methods={[]} setPaymentMethods={() => {}} setCartItems={() => {}} onNext={() => {}} />}
         />
-        <Route path="/Queue" element={<Queue />} />
         <Route path="/PC" element={<PC cart={[]} />} />
         <Route path="/Ticket" element={<Ticket />} />
+        {/* Shareable, refresh-safe ticket. The live waiting page lives here, so
+            it survives a reload and opens from a WhatsApp link. */}
+        <Route path="/t/:reference" element={<Ticket />} />
         <Route path="/report"           element={<PrivateRoute element={<Report />} />} />
         <Route
           path="/PaymentSelection"
@@ -389,6 +393,7 @@ const AppShell: React.FC = () => {
         <Route path="/AIChatBox"          element={<PrivateRoute element={<AIChatBox isAdmin={true} />} />} />
         <Route path="/DrinkInventory"     element={<PrivateRoute element={<DrinkInventory isAdmin={true} />} />} />
         <Route path="/OperatorConsumedGames" element={<PrivateRoute element={<OperatorConsumedGames />} />} />
+        <Route path="/playflow-insights" element={<PrivateRoute element={<PlayflowInsights />} />} />
         <Route path="/AdminDashboard"     element={<PrivateRoute element={<Admin />} />} />
         <Route path="/PCLockDashboard"    element={<PrivateRoute element={<Admin />} />} />
         <Route path="/AdminTransaction"   element={<PrivateRoute element={<AdminTransaction />} />} />

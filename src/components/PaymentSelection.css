@@ -70,3 +70,122 @@
   color: #ffd84d;
   border: 1px solid rgba(255, 195, 0, 0.35);
 }
+
+/* ── Before you pay: party size and how they found us ──────────────────── */
+
+.prepay-panel {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(108, 184, 220, 0.28);
+  border-radius: 12px;
+  background: rgba(4, 24, 40, 0.55);
+  display: grid;
+  gap: 18px;
+}
+
+@media (min-width: 720px) {
+  .prepay-panel {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    align-items: start;
+  }
+}
+
+.prepay-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.prepay-field label {
+  font-size: 0.85rem;
+  color: #b7d6e8;
+  line-height: 1.35;
+}
+
+.prepay-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(108, 184, 220, 0.35);
+  background: rgba(2, 16, 33, 0.9);
+  color: #e6f5ff;
+  font-size: 0.95rem;
+}
+
+.prepay-input:focus-visible {
+  outline: 2px solid rgba(38, 217, 255, 0.9);
+  outline-offset: 1px;
+}
+
+.prepay-detail {
+  margin-top: 2px;
+}
+
+.prepay-hint {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #83a6bc;
+  line-height: 1.4;
+}
+
+.prepay-error {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #ff9d8a;
+}
+
+.party-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.party-btn {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 8px;
+  border: 1px solid rgba(108, 184, 220, 0.35);
+  background: rgba(2, 16, 33, 0.9);
+  color: #e6f5ff;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.party-btn:hover:not(:disabled) {
+  border-color: rgba(38, 217, 255, 0.66);
+}
+
+.party-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.party-input {
+  width: 72px;
+  text-align: center;
+  padding: 9px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(108, 184, 220, 0.35);
+  background: rgba(2, 16, 33, 0.9);
+  color: #e6f5ff;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Terminals stay visible but clearly not yet selectable. */
+.payment-options-locked {
+  opacity: 0.55;
+}
+
+.payment-options-locked .payment-option {
+  cursor: not-allowed;
+}
+
+.payment-options-locked .payment-option:hover {
+  transform: none;
+  border-color: rgba(108, 184, 220, 0.3);
+  box-shadow: none;
+}

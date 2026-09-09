@@ -7,6 +7,8 @@ import AdminAnalytics from './AdminAnalytics';
 import InternalControlEntry from '../InternalControlEntry';
 import InternalControlDashboard from '../InternalControlDashboard';
 import TennisScoreEntry from '../TennisScoreEntry';
+import PlayflowInsights from './PlayflowInsights';
+import DeleteTransaction from './DeleteTransaction';
 import './Admin.css';
 import {
   getAdminRole,
@@ -21,7 +23,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx' | 'ic-entry' | 'ic-dashboard' | 'tennis' | 'credit';
+type Tab = 'overview' | 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx' | 'ic-entry' | 'ic-dashboard' | 'tennis' | 'credit' | 'playflow' | 'delete-tx';
 
 interface PcRow {
   id: string;
@@ -110,10 +112,12 @@ const ALL_TABS: { key: Tab; label: string }[] = [
   { key: 'queue',        label: '🎮  Operator Queue'          },
   { key: 'bypasses',     label: '🔑  Bypass Logs'             },
   { key: 'games',        label: '🕹  Games'                   },
+  { key: 'playflow',     label: '⏱  Capacity & Feedback'      },
   { key: 'drinks',       label: '🥤  Drinks'                  },
   { key: 'reports',      label: '📊  Reports'                 },
   { key: 'admins',       label: '👤  Admins'                  },
   { key: 'manual-tx',    label: '🧾  Manual Transaction'      },
+  { key: 'delete-tx',    label: '🗑  Delete Transaction'       },
   { key: 'ic-entry',     label: '📝  Internal Control — Entry'     },
   { key: 'ic-dashboard', label: '🔎  Internal Control — Review'    },
   { key: 'tennis',       label: '🏓  Table Tennis Score'           },
@@ -125,10 +129,12 @@ const TAB_SUMMARIES: Record<Exclude<Tab, 'overview'>, string> = {
   queue: 'Verify payments and assign customers to available PCs.',
   bypasses: 'Review emergency bypass actions across the center.',
   games: 'Manage the game catalog, pricing, and time slots.',
+  playflow: 'Set stations and seats per experience — this is what customers see as wait times — plus ratings and how people heard about us.',
   drinks: 'Track drink stock levels and update inventory.',
   reports: 'Analytics dashboard plus sales, customer, and consumed-game reporting.',
   admins: 'Create and manage admin accounts and permissions.',
   'manual-tx': 'Record manual or split transactions from the desk.',
+  'delete-tx': 'Remove a transaction and everything attached to it. Site admins only — every deletion is archived with a reason.',
   'ic-entry': 'File camera-review counts by station (editable for 24 hours).',
   'ic-dashboard': 'Compare recorded counts against actual sales (green/red/blue).',
   'tennis': 'Record table tennis scores live — customers see the scoreboard in real time.',
@@ -1866,6 +1872,8 @@ const Admin: React.FC = () => {
         </div>
       );
       case 'credit':  return renderCreditReport();
+      case 'playflow': return <PlayflowInsights />;
+      case 'delete-tx': return <DeleteTransaction />;
     }
   };
 

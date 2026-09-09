@@ -11,6 +11,10 @@ interface GameItem {
   transaction_created_at: string;
   transaction_time: string; // ISO
   unit_index: number;
+  /** Ticket reference, used to put an older ticket into today's line. */
+  reference: string | null;
+  /** Null means the ticket is not in the live queue, so it quotes no wait time. */
+  checked_in_at: string | null;
 }
 
 type PcRow = {
@@ -31,6 +35,7 @@ const OperatorDashboard: React.FC = () => {
   const [selectedPCId, setSelectedPCId] = useState<string>("");
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [checkingIn, setCheckingIn] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   const BACKEND = process.env.REACT_APP_BACKEND_URL?.replace(/\/+$/, "") || "http://127.0.0.1:2024";
@@ -166,6 +171,28 @@ const OperatorDashboard: React.FC = () => {
     } catch (err) {
       console.error("Error consuming game:", err);
       setErrorMsg("Failed to mark as attended.");
+    }
+  };
+
+  // --- Check-in ------------------------------------------------------------
+
+  /**
+   * A ticket bought earlier is not standing in today's line until someone says
+   * it is. Checking in adds its rounds to the schedule so the customer starts
+   * getting live times and everyone's estimate accounts for them.
+   */
+  const handleCheckIn = async (reference: string, username: string) => {
+    setCheckingIn(reference);
+    try {
+      await postJson(`${BACKEND}/v1/admin/tickets/${encodeURIComponent(reference)}/checkin`);
+      setUnconsumedGames((prev) =>
+        prev.map((g) => (g.reference === reference ? { ...g, checked_in_at: new Date().toISOString() } : g))
+      );
+    } catch (err) {
+      console.error("Check-in failed:", err);
+      setErrorMsg(`Could not check in ${username}. Please try again.`);
+    } finally {
+      setCheckingIn(null);
     }
   };
 
@@ -334,14 +361,35 @@ useEffect(() => {
                 alignItems: "center"
               }}>
                 <strong style={{ fontSize: "1.1rem", color: "#333" }}>👤 {username}</strong>
-                <span style={{ fontSize: "0.85rem", color: "#666" }}>
-                  Last Order: {new Date(games[0].transaction_time).toLocaleString([], {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })}
-</span>
+                <span style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  {!games[0].checked_in_at && games[0].reference && (
+                    <button
+                      type="button"
+                      onClick={() => handleCheckIn(games[0].reference as string, username)}
+                      disabled={checkingIn === games[0].reference}
+                      title="Add this ticket to today's queue so the customer gets live wait times"
+                      style={{
+                        background: "#ff9800",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: "6px 12px",
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {checkingIn === games[0].reference ? "Checking in..." : "Check in"}
+                    </button>
+                  )}
+                  <span style={{ fontSize: "0.85rem", color: "#666" }}>
+                    Last Order: {new Date(games[0].transaction_time).toLocaleString([], {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </span>
               </div>
               <div className="card-body" style={{ padding: "0" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>

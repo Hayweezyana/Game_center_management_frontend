@@ -8,15 +8,6 @@ import axios from 'axios';
 import './CheckoutExperience.css';
 import { useCartContext } from './hooks/useCart';
 
-interface CartItem {
-  id: number;
-  gameDuration: number;
-  quantity: number;
-  title: string;
-  price: number;
-  type?: 'game' | 'drink';
-}
-
 const formatNaira = (amount: number) => `N${amount.toLocaleString()}`;
 
 const PaystackPaymentPage: React.FC = () => {
@@ -129,19 +120,8 @@ const PaystackPaymentPage: React.FC = () => {
         },
       });
 
-      // ── Step 4: Queue games (fire-and-forget after navigation) ─────────
-      void Promise.all(
-        cartItems.map((item: CartItem) =>
-          axios.post(`${backendUrl}/v1/admin/queue/add`, {
-            game_id: item.id,
-            user_id: userDetails.id,
-            username: userDetails.username,
-            game_duration: item.gameDuration,
-            quantity: item.quantity,
-            game_title: item.title,
-          })
-        )
-      ).catch((err) => console.error('Queue insertion failed after navigation:', err));
+      // The play schedule is built server-side the moment the transaction is
+      // saved, so there is no longer a separate queue insert to fire here.
     } catch (error: any) {
       console.error('Payment processing error:', error);
       alert(

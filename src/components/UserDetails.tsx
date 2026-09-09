@@ -71,6 +71,15 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
   /** Discards an earlier slow search that resolves after a later one. */
   const searchIdRef = useRef(0);
 
+  // Each field wraps its own dropdown, so a click is only "outside" when it
+  // lands beyond the field that actually owns the open list.
+  const phoneFieldRef = useRef<HTMLDivElement>(null);
+  const usernameFieldRef = useRef<HTMLDivElement>(null);
+  const emailFieldRef = useRef<HTMLDivElement>(null);
+
+  /** Keyboard highlight in the customer list; -1 means nothing highlighted. */
+  const [activeIndex, setActiveIndex] = useState(-1);
+
   // ── Prefetch the customers most likely to be at the counter ───────────────
   useEffect(() => {
     let cancelled = false;
@@ -129,6 +138,76 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
   useEffect(() => () => runSearch.cancel(), [runSearch]);
 
   /** Fills every field from a picked record, so nothing has to be retyped. */
+  const closePicker = useCallback(() => {
+    setMatches([]);
+    setSearchField(null);
+    setActiveIndex(-1);
+  }, []);
+
+  // A dropdown left hanging over the next field is the fastest way to mis-tap
+  // at a busy counter, so any press outside its own field dismisses it.
+  useEffect(() => {
+    const owner =
+      searchField === 'phone'
+        ? phoneFieldRef
+        : searchField === 'username'
+        ? usernameFieldRef
+        : null;
+
+    const hasPicker = Boolean(owner) && matches.length > 0;
+    const hasEmail = emailSuggestions.length > 0;
+    if (!hasPicker && !hasEmail) return;
+
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+
+      if (hasPicker && owner?.current && !owner.current.contains(target)) {
+        closePicker();
+      }
+      if (hasEmail && emailFieldRef.current && !emailFieldRef.current.contains(target)) {
+        setEmailSuggestions([]);
+      }
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      closePicker();
+      setEmailSuggestions([]);
+    };
+
+    // mousedown/touchstart rather than click: the list must close on press, and
+    // the row's own onClick still fires because the press started inside it.
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [searchField, matches.length, emailSuggestions.length, closePicker]);
+
+  // A fresh result set starts unhighlighted.
+  useEffect(() => setActiveIndex(-1), [matches]);
+
+  /** Arrow keys and Enter, so the counter never has to reach for the mouse. */
+  const handlePickerKeys = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (matches.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActiveIndex((i) => (i + 1) % matches.length);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActiveIndex((i) => (i <= 0 ? matches.length - 1 : i - 1));
+    } else if (event.key === 'Enter' && activeIndex >= 0) {
+      event.preventDefault();
+      applyCustomer(matches[activeIndex]);
+    }
+  };
+
   const applyCustomer = useCallback(
     (customer: CustomerSummary) => {
       const parsed = parseBirthday(customer.birthday || '');
@@ -305,14 +384,28 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
     if (searchField !== field || matches.length === 0) return null;
 
     return (
-      <ul className="checkout-picker" role="listbox" aria-label="Matching customers">
-        {matches.map((customer) => (
-          <li key={customer.id} role="option" aria-selected={false}>
-            <button type="button" className="checkout-picker-row" onClick={() => applyCustomer(customer)}>
+      <ul className="checkout-picker" id={`picker-${field}`} role="listbox" aria-label="Matching customers">
+        <li className="checkout-picker-head" aria-hidden="true">
+          {matches.length} match{matches.length === 1 ? '' : 'es'} — tap to fill
+          <button type="button" className="checkout-picker-close" onClick={closePicker} aria-label="Close suggestions">
+            ×
+          </button>
+        </li>
+        {matches.map((customer, index) => (
+          <li key={customer.id} role="option" aria-selected={index === activeIndex}>
+            <button
+              type="button"
+              id={`picker-${field}-option-${index}`}
+              className={`checkout-picker-row${index === activeIndex ? ' is-active' : ''}`}
+              onClick={() => applyCustomer(customer)}
+              onMouseEnter={() => setActiveIndex(index)}
+            >
               <span className="checkout-picker-name">{(customer.username || 'Unnamed').trim()}</span>
               <span className="checkout-picker-meta">
-                {customer.phone} · {customer.visits} visit{customer.visits === 1 ? '' : 's'} ·{' '}
-                {relativeVisit(customer.lastVisit)}
+                <span className="checkout-picker-phone">{customer.phone}</span>
+                <span className="checkout-picker-visits">
+                  {customer.visits} visit{customer.visits === 1 ? '' : 's'} · {relativeVisit(customer.lastVisit)}
+                </span>
               </span>
             </button>
           </li>
@@ -348,24 +441,35 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
       )}
 
       <div className="checkout-field-grid">
-        <div className="checkout-field">
-          <label>Phone</label>
+        <div className="checkout-field" ref={phoneFieldRef}>
+          <label htmlFor="cx-phone">Phone</label>
           <input
+            id="cx-phone"
             className="checkout-input"
             type="tel"
+            inputMode="numeric"
             name="phone"
             placeholder="08000000000"
             autoComplete="off"
             value={userDetails.phone}
             onChange={handleChange}
+            onKeyDown={handlePickerKeys}
+            role="combobox"
+            aria-expanded={searchField === 'phone' && matches.length > 0}
+            aria-controls="picker-phone"
+            aria-autocomplete="list"
+            aria-activedescendant={
+              searchField === 'phone' && activeIndex >= 0 ? `picker-phone-option-${activeIndex}` : undefined
+            }
           />
           {renderPicker('phone')}
           {errors.phone && <p className="checkout-error">{errors.phone}</p>}
         </div>
 
-        <div className="checkout-field">
-          <label>Username</label>
+        <div className="checkout-field" ref={usernameFieldRef}>
+          <label htmlFor="cx-username">Username</label>
           <input
+            id="cx-username"
             className="checkout-input"
             type="text"
             name="username"
@@ -373,6 +477,16 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
             autoComplete="off"
             value={userDetails.username}
             onChange={handleChange}
+            onKeyDown={handlePickerKeys}
+            role="combobox"
+            aria-expanded={searchField === 'username' && matches.length > 0}
+            aria-controls="picker-username"
+            aria-autocomplete="list"
+            aria-activedescendant={
+              searchField === 'username' && activeIndex >= 0
+                ? `picker-username-option-${activeIndex}`
+                : undefined
+            }
           />
           {renderPicker('username')}
           {!matches.length && searchField === 'username' && !isSearching && userDetails.username.trim().length >= 2 && (
@@ -381,30 +495,37 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userDetails, setUserDetails, 
           {errors.username && <p className="checkout-error">{errors.username}</p>}
         </div>
 
-        <div className="checkout-field">
-          <label>Email (optional)</label>
+        <div className="checkout-field" ref={emailFieldRef}>
+          <label htmlFor="cx-email">Email (optional)</label>
           <input
+            id="cx-email"
             className="checkout-input"
             type="email"
+            inputMode="email"
             name="email"
             placeholder="name@email.com"
+            autoComplete="off"
             value={userDetails.email || ''}
             onChange={handleChange}
           />
           {emailSuggestions.length > 0 && (
-            <ul className="checkout-suggestions">
+            <ul className="checkout-suggestions" role="listbox" aria-label="Email suggestions">
               {emailSuggestions.map((suggestion) => (
-                <li
-                  className="checkout-suggestion"
-                  key={suggestion}
-                  onClick={() => {
-                    setUserDetails({ ...userDetails, email: suggestion });
-                    setEmailSuggestions([]);
-                    setErrors((prev) => ({ ...prev, email: undefined }));
-                    setSubmitError(null);
-                  }}
-                >
-                  {suggestion}
+                <li key={suggestion} role="option" aria-selected={false}>
+                  {/* A button, not a bare <li>: the old markup could not be
+                      reached by keyboard or announced as an option. */}
+                  <button
+                    type="button"
+                    className="checkout-suggestion"
+                    onClick={() => {
+                      setUserDetails({ ...userDetails, email: suggestion });
+                      setEmailSuggestions([]);
+                      setErrors((prev) => ({ ...prev, email: undefined }));
+                      setSubmitError(null);
+                    }}
+                  >
+                    {suggestion}
+                  </button>
                 </li>
               ))}
             </ul>

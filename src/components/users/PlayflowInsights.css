@@ -1,0 +1,237 @@
+/* Operator-facing insights: ratings, acquisition, and station capacity. */
+
+.pf-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #1b2733;
+}
+
+.pf-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e7ec;
+}
+
+.pf-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: -0.02em;
+}
+
+.pf-sub {
+  margin: 6px 0 0;
+  color: #62717f;
+  font-size: 0.9rem;
+  max-width: 60ch;
+}
+
+.pf-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pf-filters input,
+.pf-filters button {
+  padding: 8px 12px;
+  border: 1px solid #d3dae1;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.88rem;
+  color: #1b2733;
+}
+
+.pf-filters button {
+  cursor: pointer;
+}
+
+.pf-filters button:hover {
+  border-color: #9fb0bf;
+}
+
+.pf-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+@media (min-width: 900px) {
+  .pf-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pf-card {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid #e2e7ec;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.pf-grid .pf-card {
+  margin-top: 0;
+}
+
+.pf-card h2 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+
+/* Stations missing means customers are being told nothing at all. */
+.pf-card--warn {
+  border-color: #f0c98a;
+  background: #fffaf1;
+}
+
+.pf-card--alert {
+  border-color: #f0a89a;
+  background: #fff6f4;
+}
+
+.pf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7b8894;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e7ec;
+}
+
+.pf-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #f0f3f5;
+  vertical-align: middle;
+}
+
+.pf-table tr:last-child td {
+  border-bottom: none;
+}
+
+.pf-num {
+  text-align: right;
+}
+
+.pf-stations {
+  width: 74px;
+  padding: 6px 8px;
+  border: 1px solid #d3dae1;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.pf-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #1f7ae0;
+  color: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.pf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pf-stars {
+  color: #f0a500;
+  letter-spacing: 1px;
+}
+
+.pf-stars--low {
+  color: #d9534f;
+}
+
+.pf-overall {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 12px;
+  flex-wrap: wrap;
+}
+
+.pf-coverage {
+  margin: -4px 0 12px;
+}
+
+.pf-muted {
+  color: #62717f;
+  font-size: 0.85rem;
+}
+
+.pf-error {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fdecea;
+  color: #9c2c22;
+  font-size: 0.9rem;
+}
+
+.pf-comments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pf-comments li {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f3f5;
+}
+
+.pf-comments li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.pf-comment-meta {
+  margin-left: 8px;
+  font-size: 0.78rem;
+  color: #7b8894;
+}
+
+.pf-comment-text {
+  margin: 5px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #33414e;
+}
+
+/* Capacity table can outgrow a narrow screen — scroll it, not the page. */
+.pf-scroll {
+  overflow-x: auto;
+}
+
+.pf-row--warn td {
+  background: #fffaf1;
+}
+
+/* Makes a shared bay visible: editing one member affects what the others can do. */
+.pf-shares {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.72rem;
+  color: #7b8894;
+}

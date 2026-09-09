@@ -18,6 +18,30 @@ interface PaymentSelectionProps {
 
 type Terminal = 'immersia' | 'funstation' | 'paystack' | 'gkg';
 
+/**
+ * Fallback list if the backend is unreachable — the counter must never be
+ * blocked by a dropdown. The server copy at /v1/acquisition-channels is
+ * authoritative so the options can be changed without a redeploy.
+ */
+const FALLBACK_CHANNELS = [
+  'Instagram',
+  'TikTok',
+  'Facebook',
+  'X (Twitter)',
+  'WhatsApp status or broadcast',
+  'Google search',
+  'A friend or family member',
+  'Saw the sign / walked past',
+  'An influencer or blog',
+  'School or group trip',
+  'Event or birthday party',
+  "I've been here before",
+  'Other',
+];
+
+const RETURNING_CHANNEL = "I've been here before";
+const MAX_PARTY_SIZE = 20;
+
 const terminals: Array<{ key: Terminal; title: string; description: string; lane: string; iconClass: string }> = [
   {
     key: 'immersia',
@@ -64,6 +88,62 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
   const [creditEligible, setCreditEligible] = useState(false);
   const [creditChecked, setCreditChecked] = useState(false);
 
+  // How many people share this ticket. Four rounds bought by one player is a
+  // queue of four; the same four bought by a family is a single slot — the
+  // scheduler cannot estimate a finish time without knowing which.
+  const [partySize, setPartySize] = useState(1);
+
+  const [channels, setChannels] = useState<string[]>(FALLBACK_CHANNELS);
+  const [heardAboutUs, setHeardAboutUs] = useState('');
+  const [heardDetail, setHeardDetail] = useState('');
+  const [isReturningCustomer, setIsReturningCustomer] = useState(false);
+  const [attributionTouched, setAttributionTouched] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(`${process.env.REACT_APP_BACKEND_URL}/v1/acquisition-channels`)
+      .then((res) => {
+        const list = res.data?.data;
+        if (!cancelled && Array.isArray(list) && list.length) setChannels(list);
+      })
+      .catch(() => {
+        // Keep the fallback list — never block a sale on this.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Regulars have already told us where they heard about us. Asking again on
+  // every visit slows the counter and buries the real acquisition channel under
+  // a pile of "been here before".
+  useEffect(() => {
+    const phone = userDetails?.phone;
+    if (!phone || phone.length < 10) return;
+
+    let cancelled = false;
+    axios
+      .get(`${process.env.REACT_APP_BACKEND_URL}/v1/admin/users/search`, {
+        params: { q: phone, limit: 1 },
+      })
+      .then((res) => {
+        const match = Array.isArray(res.data?.data) ? res.data.data[0] : null;
+        if (cancelled || !match) return;
+        if (Number(match.visits) > 0) {
+          setIsReturningCustomer(true);
+          setHeardAboutUs((current) => current || RETURNING_CHANNEL);
+        }
+      })
+      .catch(() => {
+        // Unknown means treat them as new — asking once too often beats never.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userDetails?.phone]);
+
   useEffect(() => {
     const phone = userDetails?.phone;
     if (!phone || phone.length < 10) {
@@ -81,21 +161,42 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
       .finally(() => setCreditChecked(true));
   }, [userDetails?.phone]);
 
+  const needsAttribution = !isReturningCustomer;
+  const attributionMissing = needsAttribution && !heardAboutUs;
+  const detailMissing = heardAboutUs === 'Other' && !heardDetail.trim();
+  const canPay = !attributionMissing && !detailMissing;
+
+  // Every payment page spreads userDetails straight into its transaction
+  // payload, so merging here carries both new fields through all five terminals
+  // without touching any of them.
   const navState = {
     finalAmount: discountedAmount,
-    userDetails,
+    userDetails: {
+      ...userDetails,
+      party_size: partySize,
+      heard_about_us: heardAboutUs || null,
+      heard_about_us_detail: heardAboutUs === 'Other' ? heardDetail.trim() : null,
+    },
     cartItems,
     discount,
     discountReason,
     isAdmin,
   };
 
+  const guardAndGo = (path: string) => {
+    if (!canPay) {
+      setAttributionTouched(true);
+      return;
+    }
+    navigate(path, { state: navState });
+  };
+
   const handleSelectPayment = (terminal: Terminal) => {
-    navigate(`/${terminal}paymentpage`, { state: navState });
+    guardAndGo(`/${terminal}paymentpage`);
   };
 
   const handleCreditPayment = () => {
-    navigate('/creditpaymentpage', { state: navState });
+    guardAndGo('/creditpaymentpage');
   };
 
   return (
@@ -114,7 +215,97 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
         <span className="value">N{finalAmount.toLocaleString()}</span>
       </div>
 
-      <div className="terminal-grid payment-options-grid">
+      <div className="prepay-panel">
+        <div className="prepay-field">
+          <label htmlFor="party-size">How many people are playing on this ticket?</label>
+          <div className="party-stepper">
+            <button
+              type="button"
+              className="party-btn"
+              onClick={() => setPartySize((n) => Math.max(1, n - 1))}
+              disabled={partySize <= 1}
+              aria-label="Fewer players"
+            >
+              −
+            </button>
+            <input
+              id="party-size"
+              className="party-input"
+              type="number"
+              min={1}
+              max={MAX_PARTY_SIZE}
+              value={partySize}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                if (!Number.isFinite(next)) return;
+                setPartySize(Math.min(MAX_PARTY_SIZE, Math.max(1, Math.round(next))));
+              }}
+            />
+            <button
+              type="button"
+              className="party-btn"
+              onClick={() => setPartySize((n) => Math.min(MAX_PARTY_SIZE, n + 1))}
+              disabled={partySize >= MAX_PARTY_SIZE}
+              aria-label="More players"
+            >
+              +
+            </button>
+          </div>
+          <p className="prepay-hint">
+            {partySize === 1
+              ? 'One player — rounds will be played one after another.'
+              : `${partySize} players — rounds can run at the same time, so you finish sooner.`}
+          </p>
+        </div>
+
+        <div className="prepay-field">
+          <label htmlFor="heard-about-us">
+            How did you hear about us?{needsAttribution ? '' : ' (optional)'}
+          </label>
+          <select
+            id="heard-about-us"
+            className="prepay-input"
+            value={heardAboutUs}
+            onChange={(e) => {
+              setHeardAboutUs(e.target.value);
+              setAttributionTouched(true);
+              if (e.target.value !== 'Other') setHeardDetail('');
+            }}
+          >
+            <option value="">Select an option</option>
+            {channels.map((channel) => (
+              <option key={channel} value={channel}>
+                {channel}
+              </option>
+            ))}
+          </select>
+
+          {heardAboutUs === 'Other' && (
+            <input
+              className="prepay-input prepay-detail"
+              type="text"
+              placeholder="Tell us where"
+              maxLength={200}
+              value={heardDetail}
+              onChange={(e) => setHeardDetail(e.target.value)}
+            />
+          )}
+
+          {isReturningCustomer && (
+            <p className="prepay-hint">Welcome back — we already have this on file.</p>
+          )}
+          {attributionTouched && attributionMissing && (
+            <p className="prepay-error">Please pick an option before choosing a terminal.</p>
+          )}
+          {attributionTouched && detailMissing && (
+            <p className="prepay-error">Let us know where you heard about us.</p>
+          )}
+        </div>
+      </div>
+
+      <div
+        className={`terminal-grid payment-options-grid${canPay ? '' : ' payment-options-locked'}`}
+      >
         {terminals.map((terminal) => (
           <button className="payment-option terminal-card" key={terminal.key} onClick={() => handleSelectPayment(terminal.key)}>
             <div className={terminal.iconClass} aria-hidden="true" />
