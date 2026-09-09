@@ -134,6 +134,12 @@ const ImmersiaPaymentPage: React.FC = () => {
         username: userDetails.username,
         phone: userDetails.phone,
         ...(isValidEmail(userDetails.email) ? { email: userDetails.email } : {}),
+        // Carried through the terminal payload because the Moniepoint webhook,
+        // not this page, is what finally saves the transaction. Stripping them
+        // here lost the party size and the attribution answer on every card sale.
+        party_size: userDetails.party_size,
+        heard_about_us: userDetails.heard_about_us ?? null,
+        heard_about_us_detail: userDetails.heard_about_us_detail ?? null,
       };
 
       const cartTotalKobo = calcCartTotalKobo(cartItems ?? []);

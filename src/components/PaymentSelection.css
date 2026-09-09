@@ -175,6 +175,30 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Unanswered required field — an empty box on a dark panel reads as optional
+   otherwise, and this one silently changes how every round is scheduled. */
+.party-input-error {
+  border-color: rgba(255, 122, 98, 0.85);
+  box-shadow: 0 0 0 2px rgba(255, 122, 98, 0.18);
+}
+
+.party-input::placeholder {
+  color: #6f9bb1;
+}
+
+.prepay-required {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffc9bd;
+  background: rgba(255, 122, 98, 0.16);
+  border: 1px solid rgba(255, 122, 98, 0.32);
+  vertical-align: middle;
+}
+
 /* Terminals stay visible but clearly not yet selectable. */
 .payment-options-locked {
   opacity: 0.55;

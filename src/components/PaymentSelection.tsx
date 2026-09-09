@@ -25,17 +25,16 @@ type Terminal = 'immersia' | 'funstation' | 'paystack' | 'gkg';
  */
 const FALLBACK_CHANNELS = [
   'Instagram',
-  'TikTok',
   'Facebook',
-  'X (Twitter)',
+  'YouTube',
   'WhatsApp status or broadcast',
   'Google search',
+  'TikTok',
   'A friend or family member',
-  'Saw the sign / walked past',
-  'An influencer or blog',
-  'School or group trip',
+  'Saw the sign / walked in',
   'Event or birthday party',
   "I've been here before",
+  'Found it on my own',
   'Other',
 ];
 
@@ -91,7 +90,12 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
   // How many people share this ticket. Four rounds bought by one player is a
   // queue of four; the same four bought by a family is a single slot — the
   // scheduler cannot estimate a finish time without knowing which.
-  const [partySize, setPartySize] = useState(1);
+  //
+  // Starts unset rather than at 1: defaulting produces a confidently wrong
+  // allocation for every group, which is worse than no answer, and nobody would
+  // ever notice they had skipped it.
+  const [partySize, setPartySize] = useState<number | null>(null);
+  const [partyTouched, setPartyTouched] = useState(false);
 
   const [channels, setChannels] = useState<string[]>(FALLBACK_CHANNELS);
   const [heardAboutUs, setHeardAboutUs] = useState('');
@@ -164,7 +168,8 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
   const needsAttribution = !isReturningCustomer;
   const attributionMissing = needsAttribution && !heardAboutUs;
   const detailMissing = heardAboutUs === 'Other' && !heardDetail.trim();
-  const canPay = !attributionMissing && !detailMissing;
+  const partyMissing = partySize === null;
+  const canPay = !partyMissing && !attributionMissing && !detailMissing;
 
   // Every payment page spreads userDetails straight into its transaction
   // payload, so merging here carries both new fields through all five terminals
@@ -185,7 +190,13 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
 
   const guardAndGo = (path: string) => {
     if (!canPay) {
+      setPartyTouched(true);
       setAttributionTouched(true);
+      // Send them to whichever question is unanswered rather than leaving the
+      // error off-screen on a phone.
+      const anchor = document.getElementById(partyMissing ? 'party-size' : 'heard-about-us');
+      anchor?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      anchor?.focus({ preventScroll: true });
       return;
     }
     navigate(path, { state: navState });
@@ -217,26 +228,43 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
 
       <div className="prepay-panel">
         <div className="prepay-field">
-          <label htmlFor="party-size">How many people are playing on this ticket?</label>
+          <label htmlFor="party-size">
+            How many people are playing on this ticket? <span className="prepay-required">Required</span>
+          </label>
           <div className="party-stepper">
             <button
               type="button"
               className="party-btn"
-              onClick={() => setPartySize((n) => Math.max(1, n - 1))}
-              disabled={partySize <= 1}
+              onClick={() => {
+                setPartyTouched(true);
+                setPartySize((n) => Math.max(1, (n ?? 1) - 1));
+              }}
+              disabled={partySize === null || partySize <= 1}
               aria-label="Fewer players"
             >
               −
             </button>
             <input
               id="party-size"
-              className="party-input"
+              className={`party-input${partyTouched && partyMissing ? ' party-input-error' : ''}`}
               type="number"
+              inputMode="numeric"
               min={1}
               max={MAX_PARTY_SIZE}
-              value={partySize}
+              placeholder="—"
+              aria-required="true"
+              aria-invalid={partyTouched && partyMissing}
+              value={partySize ?? ''}
               onChange={(e) => {
-                const next = Number(e.target.value);
+                setPartyTouched(true);
+                const raw = e.target.value;
+                // Clearing the box returns to unset rather than snapping to 1,
+                // so a mistyped number can be corrected without being locked in.
+                if (raw.trim() === '') {
+                  setPartySize(null);
+                  return;
+                }
+                const next = Number(raw);
                 if (!Number.isFinite(next)) return;
                 setPartySize(Math.min(MAX_PARTY_SIZE, Math.max(1, Math.round(next))));
               }}
@@ -244,18 +272,26 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
             <button
               type="button"
               className="party-btn"
-              onClick={() => setPartySize((n) => Math.min(MAX_PARTY_SIZE, n + 1))}
-              disabled={partySize >= MAX_PARTY_SIZE}
+              onClick={() => {
+                setPartyTouched(true);
+                setPartySize((n) => Math.min(MAX_PARTY_SIZE, (n ?? 0) + 1));
+              }}
+              disabled={partySize !== null && partySize >= MAX_PARTY_SIZE}
               aria-label="More players"
             >
               +
             </button>
           </div>
           <p className="prepay-hint">
-            {partySize === 1
+            {partySize === null
+              ? 'Needed to work out when each game starts — count everyone sharing this ticket.'
+              : partySize === 1
               ? 'One player — rounds will be played one after another.'
               : `${partySize} players — rounds can run at the same time, so you finish sooner.`}
           </p>
+          {partyTouched && partyMissing && (
+            <p className="prepay-error">Enter how many people are playing before choosing a terminal.</p>
+          )}
         </div>
 
         <div className="prepay-field">
