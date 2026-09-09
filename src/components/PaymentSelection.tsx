@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './PaymentSelection.css';
@@ -97,6 +97,19 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
   const [partySize, setPartySize] = useState<number | null>(null);
   const [partyTouched, setPartyTouched] = useState(false);
 
+  // Asked only when the answer can change anything. The test is rounds, not
+  // games: four rounds of a single game is exactly the case where it matters
+  // most — one player queues four times, four players go at once. A single
+  // round is one turn on one station no matter who is holding the ticket.
+  const totalRounds = useMemo(
+    () =>
+      (cartItems ?? [])
+        .filter((item: any) => item?.type === 'game')
+        .reduce((sum: number, item: any) => sum + (Number(item?.quantity) || 0), 0),
+    [cartItems]
+  );
+  const partyRelevant = totalRounds > 1;
+
   const [channels, setChannels] = useState<string[]>(FALLBACK_CHANNELS);
   const [heardAboutUs, setHeardAboutUs] = useState('');
   const [heardDetail, setHeardDetail] = useState('');
@@ -168,7 +181,7 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
   const needsAttribution = !isReturningCustomer;
   const attributionMissing = needsAttribution && !heardAboutUs;
   const detailMissing = heardAboutUs === 'Other' && !heardDetail.trim();
-  const partyMissing = partySize === null;
+  const partyMissing = partyRelevant && partySize === null;
   const canPay = !partyMissing && !attributionMissing && !detailMissing;
 
   // Every payment page spreads userDetails straight into its transaction
@@ -178,7 +191,9 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
     finalAmount: discountedAmount,
     userDetails: {
       ...userDetails,
-      party_size: partySize,
+      // A ticket with a single round is always one turn, so it is sent as one
+      // player rather than making the counter answer a question with no effect.
+      party_size: partyRelevant ? partySize : 1,
       heard_about_us: heardAboutUs || null,
       heard_about_us_detail: heardAboutUs === 'Other' ? heardDetail.trim() : null,
     },
@@ -227,6 +242,7 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
       </div>
 
       <div className="prepay-panel">
+        {partyRelevant && (
         <div className="prepay-field">
           <label htmlFor="party-size">
             How many people are playing on this ticket? <span className="prepay-required">Required</span>
@@ -293,6 +309,7 @@ const PaymentSelection: React.FC<PaymentSelectionProps> = ({
             <p className="prepay-error">Enter how many people are playing before choosing a terminal.</p>
           )}
         </div>
+        )}
 
         <div className="prepay-field">
           <label htmlFor="heard-about-us">

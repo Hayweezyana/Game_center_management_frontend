@@ -202,6 +202,100 @@
   opacity: 0.75;
 }
 
+/* ── Player ratings ──────────────────────────────────────────────────────────
+   The same scores collected on the waiting page, shown back to the people
+   choosing. Absent below the response threshold rather than showing a verdict
+   drawn from one opinion.
+--------------------------------------------------------------------------- */
+
+.rating {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+
+.ratingStars {
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.ratingStarOn {
+  color: var(--gs-warm);
+}
+
+/* Half marks read as "nearly" without needing a clipped glyph. */
+.ratingStarHalf {
+  color: var(--gs-warm);
+  opacity: 0.5;
+}
+
+.ratingStarOff {
+  color: rgba(156, 186, 208, 0.35);
+}
+
+.ratingScore {
+  color: var(--gs-text);
+  font-weight: 700;
+}
+
+.ratingCount {
+  color: var(--gs-muted);
+}
+
+.reviews {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--gs-line);
+}
+
+.reviewsTitle {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gs-muted);
+}
+
+.reviewList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.reviewHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.reviewStars {
+  color: var(--gs-warm);
+  font-size: 0.76rem;
+  letter-spacing: 1px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.reviewName {
+  font-size: 0.76rem;
+  color: var(--gs-muted);
+}
+
+.reviewText {
+  margin: 3px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--gs-text);
+  /* A long comment must not stretch the card past its neighbours. */
+  overflow-wrap: anywhere;
+}
+
 /* Shown in place of the quantity stepper when an experience is off the menu. */
 .notOffered {
   margin: 12px 0 0;

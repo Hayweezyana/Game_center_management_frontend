@@ -5,6 +5,7 @@ import io, { Socket } from 'socket.io-client';
 import logo from './logo/immersia.png';
 import { trackPurchase } from '../utils/metaPixel';
 import { recordStep } from '../utils/visitTracking';
+import { starFill, useRatings } from './hooks/useRatings';
 import { useCartContext } from './hooks/useCart';
 import './Ticket.css';
 
@@ -137,6 +138,9 @@ const Ticket: React.FC = () => {
   const [live, setLive] = useState<LiveTicket | null>(null);
   const [now, setNow] = useState<number>(() => Date.now());
   const [ratings, setRatings] = useState<Record<string, number>>({});
+  // What other players scored each experience — the same public ratings shown
+  // on the game grid, so someone waiting can see what they are in for.
+  const { byGameId: publicRatings } = useRatings();
   const [comments, setComments] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [savedKeys, setSavedKeys] = useState<Record<string, boolean>>({});
@@ -376,6 +380,36 @@ const Ticket: React.FC = () => {
                   <div className="wait-row-main">
                     <span className="wait-game">{row.game_title}</span>
                     {row.rounds > 1 && <span className="wait-rounds">{row.rounds} rounds</span>}
+                    {(() => {
+                      const score = row.game_id ? publicRatings[String(row.game_id)] : undefined;
+                      if (!score) return null;
+                      const fill = starFill(score.average_rating);
+                      return (
+                        <span
+                          className="wait-rating"
+                          aria-label={`Rated ${score.average_rating} out of 5 by ${score.responses} players`}
+                        >
+                          <span className="wait-rating-stars" aria-hidden="true">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span
+                                key={star}
+                                className={
+                                  fill >= star
+                                    ? 'wait-rating-on'
+                                    : fill >= star - 0.5
+                                    ? 'wait-rating-half'
+                                    : 'wait-rating-off'
+                                }
+                              >
+                                ★
+                              </span>
+                            ))}
+                          </span>
+                          <span className="wait-rating-score">{score.average_rating.toFixed(1)}</span>
+                          <span className="wait-rating-count">({score.responses})</span>
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <div className="wait-row-meta">

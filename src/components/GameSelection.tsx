@@ -8,6 +8,7 @@ import { useCartContext } from './hooks/useCart';
 import { trackAddToCart, trackInitiateCheckout } from '../utils/metaPixel';
 import { getRoutePrefetchProps } from '../utils/routePrefetch';
 import { formatWait, useAvailability, waitTone } from './hooks/useAvailability';
+import { starFill, useRatings } from './hooks/useRatings';
 import styles from './GameSelection.module.css';
 
 interface CartItem {
@@ -92,6 +93,9 @@ const GameSelection: React.FC = () => {
   const { addToCart, cartItems, updateCartItem } = useCartContext();
   // Next-available time per experience, so the wait is visible before choosing.
   const { byGameId: availability, now: availabilityNow } = useAvailability();
+  // What previous players scored each experience — the same ratings collected on
+  // the waiting page, shown back to the people choosing.
+  const { byGameId: ratings } = useRatings();
 
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
@@ -380,6 +384,9 @@ const GameSelection: React.FC = () => {
             // Deliberately not on offer — selling it would create a ticket
             // nobody can honour. A station that is merely offline stays sellable.
             const notOffered = isTimedExperience && slot ? !slot.bookable : false;
+            // Absent until enough people have rated it — one score is an opinion,
+            // not a rating, and would read as a verdict on the card.
+            const rating = ratings[String(game.id)];
 
             return (
               <article key={game.id} className={styles.videoCard} style={cardStyle}>
@@ -398,6 +405,31 @@ const GameSelection: React.FC = () => {
                           {slot.units_ahead} ahead
                         </span>
                       )}
+                    </div>
+                  )}
+                  {rating && (
+                    <div
+                      className={styles.rating}
+                      aria-label={`Rated ${rating.average_rating} out of 5 by ${rating.responses} players`}
+                    >
+                      <span className={styles.ratingStars} aria-hidden="true">
+                        {[1, 2, 3, 4, 5].map((star) => {
+                          const fill = starFill(rating.average_rating);
+                          const cls =
+                            fill >= star
+                              ? styles.ratingStarOn
+                              : fill >= star - 0.5
+                              ? styles.ratingStarHalf
+                              : styles.ratingStarOff;
+                          return (
+                            <span key={star} className={cls}>
+                              ★
+                            </span>
+                          );
+                        })}
+                      </span>
+                      <span className={styles.ratingScore}>{rating.average_rating.toFixed(1)}</span>
+                      <span className={styles.ratingCount}>({rating.responses})</span>
                     </div>
                   )}
                 </div>
@@ -436,6 +468,26 @@ const GameSelection: React.FC = () => {
                     </div>
                   )}
                 </button>
+
+                {isOpen && rating && rating.comments.length > 0 && (
+                  <div className={styles.reviews}>
+                    <h3 className={styles.reviewsTitle}>What players said</h3>
+                    <ul className={styles.reviewList}>
+                      {rating.comments.map((review) => (
+                        <li key={review.id} className={styles.review}>
+                          <div className={styles.reviewHead}>
+                            <span className={styles.reviewStars} aria-label={`${review.rating} out of 5`}>
+                              {'★'.repeat(review.rating)}
+                              <span className={styles.ratingStarOff}>{'★'.repeat(5 - review.rating)}</span>
+                            </span>
+                            <span className={styles.reviewName}>{review.name}</span>
+                          </div>
+                          <p className={styles.reviewText}>{review.comment}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {notOffered ? (
                   <p className={styles.notOffered}>Not available right now</p>

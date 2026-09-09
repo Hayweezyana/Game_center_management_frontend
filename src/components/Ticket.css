@@ -235,3 +235,43 @@
 @media print {
   .wait-board { display: none !important; }
 }
+
+/* ── Player ratings on the waiting page ──────────────────────────────────────
+   The public score for each experience in the itinerary, so someone waiting can
+   see what other players made of it. Same data as the game grid.
+--------------------------------------------------------------------------- */
+
+.wait-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.wait-rating-stars {
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.wait-rating-on {
+  color: #ffbf59;
+}
+
+.wait-rating-half {
+  color: #ffbf59;
+  opacity: 0.5;
+}
+
+.wait-rating-off {
+  color: rgba(156, 186, 208, 0.35);
+}
+
+.wait-rating-score {
+  font-weight: 700;
+}
+
+.wait-rating-count {
+  opacity: 0.7;
+}
