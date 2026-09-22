@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 import './ControllerRepairLog.css';
 
 /**
@@ -247,9 +249,115 @@ const ControllerRepairLog: React.FC = () => {
     (l) => (!filterPad || l.controller_id === filterPad) && (!filterStatus || l.status === filterStatus)
   );
 
+  // What the filters currently say, spelled out. The printed sheet has no
+  // dropdowns on it, so a page showing 4 of 60 entries has to say so in words
+  // or it reads as the whole log.
+  const filterCaption = [
+    filterPad ? controllers.find((c) => c.id === filterPad)?.name_tag ?? 'Selected controller' : 'All controllers',
+    filterStatus === 'faulty' ? 'Faulty only' : filterStatus === 'repaired' ? 'Repaired only' : 'Any status',
+    `${visibleLogs.length} ${visibleLogs.length === 1 ? 'entry' : 'entries'}`,
+  ].join(' · ');
+
+  /**
+   * Print the log, and only the log.
+   *
+   * This page renders inside the admin console, under a hero banner and a row
+   * of tab buttons that are not part of the document. A print stylesheet
+   * cannot reach them — they are ancestors' siblings, not descendants — so
+   * every sibling on the path up to <body> is marked for the duration of the
+   * print and unmarked afterwards.
+   *
+   * Marking rather than repositioning: lifting the log out with `position:
+   * absolute` is the usual trick, and it clips a multi-page table to the first
+   * page in some browsers. Left in normal flow, the log paginates properly and
+   * the table header repeats on each sheet.
+   */
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const clearPrintMarks = useCallback(() => {
+    document
+      .querySelectorAll<HTMLElement>('[data-crl-print-hidden]')
+      .forEach((el) => delete el.dataset.crlPrintHidden);
+  }, []);
+
+  useEffect(() => {
+    const done = () => clearPrintMarks();
+    window.addEventListener('afterprint', done);
+    // Also runs on unmount, so navigating away mid-dialog cannot strand the
+    // rest of the console hidden.
+    return () => {
+      window.removeEventListener('afterprint', done);
+      done();
+    };
+  }, [clearPrintMarks]);
+
+  const handlePrint = () => {
+    for (let el: HTMLElement | null = printRef.current; el && el !== document.body; el = el.parentElement) {
+      const parent = el.parentElement;
+      if (!parent) break;
+      Array.from(parent.children).forEach((sibling) => {
+        if (sibling !== el && sibling instanceof HTMLElement) {
+          sibling.dataset.crlPrintHidden = '1';
+        }
+      });
+    }
+    window.print();
+  };
+
+  /**
+   * Excel, not a picture of a table.
+   *
+   * Dates go out as YYYY-MM-DD rather than the display format, because a
+   * column of "12 Aug 2026" is text to a spreadsheet: it will not sort, and it
+   * will not filter by range. The exported sheet is meant to be worked on.
+   */
+  const exportToExcel = () => {
+    if (visibleLogs.length === 0) return;
+
+    const rows = visibleLogs.map((log) => ({
+      'Name tag': log.name_tag ?? '',
+      'Console': log.console ?? '',
+      'Fault(s) detected': describeFaults(log),
+      'Date reported': log.reported_at ?? '',
+      'Reported by': log.reported_by ?? '',
+      'Date of repair': log.repaired_at ?? '',
+      'Repaired by': log.repaired_by ?? '',
+      'Days out': daysBetween(log.reported_at, log.repaired_at ?? todayIso()) ?? '',
+      'Status': log.status === 'faulty' ? 'Faulty' : 'Repaired',
+      'Fault notes': log.fault_notes ?? '',
+      'Repair notes': log.repair_notes ?? '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet['!cols'] = [
+      { wch: 12 }, { wch: 14 }, { wch: 28 }, { wch: 13 }, { wch: 16 }, { wch: 13 },
+      { wch: 16 }, { wch: 9 }, { wch: 10 }, { wch: 34 }, { wch: 34 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Repair Log');
+    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+
+    const scope = filterPad
+      ? (controllers.find((c) => c.id === filterPad)?.name_tag ?? 'filtered').replace(/[^\w-]+/g, '_')
+      : 'All';
+    saveAs(
+      new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      `Controller_Repair_Log_${scope}_${todayIso()}.xlsx`
+    );
+  };
+
   return (
-    <div className="crl-page">
-      <header className="crl-head">
+    <div className="crl-page" ref={printRef}>
+      {/* Screen-hidden, print-only. A printed sheet leaves the building with
+          no dropdowns attached to it, so it has to carry its own scope and
+          date or it cannot be read six months later. */}
+      <div className="crl-print-head">
+        <h1>PS5 Controller Repair Log</h1>
+        <p>{filterCaption} · Printed {prettyDate(todayIso())}</p>
+      </div>
+
+      <header className="crl-head crl-no-print">
         <h2>PS5 Controller Repair Log</h2>
         <p className="crl-sub">
           Log a pad by its name tag when it goes bad, and close the entry when it comes back. Nothing
@@ -258,11 +366,11 @@ const ControllerRepairLog: React.FC = () => {
         </p>
       </header>
 
-      {error && <p className="crl-error" role="alert">{error}</p>}
-      {notice && <p className="crl-notice">{notice}</p>}
+      {error && <p className="crl-error crl-no-print" role="alert">{error}</p>}
+      {notice && <p className="crl-notice crl-no-print">{notice}</p>}
 
       {/* ── The board ──────────────────────────────────────────────────────── */}
-      <section className="crl-card">
+      <section className="crl-card crl-no-print">
         <div className="crl-card-head">
           <h3>Controllers</h3>
           <button type="button" className="crl-btn crl-btn--small" onClick={() => setShowAdd((v) => !v)}>
@@ -329,7 +437,7 @@ const ControllerRepairLog: React.FC = () => {
       </section>
 
       {/* ── Report a fault ─────────────────────────────────────────────────── */}
-      <section className="crl-card">
+      <section className="crl-card crl-no-print">
         <h3>Report a fault</h3>
         <p className="crl-note">
           Recording a fault takes the pad out of service straight away. It stays out until the entry
@@ -463,7 +571,7 @@ const ControllerRepairLog: React.FC = () => {
       </section>
 
       {/* ── Awaiting repair ────────────────────────────────────────────────── */}
-      <section className="crl-card">
+      <section className="crl-card crl-no-print">
         <h3>Awaiting repair {openLogs.length > 0 && <span className="crl-count">{openLogs.length}</span>}</h3>
 
         {openLogs.length === 0 ? (
@@ -533,7 +641,7 @@ const ControllerRepairLog: React.FC = () => {
       <section className="crl-card">
         <div className="crl-card-head">
           <h3>Repair log</h3>
-          <div className="crl-filters">
+          <div className="crl-filters crl-no-print">
             <select className="crl-input crl-input--tight" value={filterPad} onChange={(e) => setFilterPad(e.target.value)}>
               <option value="">All controllers</option>
               {controllers.map((pad) => (
@@ -549,8 +657,28 @@ const ControllerRepairLog: React.FC = () => {
               <option value="faulty">Faulty</option>
               <option value="repaired">Repaired</option>
             </select>
+            <button
+              type="button"
+              className="crl-btn crl-btn--small"
+              onClick={handlePrint}
+              disabled={visibleLogs.length === 0}
+            >
+              Print
+            </button>
+            <button
+              type="button"
+              className="crl-btn crl-btn--small"
+              onClick={exportToExcel}
+              disabled={visibleLogs.length === 0}
+            >
+              Export to Excel
+            </button>
           </div>
         </div>
+
+        {/* Printed above the table, so a page that shows part of the log says
+            which part. On screen the dropdowns already say it. */}
+        <p className="crl-print-caption">{filterCaption}</p>
 
         {visibleLogs.length === 0 ? (
           <p className="crl-muted">No entries yet.</p>

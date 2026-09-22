@@ -288,8 +288,106 @@
 .crl-badge--faulty   { background: #fdecea; color: #96281b; }
 .crl-badge--repaired { background: #eaf6ee; color: #1c6b3e; }
 
+/* The print header and the filter caption exist only on paper. */
+.crl-print-head,
+.crl-print-caption { display: none; }
+
 @media (max-width: 560px) {
   .crl-page { padding: 14px; }
   .crl-field--wide { max-width: none; }
   .crl-inline-form .crl-field { width: 100%; }
+}
+
+/* ── Print ───────────────────────────────────────────────────────────────────
+   What prints is the log and nothing else. The board, the fault form and the
+   bench list are working surfaces — a button is useless on paper, and a form
+   printed blank invites someone to fill it in by hand and never key it back.  */
+
+@media print {
+  /* Landscape because the log is eleven columns wide once notes are included;
+     portrait either truncates the notes or shrinks the whole sheet. */
+  @page { size: A4 landscape; margin: 12mm; }
+
+  .crl-no-print { display: none !important; }
+
+  /* Marked by the print handler: everything alongside the log on the way up to
+     <body> — the console hero, the tab strip, any open modal. */
+  [data-crl-print-hidden] { display: none !important; }
+
+  .crl-page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    color: #000;
+  }
+
+  .crl-print-head {
+    display: block;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid #000;
+  }
+
+  .crl-print-head h1 { margin: 0; font-size: 15pt; }
+  .crl-print-head p  { margin: 3px 0 0; font-size: 9pt; color: #333; }
+
+  .crl-print-caption {
+    display: block;
+    margin: 0 0 8px;
+    font-size: 9pt;
+    color: #333;
+  }
+
+  .crl-card {
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
+  }
+
+  /* The heading and filter row above the table are chrome once it is the only
+     thing on the page — the print header already names the document. */
+  .crl-card-head { display: none; }
+
+  /* The screen version scrolls sideways inside a box; paper does not scroll. */
+  .crl-scroll { overflow: visible; }
+
+  .crl-table {
+    min-width: 0;
+    width: 100%;
+    font-size: 8.5pt;
+  }
+
+  .crl-table th {
+    color: #000;
+    border-bottom: 1px solid #000;
+    font-size: 7.5pt;
+  }
+
+  .crl-table td { border-bottom: 1px solid #ccc; }
+
+  /* A log runs to several pages. Repeat the header on each one and never let a
+     row straddle a page break, or the second page reads as unlabelled columns. */
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  tr     { page-break-inside: avoid; break-inside: avoid; }
+
+  .crl-cell-notes { max-width: none; color: #333; }
+
+  /* Status is the one thing carried by colour on screen. On paper it has to
+     survive a monochrome printer, so it prints as an outlined word. */
+  .crl-badge {
+    padding: 0;
+    background: none !important;
+    color: #000 !important;
+    font-weight: 700;
+  }
+
+  .crl-badge--faulty::before { content: '● '; }
+  .crl-badge--repaired::before { content: '○ '; }
+
+  .crl-row--faulty td { background: none; }
+
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
