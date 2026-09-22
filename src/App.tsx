@@ -30,6 +30,7 @@ const DrinkInventory = lazy(() => import('./components/users/DrinkInventory'));
 const OperatorConsumedGames = lazy(() => import('./components/users/OperatorConsumedGames'));
 const PlayflowInsights = lazy(() => import('./components/users/PlayflowInsights'));
 const AdminTransaction = lazy(() => import('./components/users/Admintransaction'));
+const ControllerRepairLog = lazy(() => import('./components/users/ControllerRepairLog'));
 const MarketersReportPage = lazy(() => import('./components/MarketersReportPage'));
 const InternalControlEntry = lazy(() => import('./components/InternalControlEntry'));
 const InternalControlDashboard = lazy(() => import('./components/InternalControlDashboard'));
@@ -397,6 +398,7 @@ const AppShell: React.FC = () => {
         <Route path="/AdminDashboard"     element={<PrivateRoute element={<Admin />} />} />
         <Route path="/PCLockDashboard"    element={<PrivateRoute element={<Admin />} />} />
         <Route path="/AdminTransaction"   element={<PrivateRoute element={<AdminTransaction />} />} />
+        <Route path="/ControllerRepairLog" element={<PrivateRoute element={<ControllerRepairLog />} />} />
         <Route path="/MarketersReportPage" element={<PrivateRoute element={<MarketersReportPage />} />} />
         <Route path="/InternalControlEntry" element={<PrivateRoute element={<InternalControlEntry />} />} />
         <Route path="/InternalControlDashboard" element={<PrivateRoute element={<InternalControlDashboard />} />} />

@@ -9,6 +9,7 @@ import InternalControlDashboard from '../InternalControlDashboard';
 import TennisScoreEntry from '../TennisScoreEntry';
 import PlayflowInsights from './PlayflowInsights';
 import DeleteTransaction from './DeleteTransaction';
+import ControllerRepairLog from './ControllerRepairLog';
 import './Admin.css';
 import {
   getAdminRole,
@@ -23,7 +24,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx' | 'ic-entry' | 'ic-dashboard' | 'tennis' | 'credit' | 'playflow' | 'delete-tx';
+type Tab = 'overview' | 'pc' | 'queue' | 'bypasses' | 'games' | 'drinks' | 'reports' | 'admins' | 'manual-tx' | 'ic-entry' | 'ic-dashboard' | 'tennis' | 'credit' | 'playflow' | 'delete-tx' | 'controllers';
 
 interface PcRow {
   id: string;
@@ -122,6 +123,7 @@ const ALL_TABS: { key: Tab; label: string }[] = [
   { key: 'ic-dashboard', label: '🔎  Internal Control — Review'    },
   { key: 'tennis',       label: '🏓  Table Tennis Score'           },
   { key: 'credit',       label: '📋  Credit Report'                },
+  { key: 'controllers',  label: '🎮  Controller Repairs'           },
 ];
 
 const TAB_SUMMARIES: Record<Exclude<Tab, 'overview'>, string> = {
@@ -139,6 +141,7 @@ const TAB_SUMMARIES: Record<Exclude<Tab, 'overview'>, string> = {
   'ic-dashboard': 'Compare recorded counts against actual sales (green/red/blue).',
   'tennis': 'Record table tennis scores live — customers see the scoreboard in real time.',
   'credit': 'View all outstanding credit balances and mark them as cleared when customers pay.',
+  'controllers': 'Log a PS5 pad when it goes bad and close the entry once it is fixed — the history stays.',
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -1874,6 +1877,7 @@ const Admin: React.FC = () => {
       case 'credit':  return renderCreditReport();
       case 'playflow': return <PlayflowInsights />;
       case 'delete-tx': return <DeleteTransaction />;
+      case 'controllers': return <ControllerRepairLog />;
     }
   };
 

@@ -1,0 +1,295 @@
+/* PS5 controller repair log. A bench sheet: filled in standing up, read fast. */
+
+.crl-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #16242c;
+}
+
+.crl-head h2 { margin: 0; font-size: 1.35rem; }
+.crl-sub { margin: 6px 0 0; max-width: 68ch; color: #60717b; font-size: 0.9rem; line-height: 1.5; }
+
+.crl-card {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #e2e8ea;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.crl-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.crl-card h3 { margin: 0 0 6px; font-size: 1rem; }
+.crl-note { margin: 0 0 14px; max-width: 74ch; font-size: 0.86rem; color: #60717b; line-height: 1.5; }
+.crl-muted { color: #60717b; font-size: 0.88rem; }
+.crl-inline-note { margin: 8px 0 0; }
+
+.crl-count {
+  display: inline-block;
+  min-width: 20px;
+  padding: 1px 7px;
+  margin-left: 6px;
+  border-radius: 10px;
+  background: #fdecea;
+  color: #96281b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.crl-error, .crl-notice {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+.crl-error { background: #fdecea; color: #96281b; }
+.crl-notice { background: #eaf6ee; color: #1c6b3e; }
+
+/* ── The board ───────────────────────────────────────────────────────────── */
+
+.crl-tally { margin: 0 0 12px; font-size: 0.86rem; color: #60717b; }
+
+.crl-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crl-pad {
+  padding: 10px 12px;
+  border: 1px solid #e2e8ea;
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: #fbfcfc;
+}
+
+/* The one thing read from across the room: can this pad go out or not. */
+.crl-pad--in_service { border-left-color: #1c6b3e; }
+.crl-pad--faulty     { border-left-color: #c0392b; background: #fffaf9; }
+
+.crl-pad-tag { display: block; font-weight: 700; font-size: 0.95rem; }
+
+.crl-pad-state {
+  display: inline-block;
+  margin: 3px 0 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.crl-pad--in_service .crl-pad-state { color: #1c6b3e; }
+.crl-pad--faulty .crl-pad-state     { color: #c0392b; }
+
+.crl-pad-meta { display: block; font-size: 0.76rem; color: #7c8b93; line-height: 1.45; }
+
+/* ── Forms ───────────────────────────────────────────────────────────────── */
+
+.crl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.crl-field { display: block; margin-bottom: 14px; }
+.crl-grid .crl-field { margin-bottom: 0; }
+.crl-field--wide { max-width: 520px; }
+.crl-field--grow { flex: 1 1 220px; }
+
+.crl-field > span,
+.crl-field-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.82rem;
+  color: #4b5a62;
+}
+
+.crl-field em { font-style: normal; color: #8c9aa1; }
+
+.crl-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d4dcdf;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: #16242c;
+  background: #fff;
+}
+
+.crl-input--tight { width: auto; min-width: 150px; }
+.crl-textarea { resize: vertical; }
+
+/* The last-repair date is shown, never typed — it comes from the log. */
+.crl-readout {
+  display: block;
+  padding: 8px 10px;
+  border: 1px dashed #d4dcdf;
+  border-radius: 6px;
+  background: #f7f9f9;
+  font-size: 0.88rem;
+  color: #4b5a62;
+  min-height: 37px;
+}
+
+.crl-inline-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.crl-inline-form .crl-field { margin-bottom: 0; }
+
+/* ── Fault chips ─────────────────────────────────────────────────────────── */
+
+.crl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid #d9c6a8;
+  border-radius: 14px;
+  background: #fdf6ea;
+  font-size: 0.82rem;
+  color: #6b4d18;
+}
+
+.crl-chip-x {
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font-size: 1rem;
+  line-height: 1;
+  color: #9a7b45;
+  cursor: pointer;
+}
+
+.crl-chip-x:hover { color: #6b4d18; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.crl-btn {
+  padding: 8px 14px;
+  border: 1px solid #d4dcdf;
+  border-radius: 6px;
+  background: #fff;
+  color: #16242c;
+  font-size: 0.86rem;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.crl-btn:hover:not(:disabled) { border-color: #a4b3b9; }
+.crl-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.crl-btn--small { padding: 6px 11px; font-size: 0.8rem; }
+.crl-btn--primary { background: #0d6a57; border-color: #0d6a57; color: #fff; }
+.crl-btn--danger  { background: #c0392b; border-color: #c0392b; color: #fff; }
+
+/* ── Awaiting repair ─────────────────────────────────────────────────────── */
+
+.crl-open-list { margin: 0; padding: 0; list-style: none; }
+
+.crl-open {
+  padding: 14px;
+  border: 1px solid #f0d9d5;
+  border-radius: 8px;
+  background: #fffaf9;
+}
+
+.crl-open + .crl-open { margin-top: 10px; }
+
+.crl-open-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.crl-open-tag { font-size: 0.95rem; }
+.crl-open-faults { display: block; margin-top: 2px; font-size: 0.86rem; color: #96281b; }
+.crl-open-age { font-size: 0.78rem; color: #7c8b93; white-space: nowrap; }
+.crl-open-notes { margin: 8px 0 0; font-size: 0.84rem; color: #4b5a62; }
+.crl-open .crl-btn { margin-top: 12px; }
+.crl-open .crl-inline-form .crl-btn { margin-top: 0; }
+
+/* ── The log ─────────────────────────────────────────────────────────────── */
+
+.crl-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.crl-scroll { overflow-x: auto; }
+
+.crl-table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.crl-table th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7c8b93;
+  border-bottom: 1px solid #dde4e7;
+  white-space: nowrap;
+}
+
+.crl-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f4f5;
+  vertical-align: top;
+}
+
+.crl-table tr:last-child td { border-bottom: none; }
+.crl-row--faulty td { background: #fffaf9; }
+.crl-num { text-align: right; white-space: nowrap; }
+.crl-cell-tag { font-weight: 700; white-space: nowrap; }
+.crl-cell-notes { color: #60717b; max-width: 260px; }
+
+.crl-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.crl-badge--faulty   { background: #fdecea; color: #96281b; }
+.crl-badge--repaired { background: #eaf6ee; color: #1c6b3e; }
+
+@media (max-width: 560px) {
+  .crl-page { padding: 14px; }
+  .crl-field--wide { max-width: none; }
+  .crl-inline-form .crl-field { width: 100%; }
+}
