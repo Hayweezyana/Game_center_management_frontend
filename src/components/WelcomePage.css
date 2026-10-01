@@ -306,6 +306,125 @@ body.easter-friday .easter-welcome-sub {
   color: #c8aa70;
 }
 
+/* ========================================
+   NIGERIA INDEPENDENCE DAY OVERRIDES
+   Active only when body.independence-theme
+   is set (every Oct 1, reverts at midnight)
+   ======================================== */
+
+body.independence-theme .welcome-page {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(0, 135, 81, 0.34), transparent 38%),
+    radial-gradient(circle at 82% 8%,  rgba(255, 255, 255, 0.1), transparent 34%),
+    radial-gradient(circle at 45% 90%, rgba(25, 195, 125, 0.2), transparent 30%),
+    #01160d;
+}
+
+body.independence-theme .welcome-page::before {
+  background-image:
+    linear-gradient(rgba(127, 240, 189, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(127, 240, 189, 0.07) 1px, transparent 1px);
+}
+
+body.independence-theme .content-wrapper {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: linear-gradient(155deg, rgba(2, 36, 21, 0.95), rgba(1, 20, 12, 0.93));
+  box-shadow:
+    0 24px 65px rgba(0, 0, 0, 0.52),
+    inset 0 0 0 1px rgba(127, 240, 189, 0.14),
+    0 0 48px rgba(0, 135, 81, 0.22);
+}
+
+body.independence-theme .title {
+  background: linear-gradient(90deg, #19c37d 0%, #ffffff 40%, #ffffff 60%, #19c37d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+body.independence-theme .subtitle {
+  color: #b9dccb;
+}
+
+body.independence-theme .welcome-button {
+  border-color: rgba(127, 240, 189, 0.3);
+  background: linear-gradient(140deg, rgba(3, 40, 24, 0.95), rgba(1, 24, 14, 0.9));
+}
+
+body.independence-theme .welcome-button:hover {
+  border-color: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 10px 24px rgba(0, 135, 81, 0.35);
+}
+
+body.independence-theme .button-icon,
+body.independence-theme .admin-button .button-icon {
+  background: linear-gradient(90deg, #008751 0 33%, #ffffff 33% 67%, #008751 67% 100%);
+  color: #01160d;
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.9);
+}
+
+body.independence-theme .welcome-footer {
+  color: #a9cfbc;
+}
+
+/* ---- Independence Day Welcome Section ---- */
+.ng-welcome-section {
+  margin: 14px auto 4px;
+  text-align: center;
+  animation: eid-fade-in 0.8s ease-out;
+}
+
+.ng-welcome-flag {
+  display: flex;
+  width: 72px;
+  height: 44px;
+  margin: 0 auto 10px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 22px rgba(0, 135, 81, 0.55);
+  transform-origin: left center;
+  animation: ng-welcome-wave 2.8s ease-in-out infinite;
+}
+
+.ng-welcome-flag span {
+  flex: 1;
+  background: #008751;
+}
+
+.ng-welcome-flag span:nth-child(2) {
+  background: #ffffff;
+}
+
+@keyframes ng-welcome-wave {
+  0%, 100% { transform: perspective(240px) rotateY(0deg); }
+  50%      { transform: perspective(240px) rotateY(-16deg) skewY(-2deg); }
+}
+
+.ng-welcome-heading {
+  margin: 0 0 6px;
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow: 0 0 18px rgba(25, 195, 125, 0.7), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.ng-welcome-sub {
+  margin: 0;
+  font-size: 0.98rem;
+  color: #7ff0bd;
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ng-welcome-flag {
+    animation: none;
+  }
+}
+
 /* ---------------------------------------- */
 
 @media (max-width: 760px) {

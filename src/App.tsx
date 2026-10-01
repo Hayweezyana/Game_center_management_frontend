@@ -90,6 +90,23 @@ const isGoodFridayAt = (date: Date) => {
   return date.getFullYear() === sY && date.getMonth() === sM - 1 && date.getDate() === sD;
 };
 
+// ── Nigeria Independence Day — October 1, every year ─────────────
+// Recurs yearly with no date to maintain: on from 00:00 to midnight that
+// night (local time), and the anniversary number is worked out from the year.
+const INDEPENDENCE_YEAR  = 1960;
+const INDEPENDENCE_MONTH = 9; // October (0-based)
+const INDEPENDENCE_DAY   = 1;
+const independenceDismissKey = (year: number) => `independence-banner-dismissed:${year}`;
+
+const isIndependenceThemeActiveAt = (date: Date) =>
+  date.getMonth() === INDEPENDENCE_MONTH && date.getDate() === INDEPENDENCE_DAY;
+
+const ordinal = (n: number) => {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
+};
+
 const CUSTOMER_FACING_PATHS = new Set([
   '/',
   '/gameselection',
@@ -157,6 +174,17 @@ const AppShell: React.FC = () => {
     }
   });
 
+  const [isIndependenceActive, setIsIndependenceActive] = React.useState<boolean>(() => isIndependenceThemeActiveAt(new Date()));
+  const [currentYear, setCurrentYear] = React.useState<number>(() => new Date().getFullYear());
+  const [dismissedIndependenceYear, setDismissedIndependenceYear] = React.useState<number | null>(() => {
+    try {
+      const year = new Date().getFullYear();
+      return window.localStorage.getItem(independenceDismissKey(year)) === '1' ? year : null;
+    } catch {
+      return null;
+    }
+  });
+
   const normalizedPath = location.pathname.toLowerCase();
   // /t/<reference> is the shareable ticket — a customer-facing path with a
   // variable segment, so it can't be matched by the exact-path set.
@@ -182,9 +210,15 @@ const AppShell: React.FC = () => {
   const applyEasterTheme = isCustomerRoute && isEasterThemeActive && !applyEidTheme;
   const showEasterBanner = applyEasterTheme && !isEasterBannerDismissed;
 
+  const applyIndependenceTheme = isCustomerRoute && isIndependenceActive;
+  const showIndependenceBanner = applyIndependenceTheme && dismissedIndependenceYear !== currentYear;
+  const independenceAnniversary = ordinal(currentYear - INDEPENDENCE_YEAR);
+
   React.useEffect(() => {
     const timer = window.setInterval(() => {
       const d = new Date();
+      setIsIndependenceActive(isIndependenceThemeActiveAt(d));
+      setCurrentYear(d.getFullYear());
       setIsChildrensDayActive(isChildrensDayActiveAt(d));
       setIsEidThemeActive(isEidThemeActiveAt(d));
       setIsEasterThemeActive(isEasterThemeActiveAt(d));
@@ -208,6 +242,23 @@ const AppShell: React.FC = () => {
       document.body.classList.remove('easter-theme', 'easter-friday');
     };
   }, [applyEasterTheme, isGoodFriday]);
+
+  React.useEffect(() => {
+    document.body.classList.toggle('independence-theme', applyIndependenceTheme);
+    return () => {
+      document.body.classList.remove('independence-theme');
+    };
+  }, [applyIndependenceTheme]);
+
+  const closeIndependenceBanner = React.useCallback(() => {
+    const year = new Date().getFullYear();
+    setDismissedIndependenceYear(year);
+    try {
+      window.localStorage.setItem(independenceDismissKey(year), '1');
+    } catch (_error) {
+      // Ignore storage errors and still dismiss in memory.
+    }
+  }, []);
 
   const closeChildrensDay = React.useCallback(() => {
     setIsChildrensDayDismissed(true);
@@ -236,10 +287,47 @@ const AppShell: React.FC = () => {
     applyChildrensDay ? `cd-theme-shell${showChildrensDayBanner ? ' has-cd-banner' : ''}` : '',
     applyEidTheme     ? `eid-theme-shell${showEidBanner ? ' has-eid-banner' : ''}` : '',
     applyEasterTheme  ? `easter-theme-shell${showEasterBanner ? ' has-easter-banner' : ''}${isGoodFriday ? ' easter-friday-shell' : ''}` : '',
+    applyIndependenceTheme ? `ng-theme-shell${showIndependenceBanner ? ' has-ng-banner' : ''}` : '',
   ].filter(Boolean).join(' ');
 
   return (
     <div className={themeShellClass || undefined}>
+      {/* ── Independence Day decorations (flag, confetti, fireworks) ── */}
+      {applyIndependenceTheme ? (
+        <>
+          <div className="ng-tricolour-strip" aria-hidden="true" />
+          <div className="ng-flag-pole" aria-hidden="true">
+            <div className="ng-flag ng-flag-waving">
+              <span /><span /><span />
+            </div>
+          </div>
+          <div className="ng-confetti" aria-hidden="true">
+            {[...Array(18)].map((_, i) => (
+              <span key={i} className={`ng-confetto ng-confetto-${i + 1}`} />
+            ))}
+          </div>
+          <div className="ng-fireworks" aria-hidden="true">
+            {[1, 2, 3, 4].map(i => (
+              <span key={i} className={`ng-firework ng-firework-${i}`} />
+            ))}
+          </div>
+        </>
+      ) : null}
+      {showIndependenceBanner ? (
+        <div className="ng-banner" role="note" aria-label="Independence Day greeting">
+          <div className="ng-flag ng-banner-flag" aria-hidden="true">
+            <span /><span /><span />
+          </div>
+          <img src={immersiaLogo} alt="Immersia logo" className="ng-banner-logo" />
+          <div className="ng-banner-copy">
+            <strong>Happy {independenceAnniversary} Independence Day, Nigeria! 🎉</strong>
+            <span>Celebrating {currentYear - INDEPENDENCE_YEAR} years of unity, strength and pride. Enjoy the celebration with us at Immersia!</span>
+          </div>
+          <button type="button" className="ng-banner-close" aria-label="Close Independence Day greeting" onClick={closeIndependenceBanner}>
+            ×
+          </button>
+        </div>
+      ) : null}
       {/* ── Children's Day decorations (balloons + confetti) ─────── */}
       {applyChildrensDay ? (
         <>

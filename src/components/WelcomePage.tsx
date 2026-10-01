@@ -10,6 +10,7 @@ const useBodyTheme = () => {
     isEid:          document.body.classList.contains('eid-theme'),
     isEaster:       document.body.classList.contains('easter-theme'),
     isGoodFriday:   document.body.classList.contains('easter-friday'),
+    isIndependence: document.body.classList.contains('independence-theme'),
   });
   const [theme, setTheme] = React.useState(get);
   React.useEffect(() => {
@@ -23,7 +24,8 @@ const useBodyTheme = () => {
 const WelcomePage: React.FC = () => {
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
-  const { isEid: isEidTheme, isEaster: isEasterTheme, isGoodFriday } = useBodyTheme();
+  const { isEid: isEidTheme, isEaster: isEasterTheme, isGoodFriday, isIndependence } = useBodyTheme();
+  const yearsOfIndependence = currentYear - 1960;
   const [showComingSoon, setShowComingSoon] = React.useState(false);
 
   const goToGames = React.useCallback(() => {
@@ -65,9 +67,22 @@ const WelcomePage: React.FC = () => {
                 </p>
               </div>
             ) : null}
+            {isIndependence ? (
+              <div className="ng-welcome-section">
+                <div className="ng-welcome-flag" aria-hidden="true">
+                  <span /><span /><span />
+                </div>
+                <h2 className="ng-welcome-heading">Happy Independence Day</h2>
+                <p className="ng-welcome-sub">
+                  Nigeria @ {yearsOfIndependence} — one nation, one love, endless play. 🎉
+                </p>
+              </div>
+            ) : null}
             <h1 className="title">Welcome to Immersia</h1>
             <p className="subtitle">
-              {isEasterTheme
+              {isIndependence
+                ? 'Celebrate Independence Day with us — games, fun, and green-white-green vibes all day.'
+                : isEasterTheme
                 ? (isGoodFriday ? 'Games, community, and a moment of peace.' : 'Celebrate Easter with us — games, fun, and unforgettable moments await.')
                 : isEidTheme
                   ? 'Celebrate Eid with us — games, fun, and unforgettable moments await.'
