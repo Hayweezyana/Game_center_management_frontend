@@ -1,4 +1,4 @@
-type PrefetchRoute = '/checkout' | '/gameselection' | '/report';
+type PrefetchRoute = '/checkout' | '/gameselection' | '/report' | '/rentals';
 
 const prefetchedRoutes = new Set<PrefetchRoute>();
 
@@ -6,6 +6,7 @@ const routeLoaders: Record<PrefetchRoute, () => Promise<unknown>> = {
   '/checkout': () => import('../components/checkout'),
   '/gameselection': () => import('../components/GameSelection'),
   '/report': () => import('../components/report'),
+  '/rentals': () => import('../components/rentals/RentalsPage'),
 };
 
 export const prefetchRoute = (route: PrefetchRoute) => {

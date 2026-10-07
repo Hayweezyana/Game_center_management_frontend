@@ -107,6 +107,15 @@ const WelcomePage: React.FC = () => {
               <span className="button-icon">XP</span>
               Customer Portal
             </button>
+            <button
+              className="welcome-button rentals-button"
+              onClick={() => navigate('/rentals')}
+              {...getRoutePrefetchProps('/rentals')}
+            >
+              <span className="button-icon">VR</span>
+              Immersia Rentals
+              <span className="rentals-button-new">New</span>
+            </button>
           </div>
         </div>
 

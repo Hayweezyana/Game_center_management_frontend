@@ -37,6 +37,7 @@ const InternalControlDashboard = lazy(() => import('./components/InternalControl
 const CustomerPortal = lazy(() => import('./components/customer/CustomerPortal'));
 const TennisLiveScore = lazy(() => import('./components/TennisLiveScore'));
 const CreditPaymentPage = lazy(() => import('./components/CreditPaymentPage'));
+const RentalsPage = lazy(() => import('./components/rentals/RentalsPage'));
 
 const RouteLoader: React.FC = () => (
   <div className="route-loader" role="status" aria-live="polite">
@@ -122,6 +123,7 @@ const CUSTOMER_FACING_PATHS = new Set([
   '/gkgpaymentpage',
   '/customer-portal',
   '/tennislive',
+  '/rentals',
 ]);
 
 const isValidDateParts = (year: number, month: number, day: number) =>
@@ -494,9 +496,11 @@ const AppShell: React.FC = () => {
         <Route path="/customer-portal" element={<CustomerPortal />} />
         <Route path="/TennisLive" element={<TennisLiveScore />} />
         <Route path="/creditpaymentpage" element={<CreditPaymentPage />} />
+        <Route path="/rentals" element={<RentalsPage />} />
       </Routes>
-      {/* Customer support shortcut — hidden on admin/operator routes */}
-      {isCustomerRoute ? <WhatsAppButton /> : null}
+      {/* Customer support shortcut — hidden on admin/operator routes, and on
+          /rentals, which has its own WhatsApp + call dock */}
+      {isCustomerRoute && normalizedPath !== '/rentals' ? <WhatsAppButton /> : null}
     </div>
   );
 };

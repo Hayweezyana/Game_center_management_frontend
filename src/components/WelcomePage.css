@@ -131,6 +131,52 @@ body {
   background: linear-gradient(130deg, var(--accent-orange), #ffdca8);
 }
 
+/* Rentals — animated gradient border so the new entry point stands out */
+.rentals-button {
+  position: relative;
+  border-color: transparent;
+  background:
+    linear-gradient(140deg, rgba(13, 26, 57, 0.97), rgba(8, 17, 39, 0.95)) padding-box,
+    linear-gradient(120deg, var(--accent-cyan), #9b6bff, var(--accent-orange), var(--accent-cyan)) border-box;
+  background-size: 100% 100%, 300% 100%;
+  animation: rentals-border 5s linear infinite;
+}
+
+.rentals-button:hover {
+  border-color: transparent;
+  box-shadow: 0 10px 28px rgba(155, 107, 255, 0.3);
+}
+
+.rentals-button .button-icon {
+  background: linear-gradient(130deg, #9b6bff, var(--accent-cyan));
+}
+
+.rentals-button-new {
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #1b0f00;
+  background: var(--accent-orange);
+  animation: rentals-new 2s ease-in-out infinite;
+}
+
+@keyframes rentals-border {
+  to { background-position: 0 0, 300% 0; }
+}
+
+@keyframes rentals-new {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rentals-button,
+  .rentals-button-new { animation: none; }
+}
+
 .welcome-footer {
   position: relative;
   z-index: 1;
