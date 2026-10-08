@@ -9,10 +9,10 @@ export const CLOUDINARY_CLOUD_NAME =
   (process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || '').trim() || 'c6znesoe';
 export const CLOUDINARY_RENTALS_FOLDER =
   (process.env.REACT_APP_CLOUDINARY_RENTALS_FOLDER || '').trim() || 'rentals';
+// 720p rendition of the reel (13.5 MB original → ~3 MB).
 export const SHOWREEL_URL =
   (process.env.REACT_APP_RENTALS_SHOWREEL_URL || '').trim() ||
-  (process.env.REACT_APP_COMING_SOON_VIDEO_URL || '').trim() ||
-  `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/immersia_vr_ad_full.mp4`;
+  'https://res.cloudinary.com/c6znesoe/video/upload/q_auto:eco,h_720,c_limit/v1791396790/reel.mp4';
 
 // Local 0813 701 3560 — wa.me needs it in international form without the '+'.
 export const CONTACT = {
@@ -142,8 +142,9 @@ export const ALL_ITEMS: (RentalItem & { categoryId: string; categoryName: string
 
 export const videoUrlFor = (item: RentalItem) => {
   const publicId = item.video || `${CLOUDINARY_RENTALS_FOLDER}/${item.id}`;
-  // q_auto picks a sensible bitrate; .mp4 keeps it playable everywhere.
-  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/q_auto/${publicId}.mp4`;
+  // Originals are 5–10 MB phone clips. Capping to 720p (c_limit never upscales)
+  // with q_auto:eco cuts that to ~1–2.5 MB; .mp4 keeps it playable everywhere.
+  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/q_auto:eco,h_720,c_limit/${publicId}.mp4`;
 };
 
 export const whatsappLink = (message: string) =>

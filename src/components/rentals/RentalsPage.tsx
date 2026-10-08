@@ -164,8 +164,19 @@ const VideoModal: React.FC<{
       <div className="rp-modal-card">
         <button ref={closeRef} type="button" className="rp-modal-close" aria-label="Close video" onClick={onClose}>×</button>
         <div className="rp-modal-stage">
-          {status !== 'ready' && item && !item.emoji ? (
-            <img className="rp-modal-poster" src={item.thumb} alt="" aria-hidden="true" />
+          {/* Blurred thumbnail while loading; if there's no clip yet, the
+              plain photo simply stays up. */}
+          {status !== 'ready' && item ? (
+            item.emoji ? (
+              <div className="rp-modal-poster rp-thumb-emoji" aria-hidden="true">{item.emoji}</div>
+            ) : (
+              <img
+                className={`rp-modal-poster${status === 'error' ? ' is-plain' : ''}`}
+                src={item.thumb}
+                alt=""
+                aria-hidden="true"
+              />
+            )
           ) : null}
           {status === 'loading' ? (
             <div className="rp-modal-loading" role="status">
@@ -173,24 +184,22 @@ const VideoModal: React.FC<{
               <span>Loading video…</span>
             </div>
           ) : null}
-          {status === 'error' ? (
-            <div className="rp-modal-missing">
-              <span className="rp-modal-missing-icon" aria-hidden="true">🎬</span>
-              <strong>Video coming soon</strong>
-              <span>Ask us on WhatsApp and we&apos;ll send you a clip of this one in action.</span>
-            </div>
+          {status !== 'error' ? (
+            <video
+              key={src}
+              src={src}
+              className={status === 'ready' ? 'is-ready' : undefined}
+              autoPlay
+              controls
+              playsInline
+              preload="auto"
+              // First decoded frame is enough to show the player; it keeps
+              // buffering while it plays.
+              onLoadedData={() => setStatus('ready')}
+              onPlaying={() => setStatus('ready')}
+              onError={() => setStatus('error')}
+            />
           ) : null}
-          <video
-            key={src}
-            src={src}
-            className={status === 'ready' ? 'is-ready' : undefined}
-            autoPlay
-            controls
-            playsInline
-            preload="auto"
-            onCanPlay={() => setStatus('ready')}
-            onError={() => setStatus('error')}
-          />
           {canNav ? (
             <>
               <button type="button" className="rp-modal-nav is-prev" aria-label="Previous rental" onClick={() => onNav(-1)}>‹</button>

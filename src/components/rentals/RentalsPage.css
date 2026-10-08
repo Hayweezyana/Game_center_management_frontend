@@ -1284,8 +1284,15 @@
   transform: scale(1.1);
 }
 
-.rp-modal-loading,
-.rp-modal-missing {
+/* No clip yet: show the photo itself, sharp and whole */
+.rp-modal-poster.is-plain,
+.rp-modal-poster.rp-thumb-emoji {
+  object-fit: contain;
+  filter: none;
+  transform: none;
+}
+
+.rp-modal-loading {
   position: absolute;
   inset: 0;
   z-index: 2;
@@ -1297,10 +1304,6 @@
   padding: 20px;
   font-weight: 600;
 }
-
-.rp-modal-missing strong { font-family: "Orbitron", sans-serif; font-size: 1.3rem; }
-.rp-modal-missing span { color: #c9d7f2; max-width: 40ch; }
-.rp-modal-missing-icon { font-size: 44px; animation: rp-bob 2.6s ease-in-out infinite; }
 
 .rp-spinner {
   width: 46px;
