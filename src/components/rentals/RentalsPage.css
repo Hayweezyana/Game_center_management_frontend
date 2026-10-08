@@ -7,7 +7,8 @@
 
 .rp {
   --rp-bg: #050913;
-  --rp-surface: rgba(13, 24, 52, 0.72);
+  /* Opaque enough to read well without a backdrop blur (blur is costly on phones) */
+  --rp-surface: rgba(13, 24, 52, 0.86);
   --rp-surface-solid: #0c1631;
   --rp-line: rgba(115, 157, 255, 0.2);
   --rp-cyan: #00d1ff;
@@ -66,19 +67,21 @@
   overflow: hidden;
 }
 
+/* Soft glows are radial gradients rather than blurred discs: a 90px filter
+   blur on full-screen layers was repainting constantly on phones. */
 .rp-blob {
   position: absolute;
-  width: 46vmax;
-  height: 46vmax;
+  width: 60vmax;
+  height: 60vmax;
   border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.32;
+  background: radial-gradient(circle, var(--blob) 0%, transparent 62%);
+  opacity: 0.4;
   will-change: transform;
 }
 
-.rp-blob-1 { background: var(--rp-cyan); top: -18vmax; left: -12vmax; animation: rp-drift-1 26s ease-in-out infinite alternate; }
-.rp-blob-2 { background: var(--rp-violet); top: 20vh; right: -18vmax; animation: rp-drift-2 32s ease-in-out infinite alternate; opacity: 0.26; }
-.rp-blob-3 { background: var(--rp-orange); bottom: -24vmax; left: 30vw; animation: rp-drift-3 28s ease-in-out infinite alternate; opacity: 0.14; }
+.rp-blob-1 { --blob: var(--rp-cyan); top: -26vmax; left: -20vmax; animation: rp-drift-1 26s ease-in-out infinite alternate; }
+.rp-blob-2 { --blob: var(--rp-violet); top: 12vh; right: -26vmax; animation: rp-drift-2 32s ease-in-out infinite alternate; opacity: 0.32; }
+.rp-blob-3 { --blob: var(--rp-orange); bottom: -32vmax; left: 22vw; animation: rp-drift-3 28s ease-in-out infinite alternate; opacity: 0.18; }
 
 @keyframes rp-drift-1 { to { transform: translate(18vw, 22vh) scale(1.15); } }
 @keyframes rp-drift-2 { to { transform: translate(-22vw, 30vh) scale(0.9); } }
@@ -437,7 +440,6 @@
   border-radius: 999px;
   background: rgba(5, 9, 19, 0.7);
   border: 1px solid var(--rp-line);
-  backdrop-filter: blur(6px);
 }
 
 /* Marquee */
@@ -501,7 +503,6 @@
   border-radius: 18px;
   padding: 20px;
   text-align: center;
-  backdrop-filter: blur(8px);
 }
 
 .rp-stat b {
@@ -663,7 +664,6 @@
   border: 1px solid var(--rp-line);
   border-radius: 999px;
   background: var(--rp-surface);
-  backdrop-filter: blur(10px);
 }
 
 .rp-chips::-webkit-scrollbar { display: none; }
@@ -746,7 +746,6 @@
   border: 1px solid var(--rp-line);
   background: var(--rp-surface);
   overflow: hidden;
-  backdrop-filter: blur(8px);
 }
 
 .rp-card[data-reveal] {
@@ -772,7 +771,9 @@
 .rp-card-media {
   position: relative;
   display: block;
-  aspect-ratio: 4 / 3;
+  /* Most photos are portrait phone shots (380×670); a 4:3 frame showed only
+     their middle third. 4:5 keeps people and kit in view. */
+  aspect-ratio: 4 / 5;
   overflow: hidden;
   background: #0a1328;
 }
@@ -781,6 +782,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 50% 35%;
   transition: transform 1.1s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.4s;
 }
 
@@ -840,9 +842,8 @@
   display: grid;
   place-items: center;
   color: #fff;
-  background: rgba(5, 9, 19, 0.45);
+  background: rgba(5, 9, 19, 0.6);
   border: 1.5px solid rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(6px);
   transform: scale(0.85);
   opacity: 0.85;
   transition: transform 0.35s cubic-bezier(0.3, 1.6, 0.5, 1), background 0.3s, opacity 0.3s, color 0.3s;
@@ -856,8 +857,11 @@
   inset: -2px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.6);
-  animation: rp-ripple 2.4s ease-out infinite;
+  opacity: 0;
 }
+
+/* Pulse only the hovered card — 41 always-on ripples was a lot of work */
+.rp-card:hover .rp-card-play::before { animation: rp-ripple 2.4s ease-out infinite; }
 
 .rp-card:hover .rp-card-play {
   transform: scale(1.08);
@@ -949,7 +953,6 @@
   background: var(--rp-surface);
   border-radius: var(--rp-radius);
   padding: 26px 24px;
-  backdrop-filter: blur(8px);
 }
 
 .rp-step-n {
@@ -1003,7 +1006,6 @@
   background: var(--rp-surface);
   border-radius: var(--rp-radius);
   padding: 22px 24px;
-  backdrop-filter: blur(8px);
   overflow: hidden;
 }
 
@@ -1184,14 +1186,24 @@
 
 .rp-dock-btn svg { width: 26px; height: 26px; }
 .rp-dock-btn:hover { transform: scale(1.1); }
-.rp-dock-btn.is-wa { background: var(--rp-wa); color: #fff; animation: rp-wa-pulse 2.6s ease-out infinite; }
+.rp-dock-btn.is-wa { position: relative; background: var(--rp-wa); color: #fff; }
 .rp-dock-btn.is-call { background: var(--rp-surface-solid); color: var(--rp-cyan); border: 1px solid var(--rp-line); width: 48px; height: 48px; justify-self: center; }
 .rp-dock-btn.is-call svg { width: 21px; height: 21px; }
 
+/* Pulse ring scales on the compositor; animating box-shadow repainted every frame */
+.rp-dock-btn.is-wa::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(37, 211, 102, 0.55);
+  z-index: -1;
+  animation: rp-wa-pulse 2.6s ease-out infinite;
+}
+
 @keyframes rp-wa-pulse {
-  0%   { box-shadow: 0 14px 30px -8px rgba(0, 0, 0, 0.7), 0 0 0 0 rgba(37, 211, 102, 0.6); }
-  70%  { box-shadow: 0 14px 30px -8px rgba(0, 0, 0, 0.7), 0 0 0 16px rgba(37, 211, 102, 0); }
-  100% { box-shadow: 0 14px 30px -8px rgba(0, 0, 0, 0.7), 0 0 0 0 rgba(37, 211, 102, 0); }
+  0%        { transform: scale(1); opacity: 0.8; }
+  70%, 100% { transform: scale(1.6); opacity: 0; }
 }
 
 /* ── Video modal ───────────────────────────────── */
@@ -1400,6 +1412,31 @@
   .rp-modal-card { border-radius: 22px 22px 0 0; max-height: 100vh; }
   .rp-modal-acts { width: 100%; }
   .rp-modal-acts .rp-btn { flex: 1; }
+}
+
+/* ── Phones / touch: keep the motion that's cheap (transforms, opacity) and
+   drop what repaints large areas every frame or trips up mobile Safari. ── */
+@media (hover: none), (max-width: 760px) {
+  .rp-blob { animation: none; will-change: auto; }
+  .rp-floor { animation: none; }
+  .rp-gradient-text { animation: none; filter: none; }
+  .rp-btn-primary { animation: none; background-position: 0 0; }
+  .rp-contact { animation: none; }
+  .rp-contact-glow { animation: none; }
+  .rp-steps::before { animation: none; }
+  .rp-step-icon { animation: none; }
+
+  /* Reflections + heavy shadows on 3D-transformed images render patchily in Safari */
+  .rp-orbit-card {
+    -webkit-box-reflect: none;
+    box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.9);
+  }
+
+  /* Flat fade-up instead of a per-card 3D flip; there's no hover tilt on touch */
+  .rp-card[data-reveal] { transform: translateY(24px); }
+  .rp .rp-card[data-in],
+  .rp .rp-service[data-in] { transform: none; }
+  .rp-card-shine { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

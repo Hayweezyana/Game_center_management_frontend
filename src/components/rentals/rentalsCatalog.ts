@@ -41,7 +41,9 @@ export type RentalCategory = {
   items: RentalItem[];
 };
 
-const t = (file: string) => `/rentals/${file}`;
+// Not /rentals/: a public folder with the page's name makes static hosts treat
+// /rentals as a directory and redirect it to /rentals/.
+const t = (file: string) => `/img/rentals/${file}`;
 
 export const CATEGORIES: RentalCategory[] = [
   {
