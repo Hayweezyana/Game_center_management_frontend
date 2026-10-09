@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import './InternalControl.css';
 
@@ -35,6 +35,11 @@ const todayIso = () => {
 
 const isoMinusMs = (iso: string) => new Date(iso).getTime();
 
+const getAuthHeader = () => {
+  const token = sessionStorage.getItem('token') || localStorage.getItem('operatorToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 const InternalControlEntry: React.FC = () => {
   const [date, setDate] = useState<string>(todayIso());
   const [station, setStation] = useState<Station>('Funstation');
@@ -49,11 +54,6 @@ const InternalControlEntry: React.FC = () => {
   const [recent, setRecent] = useState<SavedReport[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const getAuthHeader = () => {
-    const token = sessionStorage.getItem('token') || localStorage.getItem('operatorToken');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
-
   useEffect(() => {
     (async () => {
       try {
@@ -66,7 +66,7 @@ const InternalControlEntry: React.FC = () => {
     })();
   }, []);
 
-  const fetchRecent = async () => {
+  const fetchRecent = useCallback(async () => {
     try {
       const res = await axios.get(`${BACKEND}/v1/admin/internal-control/reports`, {
         params: { station, from: date, to: date },
@@ -77,9 +77,9 @@ const InternalControlEntry: React.FC = () => {
     } catch (err: any) {
       console.error(err);
     }
-  };
+  }, [date, station]);
 
-  useEffect(() => { fetchRecent(); /* eslint-disable-next-line */ }, [date, station]);
+  useEffect(() => { fetchRecent(); }, [fetchRecent]);
 
   const totalAmount = useMemo(() => items.reduce((s, it) => s + it.amount, 0), [items]);
 
