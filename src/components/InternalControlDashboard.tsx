@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import './InternalControl.css';
 
@@ -6,6 +6,11 @@ type Station = 'Funstation' | 'Immersia' | 'GKG';
 const STATIONS: Station[] = ['Funstation', 'Immersia', 'GKG'];
 const BACKEND = process.env.REACT_APP_BACKEND_URL;
 const fmt = (n: number) => `₦${Number(n || 0).toLocaleString('en-NG')}`;
+
+const getAuthHeader = () => {
+  const token = sessionStorage.getItem('token') || localStorage.getItem('operatorToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 type ComparisonRow = {
   game_title: string;
@@ -146,12 +151,7 @@ const InternalControlDashboard: React.FC = () => {
   const [results, setResults] = useState<ComparisonResult[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
-  const getAuthHeader = () => {
-    const token = sessionStorage.getItem('token') || localStorage.getItem('operatorToken');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
-
-  const fetchCompare = async () => {
+  const fetchCompare = useCallback(async () => {
     setLoading(true);
     setErr(null);
     try {
@@ -170,9 +170,9 @@ const InternalControlDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [date, station]);
 
-  useEffect(() => { fetchCompare(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { fetchCompare(); }, [fetchCompare]);
 
   return (
     <div className="ic-shell">
