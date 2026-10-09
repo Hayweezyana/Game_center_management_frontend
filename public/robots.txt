@@ -1,3 +1,16 @@
 # https://www.robotstxt.org/robotstxt.html
+# Staff screens sit behind a login — keep crawlers on the public pages.
+# The Sitemap line is appended at build time by scripts/prerender-rentals.js.
 User-agent: *
-Disallow:
+Disallow: /Admin
+Disallow: /CreateAdmin
+Disallow: /Operator
+Disallow: /report
+Disallow: /AIChatBox
+Disallow: /DrinkInventory
+Disallow: /playflow-insights
+Disallow: /PCLockDashboard
+Disallow: /ControllerRepairLog
+Disallow: /MarketersReportPage
+Disallow: /InternalControl
+Disallow: /station

@@ -311,6 +311,16 @@
   filter: drop-shadow(0 6px 26px rgba(0, 209, 255, 0.35));
 }
 
+.rp-h1-kicker {
+  display: block;
+  margin-bottom: 14px;
+  font-size: clamp(0.72rem, 1.4vw, 0.85rem);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rp-cyan);
+}
+
 .rp-sub {
   color: var(--rp-muted);
   font-size: clamp(1.05rem, 1.6vw, 1.25rem);

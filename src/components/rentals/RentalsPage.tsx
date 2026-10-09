@@ -8,11 +8,14 @@ import {
   CONTACT,
   FAQS,
   REVIEWS,
+  SEO,
   SERVICES,
   SHOWREEL_URL,
+  SITE_URL,
   videoUrlFor,
   whatsappLink,
 } from './rentalsCatalog';
+import { trackRentalContact, trackRentalView } from '../../utils/metaPixel';
 
 type Item = (typeof ALL_ITEMS)[number];
 
@@ -40,6 +43,29 @@ const PhoneIcon: React.FC = () => (
 const PlayIcon: React.FC = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" /></svg>
 );
+
+/** Sets one attribute on a head tag (creating the tag if needed); returns an undo. */
+const setHeadTag = (
+  selector: string,
+  tag: 'meta' | 'link',
+  attrs: Record<string, string>,
+  key: string,
+  value: string,
+) => {
+  let el = document.head.querySelector<HTMLElement>(selector);
+  const created = !el;
+  if (!el) {
+    el = document.createElement(tag);
+    Object.entries(attrs).forEach(([k, v]) => el!.setAttribute(k, v));
+    document.head.appendChild(el);
+  }
+  const prev = el.getAttribute(key);
+  el.setAttribute(key, value);
+  return () => {
+    if (created) el!.remove();
+    else if (prev !== null) el!.setAttribute(key, prev);
+  };
+};
 
 // Sets `data-in` on every [data-reveal] element as it scrolls into view.
 // Re-scans when `deps` change so freshly rendered cards animate too.
@@ -117,7 +143,8 @@ const Thumb: React.FC<{ item: Item }> = ({ item }) =>
   ) : (
     <img
       src={item.thumb}
-      alt=""
+      // Real alt text so the photos can show up in Google Images.
+      alt={`${item.name} for rent in Lagos — Immersia Rentals`}
       loading="lazy"
       decoding="async"
       className={item.contain ? 'is-contain' : undefined}
@@ -136,6 +163,14 @@ const VideoModal: React.FC<{
   const canNav = playing.kind === 'item' && playing.list.length > 1;
 
   React.useEffect(() => { setStatus('loading'); }, [src]);
+
+  // One ViewContent per video opened, including prev/next inside the player.
+  React.useEffect(() => {
+    trackRentalView(item
+      ? { id: item.id, name: item.name, category: item.categoryName }
+      : { id: 'showreel', name: 'Immersia showreel' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src]);
 
   React.useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -214,10 +249,10 @@ const VideoModal: React.FC<{
             {item ? <p>{item.blurb}</p> : <p>A taste of what we bring to your event.</p>}
           </div>
           <div className="rp-modal-acts">
-            <a className="rp-btn rp-btn-wa" href={whatsappLink(askText)} target="_blank" rel="noopener noreferrer">
+            <a className="rp-btn rp-btn-wa" href={whatsappLink(askText)} target="_blank" rel="noopener noreferrer" onClick={() => trackRentalContact('whatsapp', 'video', item ?? undefined)}>
               <WaIcon /> Ask on WhatsApp
             </a>
-            <a className="rp-btn rp-btn-ghost" href={`tel:${CONTACT.phone}`}>
+            <a className="rp-btn rp-btn-ghost" href={`tel:${CONTACT.phone}`} onClick={() => trackRentalContact('call', 'video', item ?? undefined)}>
               <PhoneIcon /> Call
             </a>
           </div>
@@ -239,8 +274,22 @@ const RentalsPage: React.FC = () => {
   const [pill, setPill] = React.useState({ left: 0, width: 0 });
   const [scrolled, setScrolled] = React.useState(false);
 
+  // A direct visit gets these from the prerendered rentals.html; this covers
+  // arriving from inside the app, and puts the POS defaults back on the way out.
   React.useEffect(() => {
-    document.title = 'Immersia Rentals · VR, booths, games and rides in Lagos';
+    const prevTitle = document.title;
+    document.title = SEO.title;
+    const restore = [
+      setHeadTag('meta[name="description"]', 'meta', { name: 'description' }, 'content', SEO.description),
+      setHeadTag('link[rel="canonical"]', 'link', { rel: 'canonical' }, 'href', `${SITE_URL}${SEO.path}`),
+    ];
+    return () => {
+      document.title = prevTitle;
+      restore.forEach((fn) => fn());
+    };
+  }, []);
+
+  React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -342,7 +391,7 @@ const RentalsPage: React.FC = () => {
             <button type="button" onClick={() => scrollTo('rp-reviews')}>Reviews</button>
             <button type="button" onClick={() => scrollTo('rp-contact')}>Contact</button>
           </nav>
-          <a className="rp-btn rp-btn-wa rp-header-cta" href={generalWa} target="_blank" rel="noopener noreferrer">
+          <a className="rp-btn rp-btn-wa rp-header-cta" href={generalWa} target="_blank" rel="noopener noreferrer" onClick={() => trackRentalContact('whatsapp', 'header')}>
             <WaIcon /><span>Chat with us</span>
           </a>
         </div>
@@ -358,17 +407,20 @@ const RentalsPage: React.FC = () => {
                 <span className="rp-dot" /> Immersia XR Studios · Lagos
               </span>
               <h1 className="rp-rise" style={{ animationDelay: '90ms' }}>
+                {/* Keyword line lives inside the h1 so search engines read the
+                    page topic, not just the slogan. */}
+                <span className="rp-h1-kicker">VR, photo booth &amp; party rentals in Lagos</span>
                 See, feel <span className="rp-gradient-text">everything.</span>
               </h1>
               <p className="rp-sub rp-rise" style={{ animationDelay: '180ms' }}>
-                VR, simulators, holograms, photo booths, games and party rides. Tap any rental to watch it in action, then message us — we bring the experience to your event.
+                VR, simulators, holograms, photo booths, games and party rides for birthdays, weddings and corporate events across Lagos. Tap any rental to watch it in action, then message us — we bring the experience to your event.
               </p>
               <div className="rp-ctas rp-rise" style={{ animationDelay: '270ms' }}>
                 <button type="button" className="rp-btn rp-btn-primary" onClick={() => scrollTo('rp-catalog')}>
                   Explore rentals
                 </button>
-                <a className="rp-btn rp-btn-wa" href={generalWa} target="_blank" rel="noopener noreferrer"><WaIcon /> WhatsApp</a>
-                <a className="rp-btn rp-btn-ghost" href={`tel:${CONTACT.phone}`}><PhoneIcon /> Call us</a>
+                <a className="rp-btn rp-btn-wa" href={generalWa} target="_blank" rel="noopener noreferrer" onClick={() => trackRentalContact('whatsapp', 'hero')}><WaIcon /> WhatsApp</a>
+                <a className="rp-btn rp-btn-ghost" href={`tel:${CONTACT.phone}`} onClick={() => trackRentalContact('call', 'hero')}><PhoneIcon /> Call us</a>
               </div>
               <ul className="rp-terms rp-rise" style={{ animationDelay: '360ms' }}>
                 <li><b>6-hour</b> rental per booking</li>
@@ -494,7 +546,7 @@ const RentalsPage: React.FC = () => {
                 <div className="rp-empty">
                   <span aria-hidden="true">🔍</span>
                   <p>No rentals match “{query}”.</p>
-                  <a className="rp-btn rp-btn-wa" href={whatsappLink(`Hi Immersia! Do you have ${query} for rent?`)} target="_blank" rel="noopener noreferrer">
+                  <a className="rp-btn rp-btn-wa" href={whatsappLink(`Hi Immersia! Do you have ${query} for rent?`)} target="_blank" rel="noopener noreferrer" onClick={() => trackRentalContact('whatsapp', 'search')}>
                     <WaIcon /> Ask us anyway
                   </a>
                 </div>
@@ -620,8 +672,8 @@ const RentalsPage: React.FC = () => {
                 <p>Send us your event date, venue and the rentals you love. We&apos;ll confirm availability, logistics and a quote.</p>
               </div>
               <div className="rp-contact-acts">
-                <a className="rp-btn rp-btn-wa rp-btn-lg" href={generalWa} target="_blank" rel="noopener noreferrer"><WaIcon /> Chat on WhatsApp</a>
-                <a className="rp-btn rp-btn-dark rp-btn-lg" href={`tel:${CONTACT.phone}`}><PhoneIcon /> Call {CONTACT.phoneDisplay}</a>
+                <a className="rp-btn rp-btn-wa rp-btn-lg" href={generalWa} target="_blank" rel="noopener noreferrer" onClick={() => trackRentalContact('whatsapp', 'contact')}><WaIcon /> Chat on WhatsApp</a>
+                <a className="rp-btn rp-btn-dark rp-btn-lg" href={`tel:${CONTACT.phone}`} onClick={() => trackRentalContact('call', 'contact')}><PhoneIcon /> Call {CONTACT.phoneDisplay}</a>
               </div>
             </div>
           </div>
@@ -638,8 +690,8 @@ const RentalsPage: React.FC = () => {
 
       {/* Floating contact dock */}
       <div className="rp-dock">
-        <a className="rp-dock-btn is-call" href={`tel:${CONTACT.phone}`} aria-label={`Call Immersia on ${CONTACT.phoneDisplay}`}><PhoneIcon /></a>
-        <a className="rp-dock-btn is-wa" href={generalWa} target="_blank" rel="noopener noreferrer" aria-label="Chat with Immersia on WhatsApp"><WaIcon /></a>
+        <a className="rp-dock-btn is-call" href={`tel:${CONTACT.phone}`} onClick={() => trackRentalContact('call', 'dock')} aria-label={`Call Immersia on ${CONTACT.phoneDisplay}`}><PhoneIcon /></a>
+        <a className="rp-dock-btn is-wa" href={generalWa} target="_blank" rel="noopener noreferrer" onClick={() => trackRentalContact('whatsapp', 'dock')} aria-label="Chat with Immersia on WhatsApp"><WaIcon /></a>
       </div>
 
       {playing ? <VideoModal playing={playing} onClose={closePlayer} onNav={navPlayer} /> : null}

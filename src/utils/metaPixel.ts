@@ -14,7 +14,12 @@
 
 const BACKEND = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/+$/, '');
 
-type MetaEventName = 'PageView' | 'ViewContent' | 'AddToCart' | 'InitiateCheckout' | 'Purchase';
+type MetaEventName = 'PageView' | 'ViewContent' | 'AddToCart' | 'InitiateCheckout' | 'Purchase' | 'Contact';
+
+// The backend relay only accepts these; anything else goes browser-side only.
+const RELAYED_EVENTS: ReadonlySet<MetaEventName> = new Set<MetaEventName>([
+  'PageView', 'ViewContent', 'AddToCart', 'InitiateCheckout', 'Purchase',
+]);
 
 export interface TrackedItem {
   id: string;
@@ -109,12 +114,42 @@ function track(
     window.fbq!('track', eventName, customData, { eventID: eventId });
   }
 
-  relayToServer(eventName, eventId, customData, identity);
+  if (RELAYED_EVENTS.has(eventName)) {
+    relayToServer(eventName, eventId, customData, identity);
+  }
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export const trackPageView = () => track('PageView');
+
+// ── Rentals (/rentals) ──────────────────────────────────────────────────────
+// No prices on the rentals page, so these carry no value — they exist to build
+// audiences ("watched the VR racing clip") and count enquiries.
+
+const RENTALS_CATEGORY = 'Rentals';
+
+/** A visitor opened a rental's video (or the showreel). */
+export const trackRentalView = (item: { id: string; name: string; category?: string }) =>
+  track('ViewContent', {
+    content_name: item.name,
+    content_ids: [item.id],
+    content_type: 'product',
+    content_category: item.category ? `${RENTALS_CATEGORY} > ${item.category}` : RENTALS_CATEGORY,
+  });
+
+/** A visitor tapped WhatsApp or Call. `source` says which button. */
+export const trackRentalContact = (
+  method: 'whatsapp' | 'call',
+  source: string,
+  item?: { id: string; name: string },
+) =>
+  track('Contact', {
+    content_category: RENTALS_CATEGORY,
+    contact_method: method,
+    contact_source: source,
+    ...(item ? { content_name: item.name, content_ids: [item.id] } : {}),
+  });
 
 export const trackAddToCart = (item: TrackedItem) =>
   track('AddToCart', {

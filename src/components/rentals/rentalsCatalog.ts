@@ -14,6 +14,19 @@ export const SHOWREEL_URL =
   (process.env.REACT_APP_RENTALS_SHOWREEL_URL || '').trim() ||
   'https://res.cloudinary.com/c6znesoe/video/upload/q_auto:eco,h_720,c_limit/v1791396790/reel.mp4';
 
+// Search / social copy. scripts/prerender-rentals.js bakes these into the static
+// build/rentals.html head, and the page re-applies them on in-app navigation.
+// Set REACT_APP_SITE_URL when the site moves to its own domain.
+export const SITE_URL = ((process.env.REACT_APP_SITE_URL || '').trim() || 'https://immersia-pos.netlify.app')
+  .replace(/\/+$/, '');
+export const SEO = {
+  path: '/rentals',
+  title: 'VR, Photo Booth & Party Rentals in Lagos | Immersia Rentals',
+  description:
+    'Rent VR headsets, racing simulators, holograms, 360 & AI photo booths, arcade games, go-karts and kids rides for events in Lagos. Watch each one in action and book on WhatsApp.',
+  ogImage: '/img/rentals/og-rentals.jpg',
+};
+
 // Local 0813 701 3560 — wa.me needs it in international form without the '+'.
 export const CONTACT = {
   whatsapp: '2348137013560',
