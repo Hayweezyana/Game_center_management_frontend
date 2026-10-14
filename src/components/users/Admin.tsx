@@ -73,9 +73,9 @@ const GAME_CATEGORIES = ['Scary', 'Roam Free', 'Adventure', 'Sports', 'Wheels', 
 
 interface Drink {
   id: string;
-  name: string;
+  title: string;
   price: number;
-  stock: number;
+  quantity: number;
 }
 
 interface ConsumedGameRecord {
@@ -922,11 +922,13 @@ const Admin: React.FC = () => {
 
   const handleUpdateGame = async (id: string) => {
     const updates = updatedGameFields[id];
-    if (!updates || Object.keys(updates).length === 0) return;
+    if (!updates || Object.keys(updates).length === 0) { alert('No changes to save'); return; }
     try {
-      await axios.put(`${BACKEND}/v1/admin/games/${id}`, updates);
-      setGames(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
+      const res = await axios.put<{ status: boolean; data: Game }>(`${BACKEND}/v1/admin/games/${id}`, updates);
+      const saved = res.data?.data ?? updates;
+      setGames(prev => prev.map(g => g.id === id ? { ...g, ...saved } : g));
       setUpdatedGameFields(prev => { const n = { ...prev }; delete n[id]; return n; });
+      alert('Game updated');
     } catch (e) { alert('Failed to update game'); }
   };
 
@@ -935,8 +937,8 @@ const Admin: React.FC = () => {
       alert('Fill all fields with valid values'); return;
     }
     try {
-      const res = await axios.post(`${BACKEND}/v1/admin/games`, newGame);
-      setGames(prev => [...prev, res.data as Game]);
+      const res = await axios.post<{ status: boolean; data: Game }>(`${BACKEND}/v1/admin/games`, newGame);
+      setGames(prev => [...prev, res.data.data]);
       setNewGame({ title: '', price: 0, url: '', time_slot: 0 });
     } catch { alert('Failed to add game'); }
   };
@@ -1230,10 +1232,10 @@ const Admin: React.FC = () => {
             ? <tr><td colSpan={4} className="no-data">No drinks found.</td></tr>
             : drinks.map(d => (
               <tr key={d.id}>
-                <td>{d.name}</td>
+                <td>{d.title}</td>
                 <td>₦{d.price?.toLocaleString()}</td>
-                <td>{d.stock}</td>
-                <td>{drinkStatus(d.stock)}</td>
+                <td>{d.quantity ?? 0}</td>
+                <td>{drinkStatus(Number(d.quantity ?? 0))}</td>
               </tr>
             ))}
         </tbody>

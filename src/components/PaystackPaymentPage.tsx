@@ -57,6 +57,30 @@ const PaystackPaymentPage: React.FC = () => {
     publicKey: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY!,
     currency: 'NGN',
     metadata: {
+      // Paystack echoes metadata back on the webhook, so this is what lets the
+      // webhook record the sale when the customer's browser never calls /verify
+      // — a closed tab, a dead battery, a bank app that does not return.
+      ...(cartItems.length
+        ? {
+            cart: cartItems.map((it: any) => ({
+              id: it.id,
+              type: it.type,
+              title: it.title,
+              price: it.price,
+              quantity: it.quantity,
+              gameDuration: it.gameDuration,
+            })),
+            customer_phone: userDetails?.phone,
+            customer_username: userDetails?.username,
+            customer_email: userDetails?.email,
+            party_size: userDetails?.party_size,
+            heard_about_us: userDetails?.heard_about_us,
+            heard_about_us_detail: userDetails?.heard_about_us_detail,
+            discount: discountAmount,
+            discount_description:
+              discountReason === 'Others' ? customDiscountReason : discountReason,
+          }
+        : {}),
       custom_fields: [
         { display_name: 'Username', variable_name: 'username', value: userDetails?.username },
         { display_name: 'Phone',    variable_name: 'phone',    value: userDetails?.phone },

@@ -35,11 +35,27 @@ type DiscountRecord = {
   created_at: string;
 };
 
+type PaymentBreakdown = {
+  cash: number;
+  moniepoint: number;
+  paystack: number;
+  other: number;
+  total: number;
+};
+
+type OnlineSummary = {
+  report_date: string;
+  transaction_count: number;
+  payments: PaymentBreakdown;
+  rows: { game_title: string; quantity: number; amount: number }[];
+};
+
 type ComparisonResult = {
   report: { id: string; created_by: string; staff_on_duty: string[]; locked_at: string; notes: string | null } | null;
   report_date: string;
   station: Station;
   rows: ComparisonRow[];
+  payments?: PaymentBreakdown;
   totals: {
     recorded_quantity: number;
     recorded_amount: number;
@@ -62,6 +78,63 @@ const statusBadge = (status: 'green' | 'red' | 'blue') => {
   const label = status === 'green' ? 'MATCH' : status === 'red' ? 'UNDER' : 'EXCESS';
   return <span className={cls}>{label}</span>;
 };
+
+const PaymentStrip: React.FC<{ p?: PaymentBreakdown }> = ({ p }) => {
+  const b = p || { cash: 0, moniepoint: 0, paystack: 0, other: 0, total: 0 };
+  const cells: [string, number][] = [
+    ['Cash', b.cash],
+    ['Moniepoint', b.moniepoint],
+    ['Paystack', b.paystack],
+    ...(b.other > 0 ? [['Other', b.other] as [string, number]] : []),
+    ['Total paid', b.total],
+  ];
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '12px 16px', borderTop: '1px solid #e5e7eb' }}>
+      {cells.map(([label, value]) => (
+        <div key={label} style={{ flex: '1 1 110px', background: '#f9fafb', borderRadius: 8, padding: '8px 10px' }}>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>{label}</div>
+          <div style={{ fontWeight: 700 }}>{fmt(value)}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const OnlineBlock: React.FC<{ o: OnlineSummary }> = ({ o }) => (
+  <div className="ic-card" style={{ padding: 0, overflow: 'hidden' }}>
+    <div className="ic-station-header">
+      <div>
+        <div className="ic-station-title">Online (Paystack) — {o.report_date}</div>
+        <div className="ic-station-meta">
+          {o.transaction_count} online transaction{o.transaction_count === 1 ? '' : 's'} · not tied to a station
+        </div>
+      </div>
+    </div>
+    {o.rows.length > 0 && (
+      <div className="ic-table-wrap" style={{ border: 'none', borderRadius: 0 }}>
+        <table className="ic-table ic-compare-table">
+          <thead>
+            <tr>
+              <th>Game</th>
+              <th className="num">Qty</th>
+              <th className="num">₦</th>
+            </tr>
+          </thead>
+          <tbody>
+            {o.rows.map((row) => (
+              <tr key={row.game_title}>
+                <td data-label="Game">{row.game_title}</td>
+                <td data-label="Qty" className="num">{row.quantity}</td>
+                <td data-label="₦" className="num">{fmt(row.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+    <PaymentStrip p={o.payments} />
+  </div>
+);
 
 const StationBlock: React.FC<{ r: ComparisonResult }> = ({ r }) => (
   <div className="ic-card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -130,6 +203,8 @@ const StationBlock: React.FC<{ r: ComparisonResult }> = ({ r }) => (
       </table>
     </div>
 
+    <PaymentStrip p={r.payments} />
+
     {r.discounts.length > 0 && (
       <div className="ic-discount-block">
         <div className="ic-discount-title">Discounts applied ({r.discounts.length})</div>
@@ -149,6 +224,7 @@ const InternalControlDashboard: React.FC = () => {
   const [station, setStation] = useState<Station | 'ALL'>('ALL');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ComparisonResult[]>([]);
+  const [online, setOnline] = useState<OnlineSummary | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const fetchCompare = useCallback(async () => {
@@ -163,10 +239,12 @@ const InternalControlDashboard: React.FC = () => {
         timeout: 60000,
       });
       setResults(res.data?.data || []);
+      setOnline(res.data?.online || null);
     } catch (e: any) {
       console.error(e);
       setErr(e?.response?.data?.error || e?.message || 'Failed to load comparison');
       setResults([]);
+      setOnline(null);
     } finally {
       setLoading(false);
     }
@@ -208,6 +286,8 @@ const InternalControlDashboard: React.FC = () => {
       {err && <div className="ic-banner ic-banner-error">{err}</div>}
 
       {results.map((r) => <StationBlock key={`${r.station}-${r.report_date}`} r={r} />)}
+
+      {station === 'ALL' && online && online.transaction_count > 0 && <OnlineBlock o={online} />}
 
       {!loading && results.length === 0 && (
         <div className="ic-empty">No data. Pick a date above and tap Refresh.</div>
