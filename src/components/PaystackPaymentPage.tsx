@@ -159,10 +159,35 @@ const PaystackPaymentPage: React.FC = () => {
     }
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (finalAmount <= 0) return alert('Amount must be greater than 0.');
     if (discountAmount > 0 && !discountReason) return alert('A reason is required for the discount.');
-    initializePayment({ onSuccess, onClose: () => console.log('Closed') });
+
+    // One reference per attempt, fixed here: the config above is rebuilt on
+    // every render, so its reference would not match the one saved below.
+    const reference = `immersia_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+    // Save the cart on the server before taking money, so the sale is still
+    // recorded if this tab is closed before /verify runs. No save, no popup —
+    // otherwise a payment could land with nothing to record it against.
+    setIsProcessing(true);
+    try {
+      await axios.post(`${backendUrl}/v1/payments/paystack/pending`, {
+        reference,
+        userDetails,
+        cartItems,
+        amount: finalAmount,
+        discount: discountAmount,
+        discount_description: discountReason === 'Others' ? customDiscountReason : discountReason,
+      });
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Could not start the payment. Please try again.');
+      return;
+    } finally {
+      setIsProcessing(false);
+    }
+
+    initializePayment({ onSuccess, onClose: () => console.log('Closed'), config: { ...config, reference } });
   };
 
   return (
