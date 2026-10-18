@@ -1,8 +1,9 @@
 import React from 'react';
 import './WhatsAppButton.css';
 
-// Local number 08137013560 — wa.me needs it in international form without the '+'.
-const WHATSAPP_NUMBER = '2348137013560';
+// Local number 08117027589 — wa.me needs it in international form without the '+'.
+// /rentals has its own number (rentalsCatalog.ts CONTACT) and doesn't render this button.
+const WHATSAPP_NUMBER = '2348117027589';
 const PREFILLED_MESSAGE = 'Hi Immersia! I have a question.';
 
 const WhatsAppButton: React.FC = () => {
