@@ -43,6 +43,7 @@ body {
 .content-wrapper {
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
   max-width: 1020px;
   width: calc(100% - 40px);
   margin: auto;
@@ -54,6 +55,22 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: wp-rise 0.8s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+}
+
+/* Light sweeping along the card's top edge */
+.content-wrapper::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), #9b6bff, transparent);
+  background-size: 200% 100%;
+  animation: wp-sweep 4s linear infinite;
+  opacity: 0.85;
 }
 
 .logo-container {
@@ -61,7 +78,35 @@ body {
   margin-bottom: 30px;
 }
 
+.logo-stage {
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+  animation: wp-logo-float 6s ease-in-out infinite;
+}
+
+/* Slowly turning colour halo behind the logo */
+.logo-ring {
+  position: absolute;
+  inset: -22% -12%;
+  z-index: -1;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba(0, 209, 255, 0.55),
+    transparent 30%,
+    rgba(155, 107, 255, 0.5),
+    transparent 60%,
+    rgba(255, 179, 71, 0.45),
+    transparent 85%
+  );
+  filter: blur(22px);
+  animation: wp-spin 12s linear infinite;
+}
+
 .logo {
+  position: relative;
   width: 200px;
   max-width: 72vw;
   filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
@@ -72,6 +117,12 @@ body {
   font-family: "Orbitron", sans-serif;
   font-size: clamp(2rem, 5vw, 2.9rem);
   letter-spacing: 0.04em;
+  background: linear-gradient(100deg, #edf4ff 0%, #edf4ff 38%, #7fe6ff 46%, #ffffff 50%, #c9b4ff 54%, #edf4ff 62%, #edf4ff 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: wp-shimmer 6s ease-in-out infinite;
 }
 
 .subtitle {
@@ -89,6 +140,11 @@ body {
 }
 
 .welcome-button {
+  position: relative;
+  overflow: hidden;
+  /* backwards, not both: a held end state would override the hover lift */
+  animation: wp-rise 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+  animation-delay: calc(0.25s + var(--i, 0) * 0.1s);
   border: 1px solid rgba(115, 157, 255, 0.3);
   border-radius: 14px;
   padding: 14px 16px;
@@ -110,9 +166,22 @@ body {
   box-shadow: 0 10px 24px rgba(0, 179, 255, 0.2);
 }
 
-.admin-button:hover {
-  border-color: rgba(255, 179, 71, 0.7);
-  box-shadow: 0 10px 24px rgba(255, 179, 71, 0.2);
+/* Shine that crosses the button on hover */
+.welcome-button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+.welcome-button:hover::after {
+  left: 130%;
 }
 
 .button-icon {
@@ -127,10 +196,6 @@ body {
   padding: 5px 8px;
 }
 
-.admin-button .button-icon {
-  background: linear-gradient(130deg, var(--accent-orange), #ffdca8);
-}
-
 /* Rentals — animated gradient border so the new entry point stands out */
 .rentals-button {
   position: relative;
@@ -139,7 +204,8 @@ body {
     linear-gradient(140deg, rgba(13, 26, 57, 0.97), rgba(8, 17, 39, 0.95)) padding-box,
     linear-gradient(120deg, var(--accent-cyan), #9b6bff, var(--accent-orange), var(--accent-cyan)) border-box;
   background-size: 100% 100%, 300% 100%;
-  animation: rentals-border 5s linear infinite;
+  animation: wp-rise 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) backwards, rentals-border 5s linear infinite;
+  animation-delay: calc(0.25s + var(--i, 0) * 0.1s), 0s;
 }
 
 .rentals-button:hover {
@@ -186,20 +252,374 @@ body {
   font-size: 0.88rem;
 }
 
-.welcome-footer-link {
-  display: inline-block;
-  color: inherit;
-  font-size: 0.8rem;
-  letter-spacing: 0.02em;
+/* ========================================
+   IMMERSION TECHNOLOGIES BANNER
+   Gold to match the studio's own pages at /technologies
+   ======================================== */
+
+.studio-banner {
+  --gold: #e0ae45;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1.5px solid transparent;
+  color: var(--text-main);
   text-decoration: none;
-  border-bottom: 1px solid rgba(134, 166, 219, 0.4);
-  padding-bottom: 1px;
+  background:
+    linear-gradient(140deg, rgba(30, 23, 8, 0.97), rgba(10, 13, 24, 0.97)) padding-box,
+    linear-gradient(120deg, var(--gold), #fff1c7, var(--gold) 40%, #8f660a 60%, var(--gold)) border-box;
+  background-size: 100% 100%, 300% 100%;
+  animation: wp-rise 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) backwards 0.6s, studio-border 6s linear infinite;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.welcome-footer-link:hover,
-.welcome-footer-link:focus-visible {
-  color: #ffffff;
-  border-bottom-color: currentColor;
+.studio-banner:hover,
+.studio-banner:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(224, 174, 69, 0.25);
+  outline: none;
+}
+
+/* Periodic glint across the banner */
+.studio-banner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 30%;
+  background: linear-gradient(100deg, transparent, rgba(255, 236, 190, 0.16), transparent);
+  transform: skewX(-20deg);
+  animation: studio-glint 4.5s ease-in-out infinite 1.5s;
+  pointer-events: none;
+}
+
+.studio-banner-glyph {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  font-family: "Orbitron", sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  color: #12151c;
+  background: linear-gradient(140deg, #f1c468, var(--gold) 55%, #b98a17);
+  animation: studio-pulse 2.6s ease-out infinite;
+}
+
+.studio-banner-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.studio-banner-kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.studio-banner-copy strong {
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(1.02rem, 2.4vw, 1.22rem);
+  letter-spacing: 0.03em;
+}
+
+.studio-banner-sub {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.studio-banner-cta {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #12151c;
+  background: var(--gold);
+}
+
+.studio-banner-cta span {
+  display: inline-block;
+  animation: studio-nudge 1.6s ease-in-out infinite;
+}
+
+@media (max-width: 560px) {
+  .studio-banner {
+    flex-wrap: wrap;
+    padding: 14px 16px;
+  }
+
+  .studio-banner-copy {
+    flex: 1 1 0;
+  }
+
+  .studio-banner-cta {
+    box-sizing: border-box;
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+}
+
+/* ========================================
+   BACKGROUND GRAPHICS
+   Aurora glows, a moving grid floor, sparks and floating game icons.
+   All aria-hidden and pointer-events: none.
+   ======================================== */
+
+.wp-decor {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.wp-aurora {
+  position: absolute;
+  width: 44vmax;
+  height: 44vmax;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: wp-drift 22s ease-in-out infinite alternate;
+}
+
+.wp-aurora--1 {
+  top: -18vmax;
+  left: -12vmax;
+  background: radial-gradient(circle, rgba(0, 209, 255, 0.9), transparent 65%);
+}
+
+.wp-aurora--2 {
+  top: -10vmax;
+  right: -16vmax;
+  background: radial-gradient(circle, rgba(155, 107, 255, 0.85), transparent 65%);
+  animation-duration: 27s;
+  animation-direction: alternate-reverse;
+}
+
+.wp-aurora--3 {
+  bottom: -24vmax;
+  left: 22%;
+  background: radial-gradient(circle, rgba(255, 179, 71, 0.6), transparent 65%);
+  animation-duration: 31s;
+}
+
+/* Synthwave floor receding toward the horizon */
+.wp-floor {
+  position: absolute;
+  left: -50%;
+  right: -50%;
+  bottom: -6%;
+  height: 50%;
+  background-image:
+    linear-gradient(rgba(0, 209, 255, 0.32) 1.5px, transparent 1.5px),
+    linear-gradient(90deg, rgba(0, 209, 255, 0.32) 1.5px, transparent 1.5px);
+  background-size: 64px 64px;
+  transform: perspective(420px) rotateX(62deg);
+  transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(to top, #000 15%, transparent 88%);
+  mask-image: linear-gradient(to top, #000 15%, transparent 88%);
+  animation: wp-floor 2.4s linear infinite;
+}
+
+.wp-spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #bff3ff;
+  box-shadow: 0 0 10px 2px rgba(0, 209, 255, 0.7);
+  opacity: 0;
+  animation: wp-spark 7s ease-in-out infinite;
+}
+
+.wp-spark--1  { left: 6%;  top: 30%; animation-delay: -0.5s; }
+.wp-spark--2  { left: 14%; top: 72%; animation-delay: -3s; }
+.wp-spark--3  { left: 22%; top: 12%; animation-delay: -5.5s; }
+.wp-spark--4  { left: 31%; top: 86%; animation-delay: -1.8s; }
+.wp-spark--5  { left: 40%; top: 6%;  animation-delay: -4.2s; }
+.wp-spark--6  { left: 49%; top: 92%; animation-delay: -6.1s; }
+.wp-spark--7  { left: 58%; top: 18%; animation-delay: -2.4s; }
+.wp-spark--8  { left: 66%; top: 80%; animation-delay: -0.9s; }
+.wp-spark--9  { left: 74%; top: 9%;  animation-delay: -5s; }
+.wp-spark--10 { left: 82%; top: 64%; animation-delay: -3.6s; }
+.wp-spark--11 { left: 90%; top: 34%; animation-delay: -1.2s; }
+.wp-spark--12 { left: 95%; top: 84%; animation-delay: -4.8s; }
+.wp-spark--13 { left: 3%;  top: 90%; animation-delay: -2.9s; }
+.wp-spark--14 { left: 86%; top: 22%; animation-delay: -6.5s; }
+
+.wp-spark--3,
+.wp-spark--8,
+.wp-spark--12 {
+  background: #ffe2b0;
+  box-shadow: 0 0 10px 2px rgba(255, 179, 71, 0.7);
+}
+
+.wp-spark--5,
+.wp-spark--10 {
+  background: #e2d4ff;
+  box-shadow: 0 0 10px 2px rgba(155, 107, 255, 0.7);
+}
+
+.wp-float {
+  position: absolute;
+  display: block;
+  width: 84px;
+  opacity: 0.55;
+  filter: drop-shadow(0 0 12px currentColor);
+  animation: wp-bob 9s ease-in-out infinite;
+}
+
+.wp-float svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.wp-float--a { left: 5%;   top: 12%;    width: 104px; color: var(--accent-cyan); --r: -12deg; }
+.wp-float--b { right: 6%;  top: 16%;    width: 96px;  color: var(--accent-orange); --r: 10deg; animation-duration: 11s; animation-delay: -3s; }
+.wp-float--c { left: 8%;   bottom: 14%; width: 62px;  color: #9b6bff; --r: 8deg; animation-duration: 10s; animation-delay: -6s; }
+.wp-float--d { right: 9%;  bottom: 18%; width: 64px;  color: #ffd77f; --r: -6deg; animation-duration: 8s; animation-delay: -2s; }
+.wp-float--e { right: 24%; top: 4%;     width: 50px;  color: #7fe6ff; --r: 14deg; animation-duration: 12s; animation-delay: -5s; }
+.wp-float--f { left: 24%;  bottom: 5%;  width: 42px;  color: var(--accent-cyan); --r: -10deg; animation-duration: 9.5s; animation-delay: -7s; }
+
+/* Holiday themes bring their own decorations — let them lead */
+body.eid-theme .wp-decor,
+body.easter-theme .wp-decor,
+body.independence-theme .wp-decor {
+  opacity: 0.4;
+}
+
+@media (max-width: 760px) {
+  .wp-float {
+    opacity: 0.3;
+  }
+
+  .wp-float--a { width: 70px; top: 3%; left: 3%; }
+  .wp-float--b { width: 64px; top: 5%; right: 3%; }
+  .wp-float--c,
+  .wp-float--e,
+  .wp-float--f {
+    display: none;
+  }
+}
+
+/* ---- Keyframes ---- */
+
+@keyframes wp-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wp-sweep {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+@keyframes wp-logo-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+@keyframes wp-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes wp-shimmer {
+  0%, 15%  { background-position: 100% 0; }
+  65%, 100% { background-position: 0% 0; }
+}
+
+@keyframes wp-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(6vmax, 4vmax) scale(1.12); }
+  100% { transform: translate(-4vmax, 7vmax) scale(0.95); }
+}
+
+@keyframes wp-floor {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 64px, 0 0; }
+}
+
+@keyframes wp-spark {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(0.6); }
+  20%      { opacity: 1; transform: translateY(-6px) scale(1); }
+  60%      { opacity: 0.6; transform: translateY(-22px) scale(0.9); }
+  80%      { opacity: 0; transform: translateY(-30px) scale(0.6); }
+}
+
+@keyframes wp-bob {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50%      { transform: translateY(-16px) rotate(calc(var(--r, 0deg) * -1)); }
+}
+
+@keyframes studio-border {
+  to { background-position: 0 0, 300% 0; }
+}
+
+@keyframes studio-glint {
+  0%, 55%  { left: -40%; }
+  100%     { left: 140%; }
+}
+
+@keyframes studio-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(224, 174, 69, 0.55); }
+  70%  { box-shadow: 0 0 0 12px rgba(224, 174, 69, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(224, 174, 69, 0); }
+}
+
+@keyframes studio-nudge {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content-wrapper,
+  .content-wrapper::before,
+  .logo-stage,
+  .logo-ring,
+  .title,
+  .welcome-button,
+  .studio-banner,
+  .studio-banner::after,
+  .studio-banner-glyph,
+  .studio-banner-cta span,
+  .wp-aurora,
+  .wp-floor,
+  .wp-spark,
+  .wp-float {
+    animation: none;
+  }
+
+  .wp-spark {
+    opacity: 0.6;
+  }
 }
 
 /* ========================================
@@ -418,8 +838,7 @@ body.independence-theme .welcome-button:hover {
   box-shadow: 0 10px 24px rgba(0, 135, 81, 0.35);
 }
 
-body.independence-theme .button-icon,
-body.independence-theme .admin-button .button-icon {
+body.independence-theme .button-icon {
   background: linear-gradient(90deg, #008751 0 33%, #ffffff 33% 67%, #008751 67% 100%);
   color: #01160d;
   text-shadow: 0 0 3px rgba(255, 255, 255, 0.9);
