@@ -1,3 +1,7 @@
 # Prerendered rentals page (scripts/prerender-rentals.js) — must come before the SPA fallback
 /rentals  /rentals.html  200
+# Immersion Technologies (scripts/build-technologies.js) — static pages, separate from the app.
+# Real files (css, js, screenshots) are served as-is; these only map the clean URLs.
+/technologies         /technologies/index.html        200
+/technologies/:slug   /technologies/:slug/index.html  200
 /* /index.html 200

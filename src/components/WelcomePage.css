@@ -186,6 +186,22 @@ body {
   font-size: 0.88rem;
 }
 
+.welcome-footer-link {
+  display: inline-block;
+  color: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(134, 166, 219, 0.4);
+  padding-bottom: 1px;
+}
+
+.welcome-footer-link:hover,
+.welcome-footer-link:focus-visible {
+  color: #ffffff;
+  border-bottom-color: currentColor;
+}
+
 /* ========================================
    EID MUBARAK THEME OVERRIDES
    Active only when body.eid-theme is set

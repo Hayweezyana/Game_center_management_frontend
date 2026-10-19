@@ -114,6 +114,11 @@ const WelcomePage: React.FC = () => {
 
       <footer className="welcome-footer">
         <p>&copy; {currentYear} Immersia. All rights reserved.</p>
+        {/* Static pages outside the app (scripts/build-technologies.js), so a
+            full page load rather than navigate(). */}
+        <a className="welcome-footer-link" href="/technologies">
+          Immersion Technologies — our software studio →
+        </a>
       </footer>
     </div>
   );
