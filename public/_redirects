@@ -4,4 +4,6 @@
 # Real files (css, js, screenshots) are served as-is; these only map the clean URLs.
 /technologies         /technologies/index.html        200
 /technologies/:slug   /technologies/:slug/index.html  200
+# Marigold HMS client demo (protected build from the Marigold project) — single static page.
+/marigold             /marigold/index.html            200
 /* /index.html 200
